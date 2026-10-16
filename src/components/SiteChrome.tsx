@@ -19,6 +19,7 @@ export function SiteHeader() {
     ['How it works', '/#how'],
     ['Features', '/#features'],
     ['Pricing', '/#pricing'],
+    ['Why trust it', '/#trust'],
     ['FAQ', '/#faq'],
   ]
   return (

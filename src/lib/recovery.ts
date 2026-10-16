@@ -183,6 +183,8 @@ export function calculateRecovery(input: RecoveryInputs): RecoveryResult {
     }
     if (recommended.basis === 'estimate') {
       explanation += ' This is based on your estimates, not a confirmed offer.'
+    } else if (recommended.basis === 'ai') {
+      explanation += ' This uses AI-suggested estimates — check them against your real channel prices before acting.'
     } else {
       explanation += ' The recommended route uses a third-party quote you recorded.'
     }

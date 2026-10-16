@@ -13,7 +13,7 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 | Area | What it does |
 |---|---|
 | **Landing page** | Hero, problem, 4-step how-it-works, feature previews driven by the real calculator, benefits & use cases, demo entry, pricing, FAQ, contact form (Netlify Forms), privacy / terms / refund pages, Log in and Launch app buttons. |
-| **Demo workspace** (`/demo`) | 10 clearly labelled fictional returns, stored only in the visitor’s browser and fully separate from real accounts. Every feature works, including a limited number of genuine AI inspections per day. Resettable. |
+| **Demo workspace** (`/demo`) | 10 clearly labelled fictional returns, stored only in the visitor’s browser and fully separate from real accounts. Browse, add, grade manually, calculate and export sample data. AI results require a free account. Resettable. |
 | **Accounts** (`/app`) | Email + password sign-up / sign-in / reset (Supabase Auth). Each workspace is isolated by Postgres Row Level Security; photos live in a private Storage bucket served via short-lived signed URLs. |
 | **Dashboard** | Totals, awaiting inspection, inspected, estimated recoverable value, realized proceeds, pipeline status, routes selected, weekly intake, next-up list, top findings — all calculated from stored records. |
 | **Add / edit a return** | Name, SKU, category, original price, reason, condition notes, up to 4 photos, sunk return shipping, and per-route estimates (resale, refurb resale & cost, channel fee %, handling, liquidation price & fee, recycling value & cost) with “estimate vs third-party quote” labels. Inline validation. |
@@ -25,8 +25,16 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 
 ### Plans
 
-| | Free | Pro (₹999 / month, configurable) |
-|---|---|---|
+| | Demo (no sign-up) | 14-day free trial (no card) | Pro (₹999 / month, configurable) |
+|---|---|---|---|
+| Sample workspace, calculator, manual grading | ✓ | ✓ | ✓ |
+| AI photo inspection + AI-suggested values | — (sign in required) | up to 100 | fair use 300 / 30 days |
+| Returns stored | in browser only | unlimited | unlimited |
+| AI insight summary, CSV export | — | ✓ | ✓ |
+
+After the trial without Pro, records stay; manual grading and the calculator keep working (up to 15 returns); AI and exports need Pro. The trial length is `TRIAL_DAYS` (server) / `VITE_TRIAL_DAYS` (display) — keep the 14-day value in `supabase/schema.sql` in sync if you change it.
+
+---|---|---|
 | Demo workspace | ✓ | ✓ |
 | Own workspace | up to 15 returns (enforced by a DB trigger) | unlimited |
 | AI inspection | 3 trial inspections | fair use 300 / 30 days |

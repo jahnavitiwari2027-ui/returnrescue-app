@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, Info, Trash2 } from 'lucide-react'
+import { ArrowLeft, Camera, ChevronDown, Info, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Alert, Button, Card, CardHeader, Field, Input, MoneyInput, PageHeader, Select, Spinner, Textarea } from '../components/ui'
@@ -52,6 +52,18 @@ function toForm(input: ReturnInput): FormState {
   return f
 }
 
+const FIELD_ROUTE: Record<string, RouteKey> = {
+  resale_price: 'restock',
+  refurb_resale_price: 'refurbish',
+  refurb_cost: 'refurbish',
+  liquidation_price: 'liquidate',
+  liquidation_fee: 'liquidate',
+  recycling_value: 'recycle',
+  recycling_cost: 'recycle',
+}
+
+const autoSku = () => `RR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+
 interface PendingPhoto {
   file: File
   preview: string
@@ -84,7 +96,13 @@ export default function ReturnFormPage() {
   useEffect(() => () => pending.forEach((p) => URL.revokeObjectURL(p.preview)), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
-    setForm((f) => ({ ...f, [k]: v }))
+    setForm((f) => {
+      const next = { ...f, [k]: v }
+      // Editing an AI-suggested value makes it the user's own estimate.
+      const route = FIELD_ROUTE[k as string]
+      if (route && f.value_basis[route] === 'ai') next.value_basis = { ...f.value_basis, [route]: 'estimate' }
+      return next
+    })
     setErrors((e) => ({ ...e, [k]: undefined }))
   }
   const setBasis = (route: RouteKey, b: ValueBasis) => setForm((f) => ({ ...f, value_basis: { ...f.value_basis, [route]: b } }))
@@ -123,8 +141,7 @@ export default function ReturnFormPage() {
     const e: Record<string, string> = {}
     if (!form.name.trim()) e.name = 'Enter the product name.'
     else if (form.name.length > 200) e.name = 'Keep the name under 200 characters.'
-    if (!form.sku.trim()) e.sku = 'Enter the SKU.'
-    else if (!/^[A-Za-z0-9][A-Za-z0-9\-_./]{0,79}$/.test(form.sku.trim())) e.sku = 'Use letters, numbers, - _ . / only.'
+    if (form.sku.trim() && !/^[A-Za-z0-9][A-Za-z0-9\-_./]{0,79}$/.test(form.sku.trim())) e.sku = 'Use letters, numbers, - _ . / only.'
     const op = Number(form.original_price)
     if (!form.original_price || !Number.isFinite(op) || op <= 0) e.original_price = 'Enter the original selling price (more than ₹0).'
     for (const k of NUM_KEYS) {
@@ -155,7 +172,7 @@ export default function ReturnFormPage() {
       const payload: ReturnInput = {
         ...(form as unknown as ReturnInput),
         name: form.name.trim(),
-        sku: form.sku.trim().toUpperCase(),
+        sku: (form.sku.trim() || autoSku()).toUpperCase(),
         seal_intact: hygiene ? form.seal_intact : false,
         photos: [...form.photos, ...uploaded],
       }
@@ -204,7 +221,7 @@ export default function ReturnFormPage() {
 
   const basisToggle = (route: RouteKey) => (
     <div className="flex rounded-lg bg-paper-2 p-0.5 text-xs" role="radiogroup" aria-label="Value basis">
-      {(['estimate', 'quote'] as ValueBasis[]).map((b) => (
+      {((form.value_basis[route] === 'ai' ? ['ai', 'estimate', 'quote'] : ['estimate', 'quote']) as ValueBasis[]).map((b) => (
         <button
           type="button"
           key={b}
@@ -213,7 +230,7 @@ export default function ReturnFormPage() {
           onClick={() => setBasis(route, b)}
           className={`rounded-md px-2 py-1 font-medium transition ${(form.value_basis[route] ?? 'estimate') === b ? 'bg-white shadow-sm' : 'text-muted'}`}
         >
-          {b === 'estimate' ? 'My estimate' : 'Third-party quote'}
+          {b === 'estimate' ? 'My estimate' : b === 'quote' ? 'Third-party quote' : 'AI estimate'}
         </button>
       ))}
     </div>
@@ -226,7 +243,7 @@ export default function ReturnFormPage() {
       </Link>
       <PageHeader
         title={editing ? 'Edit return' : 'Add a return'}
-        subtitle={editing ? 'Update product details, photos or recovery estimates.' : 'Record the returned product, attach photos, and add your recovery estimates.'}
+        subtitle={editing ? 'Update product details, photos or recovery estimates.' : 'Just a photo, name, category and price — the AI inspects the item and suggests recovery values.'}
       />
 
       <form onSubmit={onSubmit} noValidate className="grid gap-4 lg:grid-cols-3">
@@ -237,9 +254,6 @@ export default function ReturnFormPage() {
               <Field label="Product name" error={errors.name} required className="sm:col-span-2">
                 {(fid, d) => <Input id={fid} aria-describedby={d} value={form.name} onChange={(e) => set('name', e.target.value)} invalid={!!errors.name} placeholder="e.g. Classic white cotton shirt" />}
               </Field>
-              <Field label="SKU" error={errors.sku} required>
-                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.sku} onChange={(e) => set('sku', e.target.value)} invalid={!!errors.sku} placeholder="e.g. TOP-WHT-M-001" className="font-mono uppercase" />}
-              </Field>
               <Field label="Category" required>
                 {(fid) => (
                   <Select id={fid} value={form.category} onChange={(e) => set('category', e.target.value as Category)}>
@@ -248,13 +262,22 @@ export default function ReturnFormPage() {
                 )}
               </Field>
               {num('original_price', 'Original selling price', 'What the customer paid (per unit).')}
-              {num('return_shipping_cost', 'Return shipping already paid', 'Sunk cost — shown for P&L, excluded from the decision.')}
             </div>
           </Card>
 
           <Card>
-            <CardHeader title="Return details" />
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <details open={editing} className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+              <span>
+                <span className="block text-[15px] font-semibold">More details <span className="font-normal text-muted">(optional)</span></span>
+                <span className="block text-sm text-muted">SKU, return reason, notes for the AI, return shipping.</span>
+              </span>
+              <ChevronDown className="size-4 text-muted transition group-open:rotate-180" />
+            </summary>
+            <div className="grid gap-4 border-t border-line p-5 sm:grid-cols-2">
+              <Field label="SKU" error={errors.sku} hint="Leave blank to auto-generate one.">
+                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.sku} onChange={(e) => set('sku', e.target.value)} invalid={!!errors.sku} placeholder="e.g. TOP-WHT-M-001" className="font-mono uppercase" />}
+              </Field>
               <Field label="Return reason" required>
                 {(fid) => (
                   <Select id={fid} value={form.return_reason} onChange={(e) => set('return_reason', e.target.value)}>
@@ -276,12 +299,21 @@ export default function ReturnFormPage() {
               <Field label="Condition notes" hint="What the customer said and what your team noticed. The AI reads this alongside the photos." error={errors.condition_notes} className="sm:col-span-2">
                 {(fid, d) => <Textarea id={fid} aria-describedby={d} value={form.condition_notes} onChange={(e) => set('condition_notes', e.target.value)} invalid={!!errors.condition_notes} placeholder="e.g. Tags attached, small mark near the cuff, box slightly dented." />}
               </Field>
+              {num('return_shipping_cost', 'Return shipping already paid', 'Sunk cost — shown for P&L, excluded from the decision.')}
             </div>
+            </details>
           </Card>
 
           <Card>
-            <CardHeader title="Recovery estimates" subtitle="Per unit, in ₹. Leave a route blank if it isn’t an option — it will be left out of the comparison." />
-            <div className="space-y-5 p-5">
+            <details open={editing} className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+              <span>
+                <span className="block text-[15px] font-semibold">Recovery estimates <span className="font-normal text-muted">(optional)</span></span>
+                <span className="block text-sm text-muted">Leave blank and the AI suggests them from the photos. Enter your own if you know your real prices.</span>
+              </span>
+              <ChevronDown className="size-4 shrink-0 text-muted transition group-open:rotate-180" />
+            </summary>
+            <div className="space-y-5 border-t border-line p-5">
               <fieldset className="grid gap-4 sm:grid-cols-2">
                 <legend className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
                   Selling (applies to restock and refurbish)
@@ -324,6 +356,7 @@ export default function ReturnFormPage() {
                 <Alert key={w} tone="warning" icon={<Info className="size-4" />}>{w}</Alert>
               ))}
             </div>
+            </details>
           </Card>
         </div>
 
@@ -390,7 +423,7 @@ export default function ReturnFormPage() {
               <Button type="submit" size="lg" className="w-full" loading={saving}>
                 {editing ? 'Save changes' : 'Save return'}
               </Button>
-              <p className="text-center text-xs text-muted">{editing ? 'Recorded decisions keep the values they were made with.' : 'Next: run AI inspection and compare routes.'}</p>
+              <p className="text-center text-xs text-muted">{editing ? 'Recorded decisions keep the values they were made with.' : 'AI inspection starts automatically after saving.'}</p>
             </div>
           </Card>
         </div>

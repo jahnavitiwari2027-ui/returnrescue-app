@@ -37,7 +37,7 @@ type SortKey = 'newest' | 'oldest' | 'value' | 'name'
 
 export default function InventoryPage() {
   const { items, loading, error, base, mode, remove } = useWorkspace()
-  const { isPro } = useAuth()
+  const { hasAccess } = useAuth()
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
@@ -92,7 +92,7 @@ export default function InventoryPage() {
       downloadBlob(new Blob([returnsToCsv(rows.map((r) => r.item))], { type: 'text/csv;charset=utf-8' }), `returnrescue-demo-${stamp}.csv`)
       return
     }
-    if (!isPro) {
+    if (!hasAccess) {
       setUpsell(true)
       return
     }
@@ -340,7 +340,7 @@ export default function InventoryPage() {
           </>
         }
       >
-        <p className="text-sm text-ink-2">Upgrade to export your full inventory, decisions and realized values as a spreadsheet. You can still try export on the demo workspace.</p>
+        <p className="text-sm text-ink-2">Your free trial has ended. Upgrade to export your full inventory, decisions and realized values as a spreadsheet.</p>
       </Modal>
     </>
   )

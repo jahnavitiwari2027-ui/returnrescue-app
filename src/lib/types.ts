@@ -79,9 +79,24 @@ export interface AIInspection {
   limitations: string[]
   recommended_physical_checks: string[]
   eligible_routes: RouteKey[]
+  /** Rough recovery values suggested by the AI (INR, per unit). Always editable; labelled as AI estimates. */
+  suggested_estimates?: SuggestedEstimates | null
 }
 
-export type ValueBasis = 'estimate' | 'quote'
+export interface SuggestedEstimates {
+  resale_price: number
+  refurb_resale_price: number
+  refurb_cost: number
+  liquidation_price: number
+  liquidation_fee: number
+  recycling_value: number
+  recycling_cost: number
+  selling_fee_pct: number
+  handling_cost: number
+  rationale: string
+}
+
+export type ValueBasis = 'estimate' | 'quote' | 'ai'
 
 export interface ReturnItem {
   id: string

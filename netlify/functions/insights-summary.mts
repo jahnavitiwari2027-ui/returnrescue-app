@@ -2,15 +2,14 @@
 // workspace's computed statistics. For accounts, stats are recomputed here from
 // the database rather than trusted from the browser.
 
-import type { Config, Context } from '@netlify/functions'
+import type { Config } from '@netlify/functions'
 import { computeStats, type WorkspaceStats } from '../../src/lib/insights'
 import { aiErrorResponse, aiModel, aiProvider, generateText } from './_shared/ai'
 import { fail, json, readJson } from './_shared/http'
 import { normalizeRow } from './_shared/rows'
-import { takeDemoQuota } from './_shared/rateLimit'
-import { getAdmin, getEntitlement, getUser, isProRow, recordUsage, supabaseConfigured } from './_shared/supabaseAdmin'
+import { getAccess, getAdmin, getUser, recordUsage, supabaseConfigured, trialDays } from './_shared/supabaseAdmin'
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request) => {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Use POST.')
   if (!aiProvider()) return fail(503, 'AI_NOT_CONFIGURED', 'AI summaries are not configured on this deployment yet. No summary was generated.')
   const body = await readJson<{ mode?: string; stats?: WorkspaceStats }>(req, 100_000)
@@ -22,17 +21,13 @@ export default async (req: Request, context: Context) => {
     if (!supabaseConfigured()) return fail(503, 'NOT_CONFIGURED', 'Accounts are not configured.')
     const user = await getUser(req)
     if (!user) return fail(401, 'AUTH', 'Please sign in again.')
-    if (!isProRow(await getEntitlement(user.id))) return fail(402, 'PRO_REQUIRED', 'AI summaries are part of ReturnRescue Pro.')
+    if (!(await getAccess(user)).allowed) return fail(402, 'PRO_REQUIRED', 'Your free trial has ended. AI summaries are part of ReturnRescue Pro.')
     userId = user.id
     const { data, error } = await getAdmin().from('returns').select('*').eq('user_id', user.id).limit(5000)
     if (error) return fail(500, 'DB', 'Could not read your records.')
     stats = computeStats((data ?? []).map(normalizeRow))
   } else {
-    const s = body.stats
-    if (!s || typeof s.total !== 'number' || !Array.isArray(s.byCategory)) return fail(400, 'BAD_REQUEST', 'Missing statistics.')
-    const quota = await takeDemoQuota('insights', context.ip || 'unknown', 3, 150).catch(() => ({ ok: true as const }))
-    if (!quota.ok) return fail(429, 'DEMO_LIMIT', 'The demo allows 3 AI summaries per day.')
-    stats = s
+    return fail(401, 'SIGN_IN_REQUIRED', `Create a free account to generate AI summaries — ${trialDays()}-day free trial, no card needed.`)
   }
   if (!stats.total) return fail(400, 'EMPTY', 'There are no records to summarise yet.')
 

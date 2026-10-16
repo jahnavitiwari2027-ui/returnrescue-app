@@ -9,7 +9,7 @@ import { useWorkspace } from '../context/WorkspaceContext'
 
 export default function AppLayout() {
   const { mode, base, resetDemo } = useWorkspace()
-  const { user, isPro, signOut } = useAuth()
+  const { user, isPro, inTrial, trialDaysLeft, signOut } = useAuth()
   const navigate = useNavigate()
   const [confirmReset, setConfirmReset] = useState(false)
 
@@ -46,7 +46,7 @@ export default function AppLayout() {
           ) : (
             <p className="mt-0.5 flex items-center gap-2 text-sm font-medium">
               <span className="truncate">{user?.email}</span>
-              <Badge tone={isPro ? 'brand' : 'neutral'}>{isPro ? 'Pro' : 'Free'}</Badge>
+              <Badge tone={isPro || inTrial ? 'brand' : 'neutral'}>{isPro ? 'Pro' : inTrial ? `Trial · ${trialDaysLeft}d left` : 'Trial ended'}</Badge>
             </p>
           )}
         </div>

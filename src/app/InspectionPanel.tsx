@@ -1,12 +1,13 @@
 import { AlertTriangle, Camera, CheckCircle2, ClipboardCheck, Cpu, Eye, Pencil, RefreshCw, ScanSearch, ShieldAlert, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Badge, Button, Card, CardHeader, Field, GradeBadge, Modal, Select, Textarea } from '../components/ui'
 import { LIMITS } from '../config'
 import { useAuth } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { api, ApiError } from '../lib/api'
-import { shortDate } from '../lib/format'
+import { inr, shortDate } from '../lib/format'
+import { aiEstimatePatch } from '../lib/aiEstimates'
 import { imageForInspection } from '../lib/image'
 import {
   DEFECT_LABEL,
@@ -21,9 +22,9 @@ import {
   type ReturnItem,
 } from '../lib/types'
 
-export default function InspectionPanel({ item }: { item: ReturnItem }) {
+export default function InspectionPanel({ item, autoRun = false }: { item: ReturnItem; autoRun?: boolean }) {
   const { repo, update, base, mode } = useWorkspace()
-  const { isPro, aiInspectionsUsed, refresh } = useAuth()
+  const { isPro, inTrial, hasAccess, trialDaysLeft, aiInspectionsUsed, refresh } = useAuth()
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<{ text: string; upgrade?: boolean } | null>(null)
   const [gradeModal, setGradeModal] = useState<null | 'correct' | 'manual'>(null)
@@ -53,11 +54,13 @@ export default function InspectionPanel({ item }: { item: ReturnItem }) {
           original_price: item.original_price,
         },
       })
-      await update(item.id, { ai_inspection: inspection })
+      // Fill any recovery values the user left blank with the AI's suggestions (labelled as AI estimates).
+      const fill = inspection.suggested_estimates ? aiEstimatePatch(item, inspection.suggested_estimates, false) : {}
+      await update(item.id, { ai_inspection: inspection, ...fill })
       if (mode === 'account') refresh()
     } catch (e) {
       if (e instanceof ApiError) {
-        setError({ text: e.message, upgrade: e.code === 'TRIAL_EXHAUSTED' || e.code === 'PRO_REQUIRED' })
+        setError({ text: e.message, upgrade: ['TRIAL_ENDED', 'TRIAL_LIMIT', 'PRO_REQUIRED'].includes(e.code) })
       } else setError({ text: (e as Error).message })
     } finally {
       setRunning(false)
@@ -80,7 +83,29 @@ export default function InspectionPanel({ item }: { item: ReturnItem }) {
     }
   }
 
-  const trialLeft = Math.max(0, LIMITS.freeAiInspections - aiInspectionsUsed)
+  const trialLeft = Math.max(0, LIMITS.trialAiInspections - aiInspectionsUsed)
+  const canRunAI = mode === 'account' && hasAccess
+
+  // Start automatically right after a new return is saved with photos.
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (autoRun && canRunAI && !autoStarted.current && !ai && item.photos.length && !item.grade) {
+      autoStarted.current = true
+      run()
+    }
+  }, [autoRun]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sug = ai?.suggested_estimates
+  const usingAll = !!sug && (['restock', 'refurbish', 'liquidate', 'recycle'] as const).every((r) => item.value_basis[r] === 'ai' || item.value_basis[r] === 'quote')
+  const applyEstimates = async () => {
+    if (!sug) return
+    setSaving(true)
+    try {
+      await update(item.id, aiEstimatePatch(item, sug, true))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <Card as="section">
@@ -210,6 +235,38 @@ export default function InspectionPanel({ item }: { item: ReturnItem }) {
                 </div>
               </div>
 
+              {sug && (
+                <div className="rounded-lg border border-line p-3">
+                  <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
+                    <Sparkles className="size-3.5" /> AI-suggested recovery values (per unit)
+                  </h4>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+                    {[
+                      ['Resale as-is', inr(sug.resale_price)],
+                      ['Resale after refurb', inr(sug.refurb_resale_price)],
+                      ['Refurb cost', inr(sug.refurb_cost)],
+                      ['Liquidation', inr(sug.liquidation_price)],
+                      ['Liquidation fee', inr(sug.liquidation_fee)],
+                      ['Recycling value', inr(sug.recycling_value)],
+                      ['Recycling cost', inr(sug.recycling_cost)],
+                      ['Channel fee', `${sug.selling_fee_pct}%`],
+                      ['Handling', inr(sug.handling_cost)],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-2 sm:block">
+                        <dt className="text-xs text-muted">{k}</dt>
+                        <dd className="font-medium tabular">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="mt-2 text-xs text-muted">{sug.rationale} These are rough AI estimates, not market data or offers — edit them if you know your real prices. <a href="/#trust" className="underline">How estimates work</a></p>
+                  {!usingAll && (
+                    <Button size="sm" variant="secondary" className="mt-2" onClick={applyEstimates} loading={saving}>
+                      Use these AI values (replace mine)
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <p className="flex gap-2 text-xs text-muted">
                 <ShieldAlert className="size-4 shrink-0" />
                 Photos cannot confirm hidden defects, hygiene, odour, authenticity or safety. Treat this as a provisional grade for a person to confirm.
@@ -243,13 +300,21 @@ export default function InspectionPanel({ item }: { item: ReturnItem }) {
                 ? `The AI will look at ${Math.min(item.photos.length, LIMITS.maxPhotos)} photo${item.photos.length > 1 ? 's' : ''} and your notes, list visible defects and propose a grade with its reasoning.`
                 : 'Add clear photos of the product to run AI inspection, or grade it manually.'}
             </p>
-            {item.is_sample && item.photos[0]?.startsWith('/demo/') && (
+            {item.is_sample && item.photos[0]?.startsWith('/demo/') && mode === 'account' && (
               <p className="mx-auto mt-2 max-w-md text-xs text-amber-800">
                 This sample uses an illustration, not a real photo — the AI will likely ask for manual review. For a real test, edit the item and upload a product photo.
               </p>
             )}
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {item.photos.length ? (
+              {mode === 'demo' ? (
+                <Link to="/signup">
+                  <Button icon={<Sparkles className="size-4" />}>Start free trial to run AI</Button>
+                </Link>
+              ) : !hasAccess ? (
+                <Link to={`${base}/billing`}>
+                  <Button icon={<Sparkles className="size-4" />}>Upgrade to run AI</Button>
+                </Link>
+              ) : item.photos.length ? (
                 <Button icon={<Sparkles className="size-4" />} onClick={run} loading={running}>
                   {running ? 'Inspecting photos…' : 'Run AI inspection'}
                 </Button>
@@ -264,12 +329,19 @@ export default function InspectionPanel({ item }: { item: ReturnItem }) {
                 </Button>
               )}
             </div>
-            {mode === 'account' && !isPro && (
+            {mode === 'account' && inTrial && (
               <p className="mt-3 text-xs text-muted">
-                Free plan: {trialLeft} of {LIMITS.freeAiInspections} trial inspections left.
+                Free trial: {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left · {trialLeft} of {LIMITS.trialAiInspections} AI inspections remaining.
               </p>
             )}
-            {mode === 'demo' && <p className="mt-3 text-xs text-muted">Demo: up to {LIMITS.demoAiPerDay} genuine AI inspections per day.</p>}
+            {mode === 'account' && !hasAccess && (
+              <p className="mt-3 text-xs text-muted">Your free trial has ended. You can still grade manually and use the calculator.</p>
+            )}
+            {mode === 'demo' && (
+              <p className="mx-auto mt-3 max-w-sm text-xs text-muted">
+                The demo shows sample data only. AI results need a free account — {LIMITS.trialDays}-day free trial, no card required.
+              </p>
+            )}
           </div>
         )}
 

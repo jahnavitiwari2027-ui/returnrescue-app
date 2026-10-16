@@ -2,7 +2,7 @@ import { Check, CreditCard, ExternalLink, Loader2, ShieldCheck, Sparkles, XCircl
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, CardHeader, PageHeader } from '../components/ui'
-import { config, LIMITS, PLANS } from '../config'
+import { AFTER_TRIAL, config, LIMITS, PLANS } from '../config'
 import { useAuth } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { api } from '../lib/api'
@@ -11,7 +11,7 @@ import { inr, shortDate } from '../lib/format'
 type ReturnState = 'idle' | 'confirming' | 'confirmed' | 'pending' | 'failed'
 
 export default function BillingPage() {
-  const { entitlement, isPro, refresh, aiInspectionsUsed } = useAuth()
+  const { entitlement, isPro, inTrial, trialDaysLeft, trialEndsAt, refresh, aiInspectionsUsed } = useAuth()
   const { items } = useWorkspace()
   const [params, setParams] = useSearchParams()
   const [busy, setBusy] = useState<'checkout' | 'portal' | null>(null)
@@ -118,12 +118,22 @@ export default function BillingPage() {
               </>
             ) : (
               <>
-                <p className="text-sm text-ink-2">
-                  You’re on the free plan{entitlement && entitlement.status !== 'none' ? ` (last subscription status: ${entitlement.status.replace('_', ' ')})` : ''}.
-                </p>
+                {inTrial ? (
+                  <p className="text-sm text-ink-2">
+                    You’re on the <strong>free trial</strong> with full Pro features — <strong>{trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left</strong>
+                    {trialEndsAt && <> (ends {shortDate(trialEndsAt.toISOString())})</>}. No card needed until you choose to upgrade.
+                  </p>
+                ) : (
+                  <p className="text-sm text-ink-2">
+                    Your free trial has ended{entitlement && entitlement.status !== 'none' ? ` (last subscription status: ${entitlement.status.replace('_', ' ')})` : ''}. {AFTER_TRIAL}
+                  </p>
+                )}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Usage label="Stored returns" used={items.length} limit={LIMITS.freeItems} />
-                  <Usage label="Trial AI inspections" used={aiInspectionsUsed} limit={LIMITS.freeAiInspections} />
+                  {inTrial ? (
+                    <Usage label="Trial AI inspections" used={aiInspectionsUsed} limit={LIMITS.trialAiInspections} />
+                  ) : (
+                    <Usage label="Stored returns (free plan)" used={items.length} limit={LIMITS.freeItems} />
+                  )}
                 </div>
               </>
             )}

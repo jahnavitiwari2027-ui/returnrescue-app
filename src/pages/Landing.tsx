@@ -27,7 +27,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '../components/SiteChrome'
 import { Alert, Badge, Button, buttonClass, Field, GradeBadge, Input, Textarea } from '../components/ui'
-import { accountsEnabled, config, PLANS } from '../config'
+import { accountsEnabled, AFTER_TRIAL, config, LIMITS, PLANS } from '../config'
+import Methodology from './Methodology'
 import { buildDemoItems } from '../data/demoSeed'
 import { inr, pct } from '../lib/format'
 import { calculateRecovery } from '../lib/recovery'
@@ -162,17 +163,19 @@ const faqs: [string, ReactNode][] = [
   ['What does the AI actually do?', 'When you run an inspection, the product photos and your notes are sent to a vision-capable AI model (Google Gemini). It lists visible defects, proposes a condition grade (A, B, C or Manual review), explains why, states what it can’t tell from photos, and suggests physical checks. You accept or correct the grade — the AI never makes the final call.'],
   ['Can photos prove an item is fine to resell?', 'No. Photos can’t verify hidden defects, hygiene, odour, authenticity or safety. ReturnRescue treats every AI grade as provisional and prompts your team for the physical checks that matter, and hygiene-sensitive categories need a confirmed intact seal before restock.'],
   ['How is the recommended route chosen?', 'Not by AI. For each route the calculator subtracts the relevant fees and costs from your expected proceeds, removes routes the grade doesn’t allow, and recommends the highest estimated net. Return shipping you already paid is treated as a sunk cost so it doesn’t distort the comparison. Every line of the maths is visible.'],
-  ['Are the values guaranteed?', 'No — they are based on your estimates. You can mark a figure as a third-party quote, and once an item is sold or disposed of you record the realized amount, so estimates, quotes and actual proceeds are always kept apart.'],
+  ['Are the values guaranteed?', 'No — they are based on your own estimates or, if you leave them blank, rough AI-suggested estimates that are clearly labelled. You can mark a figure as a third-party quote, and once an item is sold or disposed of you record the realized amount, so estimates, quotes and actual proceeds are always kept apart.'],
   ['Which products are supported?', 'This first version is designed for apparel, footwear and fashion accessories, which are visually inspectable and make up a large share of D2C returns.'],
   ['Is my data private?', 'Yes. Each workspace is isolated at the database level, photos are stored in a private bucket, and payment details are handled entirely by Dodo Payments. See our privacy policy for the full list of providers.'],
   ['Can I cancel anytime?', 'Yes. Cancel from the billing page; Pro stays active until the end of the paid month and your data remains in your workspace.'],
-  ['Do I need to sign up to try it?', 'No. The demo workspace has ten fictional returns and runs in your browser. You can even run a limited number of real AI inspections there.'],
+  ['Do I need to sign up to try it?', `To browse, no — the demo workspace has ten fictional returns and runs in your browser. To get AI results on your own products, create a free account: you get a ${LIMITS.trialDays}-day free trial of everything in Pro, with no card required.`],
+  ['How are the recovery values estimated?', 'If you leave them blank, the AI suggests rough per-unit values from the original price, the product category and the condition it can see (for example, a clean unworn item keeps most of its price, a stained one is worth far less). They are labelled “AI estimate” and are a starting point, not market data. Replace them with your real channel prices or a liquidator’s quote whenever you have one — the recommendation recalculates instantly.'],
+  ['What happens when the trial ends?', AFTER_TRIAL + ' Nothing is charged unless you choose to upgrade.'],
 ]
 
 export default function Landing() {
   const steps = [
-    { icon: ClipboardList, title: 'Log the return', body: 'Product, SKU, price, reason, notes and up to four photos. Add your resale, refurbishment, liquidation and recycling estimates.' },
-    { icon: ScanSearch, title: 'AI inspects the photos', body: 'Visible defects, a proposed grade with its reasoning, stated limitations and the physical checks to do next.' },
+    { icon: ClipboardList, title: 'Log the return', body: 'A photo, the product name, category and price. Add your own resale, refurbish, liquidation and recycling values — or let the AI suggest them.' },
+    { icon: ScanSearch, title: 'AI inspects the photos', body: 'Visible defects, a proposed grade with its reasoning, rough recovery-value estimates, stated limitations and the physical checks to do next.' },
     { icon: Calculator, title: 'Compare recovery routes', body: 'A deterministic calculator shows the net value of every eligible route, line by line, and highlights the best one.' },
     { icon: Flag, title: 'Decide and track', body: 'Accept or override with a reason, then record realized proceeds. Dashboards and insights update from your records.' },
   ]
@@ -209,10 +212,10 @@ export default function Landing() {
                 Try the live demo <ArrowRight className="size-4" />
               </Link>
               <Link to={accountsEnabled ? '/signup' : '/#pricing'} className={buttonClass('secondary', 'lg')}>
-                {accountsEnabled ? 'Start free' : 'See pricing'}
+                {accountsEnabled ? `Start ${LIMITS.trialDays}-day free trial` : 'See pricing'}
               </Link>
             </div>
-            <p className="mt-4 text-sm text-muted">No sign-up needed for the demo · Free plan available · Pro {inr(config.proPriceInr)}/month</p>
+            <p className="mt-4 text-sm text-muted">{LIMITS.trialDays}-day free trial, no card · Demo without sign-up · Pro {inr(config.proPriceInr)}/month</p>
           </div>
           <div className="relative animate-rise [animation-delay:150ms]">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 via-paper to-transparent" />
@@ -372,7 +375,7 @@ export default function Landing() {
           <div className="relative grid items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
             <div>
               <h2 className="font-display text-4xl leading-tight sm:text-5xl">See it working in 30 seconds.</h2>
-              <p className="mt-3 max-w-xl text-brand-100/85">Open the demo workspace with ten fictional returns. Add your own, upload a photo, run a real AI inspection, compare routes and export the inventory — no account needed.</p>
+              <p className="mt-3 max-w-xl text-brand-100/85">Open the demo workspace with ten fictional returns — no account needed. When you’re ready to inspect your own products with AI, start the free trial in under a minute.</p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <Link to="/demo" className={buttonClass('secondary', 'lg', 'border-transparent')}>
@@ -388,7 +391,7 @@ export default function Landing() {
         <Reveal className="mx-auto max-w-2xl text-center">
           <Eyebrow>Pricing</Eyebrow>
           <h2 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">Simple, monthly, cancel anytime.</h2>
-          <p className="mt-3 text-ink-2">Start free. Upgrade when returns become a weekly workflow.</p>
+          <p className="mt-3 text-ink-2">Try everything free for {LIMITS.trialDays} days — no card. Upgrade when returns become a weekly workflow.</p>
         </Reveal>
         <div className="mx-auto mt-12 grid max-w-4xl gap-4 md:grid-cols-2">
           {PLANS.map((p, i) => (
@@ -399,7 +402,7 @@ export default function Landing() {
                 <p className="mt-1 text-sm text-muted">{p.blurb}</p>
                 <p className="mt-6 font-display text-6xl leading-none tabular">
                   {p.price ? inr(p.price) : '₹0'}
-                  <span className="font-sans text-base text-muted"> / month</span>
+                  <span className="font-sans text-base text-muted"> {p.period}</span>
                 </p>
                 <ul className="mt-6 flex-1 space-y-2.5 text-sm">
                   {p.features.map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-brand-600" />{f}</li>)}
@@ -415,9 +418,12 @@ export default function Landing() {
           ))}
         </div>
         <p className="mx-auto mt-6 max-w-xl text-center text-xs text-muted">
-          Prices in Indian rupees. Payments are processed by Dodo Payments; applicable taxes are shown at checkout. See <Link to="/refunds" className="underline">refunds & cancellation</Link>.
+          {AFTER_TRIAL} Prices in Indian rupees. Payments are processed by Dodo Payments; applicable taxes are shown at checkout. See <Link to="/refunds" className="underline">refunds & cancellation</Link>.
         </p>
       </section>
+
+      {/* Methodology & trust */}
+      <Methodology />
 
       {/* FAQ */}
       <section id="faq" className="scroll-mt-20 border-t border-line bg-white">

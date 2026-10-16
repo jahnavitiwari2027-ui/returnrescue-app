@@ -10,11 +10,11 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 
 ## Working features
 
-1. **Marketing site** — landing page with problem, 4-step workflow, live feature previews, use cases, pricing (Free / Pro ₹999 per month), FAQ, working contact form, privacy policy, terms and refund/cancellation policy.
+1. **Marketing site** — landing page with problem, 4-step workflow, live feature previews, use cases, pricing (14-day free trial with no card, then Pro ₹999 per month), a “No black boxes” methodology & trust section, FAQ, working contact form, privacy policy, terms and refund/cancellation policy.
 2. **Demo workspace** — 10 clearly labelled fictional returns, no sign-up, stored only in the visitor’s browser and separate from real accounts.
 3. **Accounts** — email sign-up/sign-in/password reset; each business’s data is isolated with database row-level security and private photo storage.
-4. **Add / edit returns** — product, SKU, category, price, reason, notes, up to 4 photos and per-route cost/value estimates, with validation.
-5. **AI product inspection (Google Gemini vision, server-side)** — observable defects, proposed grade A/B/C/Manual review, rationale, confidence, limitations, suggested physical checks and potentially eligible routes. The user accepts or corrects the grade. If the AI is unavailable, the app shows an error rather than inventing a result.
+4. **Add / edit returns** — only a photo, name, category and price are required; SKU, reason, notes and per-route estimates are optional, with validation.
+5. **AI product inspection (Google Gemini vision, server-side)** — runs automatically after saving; observable defects, proposed grade A/B/C/Manual review, rationale, confidence, limitations, suggested physical checks, potentially eligible routes and AI-suggested recovery values (clearly labelled and editable). The user accepts or corrects the grade. If the AI is unavailable, the app shows an error rather than inventing a result.
 6. **Recovery value calculator** — deterministic net value for restock, refurbish, liquidate and recycle; grade and hygiene eligibility rules; sunk costs excluded to avoid double counting; recommendation with explanation and line-by-line breakdown; manual override with reason; estimates, third-party quotes and realized proceeds kept separate.
 7. **Inventory** — search, filters, sorting, edit, delete, CSV export; changes persist.
 8. **Dashboard & insights** — totals, pipeline status, estimated recoverable value, routes chosen, weekly intake, top categories, frequent defects, best-value routes, unprocessed items, plus an AI-written briefing grounded only in the computed figures.
@@ -22,11 +22,11 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 
 ## What evaluators should test
 
-Open the site → **Try the live demo** → add a return with a real product photo → **Run AI inspection** → accept or correct the grade → compare routes and save a decision → refresh to confirm persistence → search, edit and export the inventory → view insights. To test payments, create a free account → **Plan & billing → Upgrade** → Dodo test card **4242 4242 4242 4242**, expiry **06/32**, CVV **123**.
+Open the site → explore **Try the live demo** → **Start 14-day free trial** (any email) → add a return with a real product photo → AI inspection runs automatically → accept or correct the grade → compare routes and save a decision → refresh to confirm persistence → search, edit and export the inventory → view insights. To test payments: **Plan & billing → Upgrade** → Dodo test card **4242 4242 4242 4242**, expiry **06/32**, CVV **123**.
 
 ## Access instructions
 
-No credentials needed: the demo is public, and anyone can create a free account in seconds. Payments run in Dodo test mode — no real charges. See `docs/EVALUATOR_GUIDE.md` in the repository for a step-by-step test script.
+No credentials needed: the demo is public, and anyone can start the free trial in seconds (AI results require an account). Payments run in Dodo test mode — no real charges. See `docs/EVALUATOR_GUIDE.md` in the repository for a step-by-step test script.
 
 ## Technology
 

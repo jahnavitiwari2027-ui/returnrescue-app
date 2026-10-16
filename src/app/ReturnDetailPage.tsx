@@ -116,7 +116,7 @@ export default function ReturnDetailPage() {
           </Card>
         </div>
         <div className="space-y-4 lg:col-span-2">
-          <InspectionPanel item={item} />
+          <InspectionPanel item={item} autoRun={!!params.get('new')} />
           <RecoveryPanel key={`${item.grade}-${item.decision_route}`} item={item} />
         </div>
       </div>

@@ -56,3 +56,26 @@ export async function countUsage(userId: string, kind: 'inspection' | 'insights'
 export async function recordUsage(userId: string, kind: 'inspection' | 'insights') {
   await getAdmin().from('ai_usage').insert({ user_id: userId, kind })
 }
+
+// ── Free trial: every new account gets TRIAL_DAYS of full Pro access, no card ──
+export const trialDays = () => Number(process.env.TRIAL_DAYS) || 14
+export const trialAiLimit = () => Number(process.env.TRIAL_AI_LIMIT) || 100
+
+export function trialEndsAt(user: User) {
+  return new Date(new Date(user.created_at).getTime() + trialDays() * 86_400_000)
+}
+
+export interface Access {
+  pro: boolean
+  trial: boolean
+  allowed: boolean
+  trialEndsAt: string
+}
+
+/** Paid Pro (verified by webhook) or an active free trial. */
+export async function getAccess(user: User): Promise<Access> {
+  const pro = isProRow(await getEntitlement(user.id))
+  const ends = trialEndsAt(user)
+  const trial = !pro && ends.getTime() > Date.now()
+  return { pro, trial, allowed: pro || trial, trialEndsAt: ends.toISOString() }
+}

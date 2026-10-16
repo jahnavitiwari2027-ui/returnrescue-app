@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Alert, Button, Card, CardHeader, EmptyState, LinkButton, PageHeader, Spinner } from '../components/ui'
+import { LIMITS } from '../config'
 import { useAuth } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { api, ApiError } from '../lib/api'
@@ -14,7 +15,7 @@ const tooltipStyle = { borderRadius: 12, border: '1px solid #e3e1d9', fontSize: 
 
 export default function InsightsPage() {
   const { items, loading, error, base, mode } = useWorkspace()
-  const { isPro } = useAuth()
+  const { hasAccess } = useAuth()
   const stats = useMemo(() => computeStats(items), [items])
   const findings = useMemo(() => deriveInsights(stats), [stats])
   const [summary, setSummary] = useState<{ summary: string; model: string; generated_at: string } | null>(null)
@@ -85,11 +86,15 @@ export default function InsightsPage() {
             ) : (
               <div className="my-auto text-center">
                 <p className="text-sm text-muted">
-                  {mode === 'account' && !isPro
-                    ? 'AI summaries are included with Pro.'
-                    : 'Turn these numbers into a short briefing with priorities for your team.'}
+                  {mode === 'demo'
+                    ? `AI summaries need a free account — ${LIMITS.trialDays}-day free trial, no card.`
+                    : !hasAccess
+                      ? 'Your free trial has ended. AI summaries are included with Pro.'
+                      : 'Turn these numbers into a short briefing with priorities for your team.'}
                 </p>
-                {mode === 'account' && !isPro ? (
+                {mode === 'demo' ? (
+                  <LinkButton to="/signup" className="mt-4">Start free trial</LinkButton>
+                ) : !hasAccess ? (
                   <LinkButton to={`${base}/billing`} className="mt-4">See Pro</LinkButton>
                 ) : (
                   <Button className="mt-4" icon={<Sparkles className="size-4" />} onClick={generate} loading={busy}>Generate summary</Button>

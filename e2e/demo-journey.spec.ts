@@ -8,6 +8,8 @@ test('landing page renders and links into the app', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Every return deserves')
   for (const id of ['how', 'features', 'pricing', 'faq', 'contact']) await expect(page.locator(`#${id}`)).toBeAttached()
   await expect(page.locator('#pricing')).toContainText('₹999')
+  await expect(page.locator('#pricing')).toContainText('14 days')
+  await expect(page.locator('#trust')).toContainText('No black boxes')
   await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible()
   if (shots) {
     for (let y = 0; y < 9000; y += 600) await page.mouse.wheel(0, 600).then(() => page.waitForTimeout(120))
@@ -34,9 +36,10 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.goto('/demo/returns/new')
   await page.getByRole('button', { name: 'Save return' }).click()
   await expect(page.getByText('Enter the product name.')).toBeVisible()
-  await expect(page.getByText('Enter the SKU.')).toBeVisible()
 
   await page.getByLabel('Product name').fill('E2E Test Runner Shoe')
+  await page.getByText('More details').click()
+  await page.getByText('Recovery estimates').click()
   await page.getByLabel('SKU').fill('e2e-ftw-001')
   await page.getByLabel('Category').selectOption('Footwear')
   await page.getByLabel('Original selling price').fill('3000')
@@ -60,22 +63,13 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await expect(page.getByText('E2E-FTW-001')).toBeVisible()
 
   // AI inspection: with no API key configured the app must show an error, never a made-up result
-  await page.getByRole('button', { name: 'Run AI inspection' }).click()
-  const aiOutcome = page.getByText('AI inspection didn’t run').or(page.getByText('AI inspection result'))
-  await expect(aiOutcome).toBeVisible({ timeout: 45_000 })
-  const aiRan = await page.getByText('AI inspection result').isVisible()
+  // In the demo, AI results require an account: the app offers the free trial instead of running AI.
+  await expect(page.getByRole('button', { name: 'Start free trial to run AI' })).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/inspection.png`, fullPage: true })
-
-  if (aiRan) {
-    await page.getByRole('button', { name: 'Correct grade' }).click()
-  } else {
-    await expect(page.getByText('No result was generated')).toBeVisible()
-    await page.getByRole('button', { name: 'Grade manually' }).click()
-  }
+  await page.getByRole('button', { name: 'Grade manually' }).click()
   // Grade B with a stain recorded
   await page.getByRole('radio', { name: /Grade B/ }).click()
   await page.getByRole('checkbox', { name: 'Stain' }).check()
-  if (aiRan) await page.getByLabel(/Reason for correction/).fill('Checked in hand: mark lifts with cleaning.')
   await page.getByRole('button', { name: 'Save grade' }).click()
   await expect(page.getByText(/Recorded grade: Grade B/)).toBeVisible()
 

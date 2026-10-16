@@ -16,32 +16,34 @@ export const accountsEnabled = Boolean(config.supabaseUrl && config.supabaseAnon
 
 /** Mirrors limits enforced server-side (schema.sql trigger and Netlify Functions). */
 export const LIMITS = {
+  trialDays: Number(env.VITE_TRIAL_DAYS ?? 14),
+  trialAiInspections: 100,
   freeItems: 15,
-  freeAiInspections: 3,
   proAiInspectionsPerMonth: 300,
-  demoAiPerDay: 3,
   maxPhotos: 4,
 }
 
 export const PLANS = [
   {
-    id: 'demo',
-    name: 'Free',
+    id: 'trial',
+    name: 'Free trial',
     price: 0,
-    blurb: 'Explore the workflow and try it on your own returns.',
+    period: `for ${LIMITS.trialDays} days`,
+    blurb: 'Everything in Pro. No card required — just create an account.',
     features: [
-      'Interactive demo with 10 sample returns',
-      `Your own workspace with up to ${LIMITS.freeItems} returns`,
-      `${LIMITS.freeAiInspections} AI photo inspections to try`,
-      'Recovery value calculator',
-      'Dashboard and data insights',
+      `Full Pro access for ${LIMITS.trialDays} days`,
+      `Up to ${LIMITS.trialAiInspections} AI photo inspections`,
+      'AI-suggested recovery values and grades',
+      'Unlimited returns, insights and CSV export',
+      'Keep your data if you don’t upgrade',
     ],
-    cta: 'Start free',
+    cta: 'Start free trial',
   },
   {
     id: 'pro',
     name: 'Pro',
     price: config.proPriceInr,
+    period: 'per month',
     blurb: 'For D2C teams processing returns every week.',
     features: [
       'Unlimited returns in your workspace',
@@ -53,3 +55,6 @@ export const PLANS = [
     cta: 'Upgrade to Pro',
   },
 ] as const
+
+/** What stays available after the trial without paying. */
+export const AFTER_TRIAL = `After the trial without Pro: your records stay, and you can still view them, grade manually and use the calculator (up to ${LIMITS.freeItems} returns). AI inspection, AI summaries and exports need Pro.`

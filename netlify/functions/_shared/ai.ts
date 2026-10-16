@@ -233,10 +233,11 @@ export async function generateText(opts: { system: string; user: string; maxToke
 /** Map provider errors to user-facing responses. */
 export function aiErrorResponse(e: unknown): { status: number; code: string; message: string } {
   const status = e instanceof AIError ? e.status : (e as { status?: number }).status ?? 502
-  if (status === 401 || status === 403 || /api[ _-]?key/i.test((e as Error)?.message ?? '')) return { status: 503, code: 'AI_AUTH', message: 'The AI provider rejected the server’s API key. No result was generated.' }
+  if (status === 401 || status === 403 || /api[ _-]?key/i.test((e as Error)?.message ?? '')) return { status: 503, code: 'AI_AUTH', message: `The AI provider rejected the server’s API key (${String((e as Error)?.message ?? '').replace(/AIza[\w-]+|AQ\.[\w.-]+/g, '[key]').slice(0, 160)}). No result was generated.` }
   if (status === 429 || status === 529 || status === 503) return { status: 503, code: 'AI_BUSY', message: 'The AI service is busy or at its free-tier limit right now. Please try again in a minute.' }
-  if (status === 404) return { status: 502, code: 'AI_MODEL', message: 'The configured AI model is not available to this API key. No result was generated.' }
+  const detail = String((e as Error)?.message ?? '').replace(/AIza[\w-]+|AQ\.[\w.-]+/g, '[key]').slice(0, 220)
+  if (status === 404) return { status: 502, code: 'AI_MODEL', message: `The configured AI model is not available to this API key (${detail}). No result was generated.` }
   if (status === 422) return { status: 422, code: 'AI_DECLINED', message: (e as Error).message }
   if (status === 504) return { status: 504, code: 'AI_TIMEOUT', message: 'The AI took too long to respond. No result was generated — please try again.' }
-  return { status: 502, code: 'AI_ERROR', message: 'The AI request failed. No result was generated — please try again.' }
+  return { status: 502, code: 'AI_ERROR', message: `The AI request failed (${status}: ${detail || 'unknown error'}). No result was generated.` }
 }

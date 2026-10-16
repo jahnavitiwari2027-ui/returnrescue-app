@@ -1,5 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { LIMITS } from '../config'
 import { supabase } from '../lib/supabase'
 
 export interface Entitlement {
@@ -17,6 +18,12 @@ interface AuthState {
   user: User | null
   entitlement: Entitlement | null
   isPro: boolean
+  /** Inside the free trial (and not on paid Pro). */
+  inTrial: boolean
+  trialEndsAt: Date | null
+  trialDaysLeft: number
+  /** Pro or active trial: can use AI, summaries and export. */
+  hasAccess: boolean
   aiInspectionsUsed: number
   refresh: () => Promise<Entitlement | null>
   signOut: () => Promise<void>
@@ -65,20 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session?.user.id, refresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const value = useMemo<AuthState>(
-    () => ({
+  const value = useMemo<AuthState>(() => {
+    const isPro = entitlement?.plan === 'pro' && entitlement.status === 'active'
+    const created = session?.user.created_at ? new Date(session.user.created_at) : null
+    const trialEndsAt = created ? new Date(created.getTime() + LIMITS.trialDays * 86_400_000) : null
+    const msLeft = trialEndsAt ? trialEndsAt.getTime() - Date.now() : 0
+    const inTrial = !isPro && msLeft > 0
+    return {
       ready,
       session,
       user: session?.user ?? null,
       entitlement,
-      isPro: entitlement?.plan === 'pro' && entitlement.status === 'active',
+      isPro,
+      inTrial,
+      trialEndsAt,
+      trialDaysLeft: Math.max(0, Math.ceil(msLeft / 86_400_000)),
+      hasAccess: isPro || inTrial,
       aiInspectionsUsed,
       refresh,
       signOut: async () => {
         await supabase?.auth.signOut()
       },
-    }),
-    [ready, session, entitlement, aiInspectionsUsed, refresh],
+    }
+  }, [ready, session, entitlement, aiInspectionsUsed, refresh],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

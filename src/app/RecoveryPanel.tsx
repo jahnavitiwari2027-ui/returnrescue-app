@@ -99,7 +99,7 @@ export default function RecoveryPanel({ item }: { item: ReturnItem }) {
                         </Badge>
                       )}
                       {item.decision_route === r.route && <Badge tone="dark"><Flag className="size-3" /> Chosen</Badge>}
-                      {r.configured && <Badge tone={r.basis === 'quote' ? 'blue' : 'neutral'}>{r.basis === 'quote' ? 'Third-party quote' : 'Estimate'}</Badge>}
+                      {r.configured && <Badge tone={r.basis === 'quote' ? 'blue' : r.basis === 'ai' ? 'brand' : 'neutral'}>{r.basis === 'quote' ? 'Third-party quote' : r.basis === 'ai' ? 'AI estimate' : 'Your estimate'}</Badge>}
                     </p>
                     <p className="mt-0.5 text-xs text-muted">
                       {!r.eligible ? (
