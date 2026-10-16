@@ -30,7 +30,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
         <h2>Service providers</h2>
         <ul>
           <li><strong>Supabase</strong> — authentication, database and private photo storage.</li>
-          <li><strong>Anthropic</strong> — the AI model that analyses photos and notes when you run an inspection or a summary. Data is sent only when you click to run it.</li>
+          <li><strong>Google (Gemini API)</strong> — the AI model that analyses photos and notes when you run an inspection or a summary. Data is sent only when you click to run it. While we use Google’s free API tier, Google may use submitted content to improve its products, so don’t upload photos showing people or personal information.</li>
           <li><strong>Dodo Payments</strong> — checkout, subscription billing, invoices and payment security, acting as merchant of record.</li>
           <li><strong>Netlify</strong> — website hosting and server functions.</li>
         </ul>

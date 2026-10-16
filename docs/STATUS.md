@@ -7,6 +7,7 @@
 | Production build | `npm run build` (TypeScript + Vite) | ✅ passes |
 | Type checks (app + functions) | `npm run typecheck` | ✅ passes |
 | Calculator & insights logic | `npm test` — net values per route, grade/hygiene eligibility, missing estimates, least-loss case, provisional mode, dashboard aggregates | ✅ 8 tests |
+| Gemini integration | `npm test` — request format (images, JSON schema), structured-output parsing, schema-rejection fallback, quota / auth / safety-block error mapping | ✅ 4 tests |
 | Dodo webhook verification | `npm test` — valid signature accepted; tampered body, missing signature and replayed (stale) timestamp rejected | ✅ 4 tests |
 | Database schema | Ran `supabase/schema.sql` twice (idempotent) in an embedded Postgres with Supabase auth/storage stubs: free-plan limit at 15, Pro bypass, users can’t see others’ rows, can’t insert for another user, can’t grant themselves Pro, can’t change a row’s owner | ✅ |
 | End-to-end browser journey (Chromium, desktop) | `npm run e2e`: landing → demo → validation errors → add return with photo upload → AI inspection without key shows an error (no fabricated result) → manual grade B → restock blocked, refurbish recommended at ₹1,620 → override requires reason → decision saved → survives reload → realized proceeds → search/filter → CSV export contents → edit → insights → delete | ✅ |
@@ -15,9 +16,9 @@
 
 ## Needs your accounts — cannot be verified from the build environment
 
-The build environment can reach GitHub and the Anthropic API but not Netlify, Supabase or Dodo, and has no API keys. These are implemented and wired, and must be verified after setup (checklist in `SETUP.md` §8):
+The build environment can reach GitHub but not Netlify, Supabase, Google AI or Dodo, and has no API keys. These are implemented and wired, and must be verified after setup (checklist in `SETUP.md` §8):
 
-1. Genuine AI inspection & AI summary (needs `ANTHROPIC_API_KEY`).
+1. Genuine AI inspection & AI summary (needs `GEMINI_API_KEY`; the Gemini request/response handling is unit-tested with a stubbed network, but a live call could not be made from the build environment).
 2. Sign-up / sign-in, cloud persistence, photo storage (needs Supabase project + schema).
 3. Dodo test checkout → webhook → Pro unlock; customer portal (needs Dodo test account, product, webhook).
 4. Netlify deploy, Netlify Forms contact submissions, Netlify Blobs demo rate limit.

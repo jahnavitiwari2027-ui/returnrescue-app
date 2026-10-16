@@ -1,6 +1,6 @@
 # Deployment & credentials setup
 
-Total time: about 45–60 minutes, most of it waiting for sign-ups. Do the steps in order — later steps need values from earlier ones. **Never paste a secret key into chat, a document, or GitHub.** Secrets go only into Netlify’s environment variables.
+Total time: about 45–60 minutes, most of it waiting for sign-ups. **Everything in this guide is free** — no card is needed anywhere except where marked optional. Do the steps in order — later steps need values from earlier ones. **Never paste a secret key into chat, a document, or GitHub.** Secrets go only into Netlify’s environment variables.
 
 Keep a private note open while you work; you will collect these values:
 
@@ -9,7 +9,7 @@ Keep a private note open while you work; you will collect these values:
 | Project URL | Supabase | `VITE_SUPABASE_URL` and `SUPABASE_URL` |
 | anon / publishable key | Supabase | `VITE_SUPABASE_ANON_KEY` |
 | service_role / secret key | Supabase | `SUPABASE_SERVICE_ROLE_KEY` 🔒 |
-| API key | Anthropic | `ANTHROPIC_API_KEY` 🔒 |
+| API key | Google AI Studio | `GEMINI_API_KEY` 🔒 |
 | Test API key | Dodo | `DODO_PAYMENTS_API_KEY` 🔒 |
 | Product id (`pdt_…`) | Dodo | `DODO_PRO_PRODUCT_ID` |
 | Webhook secret (`whsec_…`) | Dodo | `DODO_PAYMENTS_WEBHOOK_KEY` 🔒 |
@@ -29,11 +29,15 @@ Keep a private note open while you work; you will collect these values:
 4. **Authentication → URL Configuration**: set **Site URL** to your final domain (e.g. `https://returnrescue.me`) and add Redirect URLs `https://returnrescue.me/**` and your Netlify URL `https://<site>.netlify.app/**`.
 5. **Project Settings → API Keys** (or **Data API**): copy the **Project URL**, the **anon / publishable** key, and the **service_role / secret** key.
 
-## 3. Anthropic API key (AI inspection)
+## 3. Google Gemini API key (AI inspection) — free
 
-1. console.anthropic.com → sign in → **Billing** → add a small amount of credit (US$5 is plenty for testing).
-2. **API Keys → Create key** → name `returnrescue-netlify` → copy it once.
-3. The app uses `claude-sonnet-5-5` by default. To use a different model, set `ANTHROPIC_MODEL`.
+1. Go to aistudio.google.com and sign in with a Google account (a personal one is fine; no card needed).
+2. Click **Get API key → Create API key** (let it create a new Google Cloud project if asked). Copy the key.
+3. Leave billing **off**. The free tier has per-minute and per-day request limits — plenty for a demo and grading. If the limit is hit, the app shows “busy / at its free-tier limit” and never invents a result.
+4. The app uses `gemini-3.8-flash` by default; change it with `GEMINI_MODEL` if Google retires that model.
+5. Note: on the free tier Google may use submitted content to improve its products — the privacy policy already says this. Use product photos only, never photos of people.
+
+(Optional, paid: set `ANTHROPIC_API_KEY` and `AI_PROVIDER=anthropic` to use Claude instead.)
 
 ## 4. Dodo Payments (subscription billing — test mode)
 
@@ -52,7 +56,7 @@ VITE_SUPABASE_URL          = <Supabase project URL>
 VITE_SUPABASE_ANON_KEY     = <anon / publishable key>
 SUPABASE_URL               = <Supabase project URL>
 SUPABASE_SERVICE_ROLE_KEY  = <service_role key>          (mark as secret)
-ANTHROPIC_API_KEY          = <Anthropic key>             (mark as secret)
+GEMINI_API_KEY             = <Google AI Studio key>      (mark as secret)
 DODO_PAYMENTS_API_KEY      = <Dodo test API key>         (mark as secret)
 DODO_PAYMENTS_ENVIRONMENT  = test_mode
 DODO_PRO_PRODUCT_ID        = <pdt_…>
@@ -74,22 +78,21 @@ VITE_CONTACT_EMAIL         = <optional public email>
 4. Save → copy the **signing secret** (`whsec_…`) → add to Netlify as `DODO_PAYMENTS_WEBHOOK_KEY` (secret) → redeploy.
 5. `…/api/status` should now show `"payments": true`.
 
-## 7. Custom domain
+## 7. Custom domain (free options)
 
-The assignment does not accept `*.netlify.app`, so a custom domain is required.
+The assignment does not accept `*.netlify.app`, so a custom domain is required. Free routes, best first:
 
-**Option A — GitHub Student Developer Pack (free, if your student status is already verified):** education.github.com/pack → *Namecheap* (free `.me` for one year) or *Name.com* (free domain). Verification of a new Pack application can take several days, so start this immediately or use option B/C.
+**Option A — a teammate’s GitHub Student Developer Pack.** Only one submission is needed per team, so any teammate whose Pack is already verified can claim the free domain (education.github.com/pack → *Namecheap* free `.me` for a year, or *Name.com* / *.TECH* offers) and point it at the Netlify site. This gives a normal, credible domain at no cost.
 
-**Option B — buy one (fastest, ~₹100–₹1,000/year):** in Netlify, **Domain management → Add a domain → Buy a new domain** (DNS and HTTPS are configured automatically), or buy a cheap `.xyz` / `.online` / `.site` at Namecheap / Hostinger / GoDaddy.
+**Option B — your own Pack, once approved.** Same as A. Deploy on the `netlify.app` URL now and attach the domain the moment approval arrives (deadline 22 Oct).
 
-**Option C — a subdomain of a domain you already own**, e.g. `returnrescue.yourdomain.in` (check with your instructor that this counts as “your own custom domain”).
+**Option C — DigitalPlat FreeDomain (free, no Pack needed).** domain.digitalplat.org → create an account → register e.g. `returnrescue.qzz.io` or `returnrescue.dpdns.org` → choose **custom nameservers**. Caveats: it is a free community registry (no guarantees on longevity), and some instructors may view a free second-level name as less “own” than a purchased one — confirm with your instructor if unsure.
 
-Connecting:
-1. Netlify → **Domain management → Add a domain** → enter it → follow the prompt.
-   - Bought in Netlify: nothing else to do.
-   - Bought elsewhere: either switch the registrar’s nameservers to the four Netlify nameservers shown, **or** add the DNS records Netlify shows (an `A` / `ALIAS` record for the apex pointing to Netlify’s load balancer and a `CNAME` for `www` to `<site>.netlify.app`; for a subdomain, a single `CNAME` to `<site>.netlify.app`).
-2. Wait for DNS (minutes to a few hours). Netlify provisions the Let’s Encrypt **HTTPS** certificate automatically — check **Domain management → HTTPS**.
-3. Set `SITE_URL=https://<domain>` in Netlify and redeploy; update Supabase URL Configuration (step 2.4) and the Dodo webhook URL (step 6) to the custom domain.
+Connecting the domain in Netlify (all options):
+1. Netlify → **Domain management → Add a domain** → enter it → choose **Set up Netlify DNS** (free). Netlify shows four nameservers (`dns1.p0X.nsone.net` …).
+2. At the registrar (Namecheap / Name.com / DigitalPlat), replace the nameservers with Netlify’s four. (Alternative: keep the registrar’s DNS and add the `A`/`ALIAS` + `CNAME` records Netlify shows.)
+3. Wait for DNS (minutes to a few hours). Netlify provisions the free Let’s Encrypt **HTTPS** certificate automatically — check **Domain management → HTTPS**.
+4. Set `SITE_URL=https://<domain>` in Netlify and redeploy; update Supabase URL Configuration (step 2.4) and the Dodo webhook URL (step 6) to the custom domain.
 
 ## 8. Verify production (10 minutes)
 
@@ -110,8 +113,9 @@ Complete Dodo merchant verification, create the same product in Live mode, swap 
 | Symptom | Fix |
 |---|---|
 | “Accounts aren’t switched on for this deployment” | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` missing — add and redeploy. |
-| AI inspection: “not configured” | `ANTHROPIC_API_KEY` missing. “Rejected the server’s API key” → key wrong or no credit. |
-| AI inspection: request rejected (model) | Set `ANTHROPIC_MODEL` to a model your Anthropic account can use. |
+| AI inspection: “not configured” | `GEMINI_API_KEY` missing. “Rejected the server’s API key” → key copied wrongly. |
+| AI inspection: “model is not available” | Set `GEMINI_MODEL` to a current free-tier Flash model listed at ai.google.dev/gemini-api/docs/models. |
+| AI inspection: “busy or at its free-tier limit” | Wait a minute (per-minute limit) or until tomorrow (daily limit). |
 | Sign-up says “check your inbox” | Turn off **Confirm email** in Supabase (step 2.3) or confirm the email. |
 | Paid but still Free | Dodo → Webhooks → check delivery logs. 401 = wrong `DODO_PAYMENTS_WEBHOOK_KEY`; 503 = variable missing. Check Netlify → Logs → Functions → `dodo-webhook`. |
 | Checkout button error | `DODO_PAYMENTS_API_KEY` or `DODO_PRO_PRODUCT_ID` missing, or a live key used with `test_mode`. |

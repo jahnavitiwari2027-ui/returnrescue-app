@@ -2,18 +2,17 @@
 // workspace's computed statistics. For accounts, stats are recomputed here from
 // the database rather than trusted from the browser.
 
-import Anthropic from '@anthropic-ai/sdk'
 import type { Config, Context } from '@netlify/functions'
 import { computeStats, type WorkspaceStats } from '../../src/lib/insights'
-import { env, fail, json, readJson } from './_shared/http'
+import { aiErrorResponse, aiModel, aiProvider, generateText } from './_shared/ai'
+import { fail, json, readJson } from './_shared/http'
 import { normalizeRow } from './_shared/rows'
 import { takeDemoQuota } from './_shared/rateLimit'
 import { getAdmin, getEntitlement, getUser, isProRow, recordUsage, supabaseConfigured } from './_shared/supabaseAdmin'
 
 export default async (req: Request, context: Context) => {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Use POST.')
-  const apiKey = env('ANTHROPIC_API_KEY')
-  if (!apiKey) return fail(503, 'AI_NOT_CONFIGURED', 'AI summaries are not configured on this deployment yet. No summary was generated.')
+  if (!aiProvider()) return fail(503, 'AI_NOT_CONFIGURED', 'AI summaries are not configured on this deployment yet. No summary was generated.')
   const body = await readJson<{ mode?: string; stats?: WorkspaceStats }>(req, 100_000)
   if (!body) return fail(400, 'BAD_REQUEST', 'Malformed request.')
 
@@ -58,31 +57,26 @@ export default async (req: Request, context: Context) => {
     oldest_unprocessed: stats.unprocessed?.slice(0, 5).map((u) => ({ name: u.name, status: u.status, age_days: u.ageDays })),
   }
 
-  const model = env('ANTHROPIC_MODEL') || 'claude-sonnet-5-5'
+  const model = aiModel()
   try {
-    const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 })
-    const msg = await client.messages.create({
-      model,
-      max_tokens: 700,
-      system:
-        'You are an operations analyst for an Indian D2C fashion brand’s returns team. Write a short briefing from the JSON facts provided. ' +
-        'Use ONLY the numbers in the facts — do not estimate, extrapolate, or invent benchmarks, percentages of industry, causes or savings. ' +
-        'If the data is too thin to support a conclusion, say so. Amounts are Indian rupees (₹). Values labelled estimated are estimates, not realized money. ' +
-        'Output 4 to 6 bullet points, each starting with "- ", each under 40 words, ending with the single most useful next action. No headings, no preamble.',
-      messages: [{ role: 'user', content: `Facts (JSON):\n${JSON.stringify(facts).slice(0, 20_000)}` }],
-    })
-    const text = msg.content
-      .filter((c) => c.type === 'text')
-      .map((c) => (c as { text: string }).text)
-      .join('\n')
-      .trim()
+    const text = (
+      await generateText({
+        maxTokens: 700,
+        system:
+          'You are an operations analyst for an Indian D2C fashion brand’s returns team. Write a short briefing from the JSON facts provided. ' +
+          'Use ONLY the numbers in the facts — do not estimate, extrapolate, or invent benchmarks, percentages of industry, causes or savings. ' +
+          'If the data is too thin to support a conclusion, say so. Amounts are Indian rupees (₹). Values labelled estimated are estimates, not realized money. ' +
+          'Output 4 to 6 bullet points, each starting with "- ", each under 40 words, ending with the single most useful next action. No headings, no preamble.',
+        user: `Facts (JSON):\n${JSON.stringify(facts).slice(0, 20_000)}`,
+      })
+    ).trim()
     if (!text) throw new Error('empty')
     if (userId) await recordUsage(userId, 'insights').catch(() => undefined)
     return json(200, { summary: text.slice(0, 4000), model, generated_at: new Date().toISOString() })
   } catch (e) {
-    const err = e as { status?: number; message?: string }
-    console.error('insights-summary: model error', err.status, err.message)
-    return fail(502, 'AI_ERROR', 'The AI summary could not be generated right now. Nothing was invented — please try again.')
+    console.error('insights-summary: model error', (e as Error).message)
+    const r = aiErrorResponse(e)
+    return fail(r.status, r.code, r.message)
   }
 }
 

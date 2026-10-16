@@ -14,7 +14,7 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 2. **Demo workspace** — 10 clearly labelled fictional returns, no sign-up, stored only in the visitor’s browser and separate from real accounts.
 3. **Accounts** — email sign-up/sign-in/password reset; each business’s data is isolated with database row-level security and private photo storage.
 4. **Add / edit returns** — product, SKU, category, price, reason, notes, up to 4 photos and per-route cost/value estimates, with validation.
-5. **AI product inspection (Anthropic Claude vision, server-side)** — observable defects, proposed grade A/B/C/Manual review, rationale, confidence, limitations, suggested physical checks and potentially eligible routes. The user accepts or corrects the grade. If the AI is unavailable, the app shows an error rather than inventing a result.
+5. **AI product inspection (Google Gemini vision, server-side)** — observable defects, proposed grade A/B/C/Manual review, rationale, confidence, limitations, suggested physical checks and potentially eligible routes. The user accepts or corrects the grade. If the AI is unavailable, the app shows an error rather than inventing a result.
 6. **Recovery value calculator** — deterministic net value for restock, refurbish, liquidate and recycle; grade and hygiene eligibility rules; sunk costs excluded to avoid double counting; recommendation with explanation and line-by-line breakdown; manual override with reason; estimates, third-party quotes and realized proceeds kept separate.
 7. **Inventory** — search, filters, sorting, edit, delete, CSV export; changes persist.
 8. **Dashboard & insights** — totals, pipeline status, estimated recoverable value, routes chosen, weekly intake, top categories, frequent defects, best-value routes, unprocessed items, plus an AI-written briefing grounded only in the computed figures.
@@ -30,4 +30,4 @@ No credentials needed: the demo is public, and anyone can create a free account 
 
 ## Technology
 
-React, TypeScript, Vite, Tailwind CSS · Netlify (hosting + Functions) · Supabase (Auth, Postgres with RLS, Storage) · Anthropic Claude (vision) · Dodo Payments · Vitest and Playwright tests.
+React, TypeScript, Vite, Tailwind CSS · Netlify (hosting + Functions) · Supabase (Auth, Postgres with RLS, Storage) · Google Gemini (vision; Anthropic Claude supported as an alternative) · Dodo Payments · Vitest and Playwright tests.

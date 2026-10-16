@@ -17,7 +17,7 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 | **Accounts** (`/app`) | Email + password sign-up / sign-in / reset (Supabase Auth). Each workspace is isolated by Postgres Row Level Security; photos live in a private Storage bucket served via short-lived signed URLs. |
 | **Dashboard** | Totals, awaiting inspection, inspected, estimated recoverable value, realized proceeds, pipeline status, routes selected, weekly intake, next-up list, top findings — all calculated from stored records. |
 | **Add / edit a return** | Name, SKU, category, original price, reason, condition notes, up to 4 photos, sunk return shipping, and per-route estimates (resale, refurb resale & cost, channel fee %, handling, liquidation price & fee, recycling value & cost) with “estimate vs third-party quote” labels. Inline validation. |
-| **AI inspection** | Photos + notes are sent server-side to Anthropic Claude (vision). Returns observable defects, proposed grade (A / B / C / Manual review), rationale, confidence, limitations, recommended physical checks and potentially eligible routes. The user accepts or corrects the grade (correction requires a reason). If the AI is unavailable the request fails visibly — nothing is fabricated. |
+| **AI inspection** | Photos + notes are sent server-side to a vision AI model — Google Gemini (free tier) by default, or Anthropic Claude if configured. Returns observable defects, proposed grade (A / B / C / Manual review), rationale, confidence, limitations, recommended physical checks and potentially eligible routes. The user accepts or corrects the grade (correction requires a reason). If the AI is unavailable the request fails visibly — nothing is fabricated. |
 | **Recovery calculator** | Deterministic per-route net = proceeds − fees − costs; sunk return shipping excluded; grade and hygiene rules decide eligibility; highest eligible net is recommended with a plain-English explanation and an expandable line-by-line breakdown. Manual override with mandatory reason; decision snapshot recorded; realized proceeds recorded separately from estimates. |
 | **Inventory** | Thumbnails, SKU, grade, route, est. net, status; search; filters by status / grade / category / route; sort; edit; delete; CSV export (server-side and Pro-gated for accounts). |
 | **Insights** | Top categories, return reasons, grade mix, most frequent defects, best-value routes, overrides, unprocessed items — plus an optional AI-written briefing grounded only in those computed figures. |
@@ -44,7 +44,7 @@ Browser (React + TypeScript + Vite + Tailwind)
  └─ /app/*       account workspace → Supabase (Auth, Postgres + RLS, private Storage)
         │
         └─ /api/*  Netlify Functions (server-only secrets)
-              inspect            → Anthropic Claude vision, usage metering, demo rate limit (Netlify Blobs)
+              inspect            → Gemini / Claude vision, usage metering, demo rate limit (Netlify Blobs)
               insights-summary   → Claude, grounded on stats recomputed server-side
               create-checkout    → Dodo Payments checkout session
               dodo-webhook       → signature-verified, idempotent entitlement updates
@@ -77,12 +77,12 @@ Without any keys, the landing page and the full demo workspace work; the AI endp
 
 ## Deploy
 
-Step-by-step instructions (Supabase, Anthropic, Dodo Payments, Netlify, custom domain, webhooks): **[docs/SETUP.md](docs/SETUP.md)**.
+Step-by-step instructions (Supabase, Google AI Studio, Dodo Payments, Netlify, custom domain, webhooks): **[docs/SETUP.md](docs/SETUP.md)**.
 
 ## Security notes
 
 - No secret is ever bundled into the browser: only `VITE_*` variables (Supabase URL, anon key, display price) reach the client.
-- Service-role, Anthropic and Dodo keys are read only inside Netlify Functions.
+- Service-role, AI provider and Dodo keys are read only inside Netlify Functions.
 - Every table has RLS. Users can read but never write their entitlement; usage counters are server-written.
 - Return ownership cannot be changed by an update (trigger), and photo paths are namespaced by user id with matching Storage policies.
 - Webhooks are verified on the raw body (HMAC-SHA256, timestamp tolerance) before any processing and deduplicated by `webhook-id`.
