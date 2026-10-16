@@ -1,6 +1,6 @@
 // Exercises the Gemini request/response handling with a stubbed network.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { aiErrorResponse, aiModel, aiProvider, structuredVision } from './_shared/ai'
+import { aiErrorResponse, aiModel, aiProvider, structuredVision } from '../netlify/functions/_shared/ai'
 
 const schema = {
   type: 'object' as const,
