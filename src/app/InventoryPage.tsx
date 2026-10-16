@@ -1,4 +1,4 @@
-import { Download, ImageOff, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Download, ImageOff, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
 import { api } from '../lib/api'
 import { downloadBlob, returnsToCsv } from '../lib/csv'
-import { inr, shortDate } from '../lib/format'
+import { inr } from '../lib/format'
 import { calculateRecovery } from '../lib/recovery'
 import {
   CATEGORIES,
@@ -50,6 +50,8 @@ export default function InventoryPage() {
   const [exporting, setExporting] = useState(false)
   const [notice, setNotice] = useState<{ tone: 'error' | 'success'; text: string } | null>(null)
   const [upsell, setUpsell] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const activeFilterCount = [status, grade, category, route].filter(Boolean).length
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -113,7 +115,7 @@ export default function InventoryPage() {
     <>
       <PageHeader
         title="Inventory"
-        subtitle={`${items.length} returned product${items.length === 1 ? '' : 's'} on record`}
+        
         actions={
           <>
             <Button variant="secondary" icon={<Download className="size-4" />} onClick={exportCsv} loading={exporting} disabled={!items.length}>
@@ -143,37 +145,44 @@ export default function InventoryPage() {
         </Card>
       ) : (
         <Card>
-          <div className="grid gap-2 border-b border-line p-3 sm:grid-cols-2 lg:grid-cols-6">
-            <div className="relative sm:col-span-2">
+          <div className="flex gap-2 border-b border-line p-3">
+            <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, SKU, notes…" className="pl-9" aria-label="Search inventory" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or SKU" className="pl-9" aria-label="Search inventory" />
             </div>
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
-              <option value="">All statuses</option>
-              {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </Select>
-            <Select value={grade} onChange={(e) => setGrade(e.target.value)} aria-label="Filter by grade">
-              <option value="">All grades</option>
-              {GRADES.map((g) => (
-                <option key={g} value={g}>{GRADE_LABEL[g]}</option>
-              ))}
-              <option value="none">Ungraded</option>
-            </Select>
-            <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
-              <option value="">All categories</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </Select>
-            <Select value={route} onChange={(e) => setRoute(e.target.value)} aria-label="Filter by route">
-              <option value="">All routes</option>
-              {ROUTES.map((r) => (
-                <option key={r} value={r}>{ROUTE_LABEL[r]}</option>
-              ))}
-            </Select>
+            <Button variant="secondary" icon={<SlidersHorizontal className="size-4" />} onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}>
+              Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
+            </Button>
           </div>
+          {showFilters && (
+            <div className="grid gap-2 border-b border-line bg-paper/60 p-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+                <option value="">All statuses</option>
+                {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </Select>
+              <Select value={grade} onChange={(e) => setGrade(e.target.value)} aria-label="Filter by grade">
+                <option value="">All grades</option>
+                {GRADES.map((g) => (
+                  <option key={g} value={g}>{GRADE_LABEL[g]}</option>
+                ))}
+                <option value="none">Ungraded</option>
+              </Select>
+              <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
+                <option value="">All categories</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Select>
+              <Select value={route} onChange={(e) => setRoute(e.target.value)} aria-label="Filter by route">
+                <option value="">All routes</option>
+                {ROUTES.map((r) => (
+                  <option key={r} value={r}>{ROUTE_LABEL[r]}</option>
+                ))}
+              </Select>
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2 text-sm">
             <span className="text-muted">
               Showing {rows.length} of {items.length}
@@ -208,7 +217,6 @@ export default function InventoryPage() {
                       <th className="px-3 py-2.5 font-medium">Route</th>
                       <th className="px-3 py-2.5 text-right font-medium">Est. net recovery</th>
                       <th className="px-3 py-2.5 font-medium">Status</th>
-                      <th className="px-3 py-2.5 font-medium">Added</th>
                       <th className="px-3 py-2.5"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
@@ -230,7 +238,6 @@ export default function InventoryPage() {
                         </td>
                         <td className="px-3 py-3">
                           <GradeBadge grade={item.grade} />
-                          {item.ai_inspection && <p className="mt-1 text-[11px] text-muted">AI inspected</p>}
                         </td>
                         <td className="px-3 py-3">
                           {item.decision_route ? (
@@ -243,7 +250,6 @@ export default function InventoryPage() {
                         </td>
                         <td className="px-3 py-3 text-right tabular font-medium">{inr(item.decision_net ?? calc.recommendedNet)}</td>
                         <td className="px-3 py-3"><StatusBadge status={item.status as ReturnStatus} /></td>
-                        <td className="px-3 py-3 text-xs text-muted">{shortDate(item.created_at)}</td>
                         <td className="px-3 py-3">
                           <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                             <Link to={`${base}/returns/${item.id}/edit`} className="rounded-lg p-1.5 text-muted hover:bg-ink/5 hover:text-ink" aria-label={`Edit ${item.name}`}>

@@ -1,27 +1,18 @@
 import clsx from 'clsx'
 import {
   ArrowRight,
-  BarChart3,
   Boxes,
   Calculator,
   Camera,
   Check,
-  ClipboardList,
   Eye,
-  FileSpreadsheet,
   Flag,
   Hourglass,
-  Leaf,
-  Recycle,
   Scale,
   ScanSearch,
-  ShieldCheck,
   Shuffle,
   Sparkles,
-  Store,
   Trophy,
-  Truck,
-  Warehouse,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -160,69 +151,60 @@ function ContactForm() {
 }
 
 const faqs: [string, ReactNode][] = [
-  ['What does the AI actually do?', 'When you run an inspection, the product photos and your notes are sent to a vision-capable AI model (Google Gemini). It lists visible defects, proposes a condition grade (A, B, C or Manual review), explains why, states what it can’t tell from photos, and suggests physical checks. You accept or correct the grade — the AI never makes the final call.'],
-  ['Can photos prove an item is fine to resell?', 'No. Photos can’t verify hidden defects, hygiene, odour, authenticity or safety. ReturnRescue treats every AI grade as provisional and prompts your team for the physical checks that matter, and hygiene-sensitive categories need a confirmed intact seal before restock.'],
-  ['How is the recommended route chosen?', 'Not by AI. For each route the calculator subtracts the relevant fees and costs from your expected proceeds, removes routes the grade doesn’t allow, and recommends the highest estimated net. Return shipping you already paid is treated as a sunk cost so it doesn’t distort the comparison. Every line of the maths is visible.'],
-  ['Are the values guaranteed?', 'No — they are based on your own estimates or, if you leave them blank, rough AI-suggested estimates that are clearly labelled. You can mark a figure as a third-party quote, and once an item is sold or disposed of you record the realized amount, so estimates, quotes and actual proceeds are always kept apart.'],
-  ['Which products are supported?', 'This first version is designed for apparel, footwear and fashion accessories, which are visually inspectable and make up a large share of D2C returns.'],
-  ['Is my data private?', 'Yes. Each workspace is isolated at the database level, photos are stored in a private bucket, and payment details are handled entirely by Dodo Payments. See our privacy policy for the full list of providers.'],
-  ['Can I cancel anytime?', 'Yes. Cancel from the billing page; Pro stays active until the end of the paid month and your data remains in your workspace.'],
-  ['Do I need to sign up to try it?', `To browse, no — the demo workspace has ten fictional returns and runs in your browser. To get AI results on your own products, create a free account: you get a ${LIMITS.trialDays}-day free trial of everything in Pro, with no card required.`],
-  ['How are the recovery values estimated?', 'If you leave them blank, the AI suggests rough per-unit values from the original price, the product category and the condition it can see (for example, a clean unworn item keeps most of its price, a stained one is worth far less). They are labelled “AI estimate” and are a starting point, not market data. Replace them with your real channel prices or a liquidator’s quote whenever you have one — the recommendation recalculates instantly.'],
-  ['What happens when the trial ends?', AFTER_TRIAL + ' Nothing is charged unless you choose to upgrade.'],
+  ['What does the AI do?', 'It looks at your photos and notes, lists visible defects, proposes a grade (A, B, C or Manual review) and suggests rough recovery values. You confirm or correct it — the AI never makes the final call.'],
+  ['How is the best option chosen?', 'By plain arithmetic, not AI: expected proceeds minus fees and costs for each route the grade allows. The highest net wins, and every line of the maths is visible.'],
+  ['Can photos prove an item is fine to resell?', 'No. Hidden damage, hygiene, odour and authenticity need a person. Every AI result says what to check by hand.'],
+  ['Do I need to sign up?', `Not to look around — the demo is open. To inspect your own products, start the ${LIMITS.trialDays}-day free trial. No card needed.`],
+  ['What happens after the trial?', AFTER_TRIAL + ' Nothing is charged unless you upgrade.'],
+  ['Can I cancel anytime?', 'Yes, from the billing page. Pro stays active until the end of the paid month.'],
 ]
 
 export default function Landing() {
   const steps = [
-    { icon: ClipboardList, title: 'Log the return', body: 'A photo, the product name, category and price. Add your own resale, refurbish, liquidation and recycling values — or let the AI suggest them.' },
-    { icon: ScanSearch, title: 'AI inspects the photos', body: 'Visible defects, a proposed grade with its reasoning, rough recovery-value estimates, stated limitations and the physical checks to do next.' },
-    { icon: Calculator, title: 'Compare recovery routes', body: 'A deterministic calculator shows the net value of every eligible route, line by line, and highlights the best one.' },
-    { icon: Flag, title: 'Decide and track', body: 'Accept or override with a reason, then record realized proceeds. Dashboards and insights update from your records.' },
+    { icon: Camera, title: 'Snap a photo', body: 'Add the product, its price and a photo.' },
+    { icon: ScanSearch, title: 'AI grades it', body: 'Defects, a grade and rough values in seconds.' },
+    { icon: Calculator, title: 'See the best option', body: 'Restock, refurbish, liquidate or recycle — by net value.' },
+    { icon: Flag, title: 'Confirm', body: 'One tap to record the decision. Track what you recover.' },
   ]
   const problems = [
-    { icon: Shuffle, title: 'Grading depends on who’s on shift', body: 'Without a shared standard, the same scuffed sneaker can be restocked by one person and written off by another.' },
-    { icon: Hourglass, title: 'Returned stock waits', body: 'Items that need a decision sit in a corner of the warehouse while their resale window — and value — shrinks.' },
-    { icon: Scale, title: 'Decisions without the numbers', body: 'Restock, repackage, liquidate or recycle is often a gut call, without fees, handling and repair costs side by side.' },
+    { icon: Shuffle, title: 'Inconsistent grading', body: 'The same item gets restocked by one person and written off by another.' },
+    { icon: Hourglass, title: 'Stock sits waiting', body: 'Undecided returns lose value every week they wait.' },
+    { icon: Scale, title: 'Gut-feel decisions', body: 'Fees, repair and handling costs are rarely compared side by side.' },
   ]
-  const benefits = [
-    { icon: Check, title: 'Consistent condition grading', body: 'One A/B/C/Manual-review standard, with the AI’s reasoning and your corrections recorded.' },
-    { icon: Calculator, title: 'Transparent economics', body: 'Every recommendation can be traced to the inputs and rules that produced it.' },
-    { icon: ShieldCheck, title: 'A decision audit trail', body: 'Who chose what, when, and why — including every override of the recommendation.' },
-    { icon: Leaf, title: 'Less avoidable waste', body: 'Make recycling and disposal a deliberate last step instead of the default for anything uncertain.' },
+  const features = [
+    { icon: Eye, title: 'AI photo inspection', body: 'Visible defects, a grade with reasons, and what to check by hand.' },
+    { icon: Calculator, title: 'Recovery calculator', body: 'Net value of every route, with the working shown.' },
+    { icon: Boxes, title: 'Inventory & insights', body: 'Search, export, and see where your returns value goes.' },
   ]
+  const benefits = ['Consistent grading', 'Transparent maths', 'A decision record', 'Less waste']
 
   return (
     <PublicLayout>
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="grain pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_70%)]" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-14 lg:grid-cols-[1.1fr_1fr] lg:pt-20">
           <div className="animate-rise">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-medium text-brand-800">
-              <Sparkles className="size-3.5" /> Returns recovery for apparel & footwear brands
+              <Sparkles className="size-3.5" /> For apparel & footwear brands
             </span>
             <h1 className="mt-6 font-display text-[52px] leading-[0.98] tracking-tight sm:text-[72px]">
               Every return deserves <em className="text-brand-700">a second chance.</em>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2">
-              ReturnRescue inspects returned products from photos with AI, proposes a condition grade, and shows — with transparent maths — whether to restock, refurbish, liquidate or recycle each one.
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-2">
+              Snap a photo of a returned product. ReturnRescue grades it with AI and tells you the most valuable thing to do with it.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/demo" className={buttonClass('primary', 'lg')}>
-                Try the live demo <ArrowRight className="size-4" />
+              <Link to={accountsEnabled ? '/signup' : '/demo'} className={buttonClass('primary', 'lg')}>
+                {accountsEnabled ? `Start ${LIMITS.trialDays}-day free trial` : 'Try the demo'} <ArrowRight className="size-4" />
               </Link>
-              <Link to={accountsEnabled ? '/signup' : '/#pricing'} className={buttonClass('secondary', 'lg')}>
-                {accountsEnabled ? `Start ${LIMITS.trialDays}-day free trial` : 'See pricing'}
-              </Link>
+              <Link to="/demo" className={buttonClass('secondary', 'lg')}>See the demo</Link>
             </div>
-            <p className="mt-4 text-sm text-muted">{LIMITS.trialDays}-day free trial, no card · Demo without sign-up · Pro {inr(config.proPriceInr)}/month</p>
+            <p className="mt-4 text-sm text-muted">No card needed · Then {inr(config.proPriceInr)}/month</p>
           </div>
           <div className="relative animate-rise [animation-delay:150ms]">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 via-paper to-transparent" />
             <RecoveryPreview />
-            <div className="relative z-10 -mt-10 ml-auto mr-[-12px] hidden w-fit sm:block lg:-ml-14 lg:mr-0">
-              <InspectionPreview />
-            </div>
           </div>
         </div>
       </section>
@@ -230,21 +212,16 @@ export default function Landing() {
       {/* Problem */}
       <section className="border-y border-line bg-white">
         <div className="mx-auto max-w-6xl px-5 py-20">
-          <Reveal className="max-w-2xl">
+          <Reveal>
             <Eyebrow>The problem</Eyebrow>
-            <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight sm:text-5xl">Returns are where margin quietly leaks out.</h2>
-            <p className="mt-4 text-ink-2">
-              Opened-but-unworn, damaged packaging, a loose thread: most returned items still have value. But without a standard way to assess them and compare options, that value gets lost to delay, cheap liquidation or the bin.
-            </p>
+            <h2 className="mt-3 max-w-2xl font-display text-4xl leading-tight tracking-tight sm:text-5xl">Returns quietly leak margin.</h2>
           </Reveal>
-          <div className="mt-12 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
             {problems.map((p, i) => (
               <Reveal key={p.title} delay={i * 80}>
-                <div className="h-full rounded-2xl border border-line bg-paper p-6">
-                  <p.icon className="size-6 text-brand-700" />
-                  <h3 className="mt-4 font-semibold">{p.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">{p.body}</p>
-                </div>
+                <p.icon className="size-6 text-brand-700" />
+                <h3 className="mt-3 font-semibold">{p.title}</h3>
+                <p className="mt-1 text-sm text-muted">{p.body}</p>
               </Reveal>
             ))}
           </div>
@@ -253,19 +230,19 @@ export default function Landing() {
 
       {/* How it works */}
       <section id="how" className="scroll-mt-20">
-        <div className="mx-auto max-w-6xl px-5 py-24">
-          <Reveal className="max-w-2xl">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <Reveal>
             <Eyebrow>How it works</Eyebrow>
-            <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight sm:text-5xl">From returns bin to decision in four steps.</h2>
+            <h2 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">Four steps. About a minute.</h2>
           </Reveal>
-          <ol className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {steps.map((s, i) => (
-              <Reveal key={s.title} delay={i * 80}>
-                <li className="group relative h-full rounded-2xl border border-line bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-900/5">
-                  <span className="font-display text-5xl text-brand-200 transition group-hover:text-brand-300">0{i + 1}</span>
-                  <s.icon className="mt-4 size-6 text-brand-700" />
-                  <h3 className="mt-3 font-semibold">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
+          <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {steps.map((st, i) => (
+              <Reveal key={st.title} delay={i * 70}>
+                <li className="h-full rounded-2xl border border-line bg-white p-5">
+                  <span className="font-display text-4xl text-brand-200">0{i + 1}</span>
+                  <st.icon className="mt-3 size-5 text-brand-700" />
+                  <h3 className="mt-2 font-semibold">{st.title}</h3>
+                  <p className="mt-1 text-sm text-muted">{st.body}</p>
                 </li>
               </Reveal>
             ))}
@@ -275,141 +252,83 @@ export default function Landing() {
 
       {/* Features */}
       <section id="features" className="scroll-mt-20 bg-ink text-white">
-        <div className="mx-auto max-w-6xl px-5 py-24">
-          <Reveal className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">The product</p>
-            <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight sm:text-5xl">AI where it helps. Arithmetic where it matters.</h2>
-            <p className="mt-4 text-white/70">The AI looks; the calculator decides; your team confirms. Each part does the job it’s actually good at.</p>
-          </Reveal>
-
-          <div className="mt-16 grid items-center gap-10 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 lg:grid-cols-2">
+          <div>
             <Reveal>
-              <Badge tone="brand"><Eye className="size-3" /> AI product inspection</Badge>
-              <h3 className="mt-4 text-2xl font-semibold">A second pair of eyes on every return</h3>
-              <ul className="mt-5 space-y-3 text-white/75">
-                {['Observable defects with location and severity', 'Grade A, B, C or Manual review — with the reasoning', 'What photos can’t show, stated plainly', 'Physical checks to do before acting', 'Accept, or correct with a note kept on record'].map((t) => (
-                  <li key={t} className="flex gap-2.5"><Check className="mt-1 size-4 shrink-0 text-brand-300" />{t}</li>
-                ))}
-              </ul>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">The product</p>
+              <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight sm:text-5xl">AI looks. Maths decides. You confirm.</h2>
             </Reveal>
-            <Reveal delay={100} className="flex justify-center text-ink">
-              <InspectionPreview />
-            </Reveal>
+            <div className="mt-8 space-y-5">
+              {features.map((f, i) => (
+                <Reveal key={f.title} delay={i * 70} className="flex gap-4">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10"><f.icon className="size-5 text-brand-300" /></div>
+                  <div>
+                    <h3 className="font-semibold">{f.title}</h3>
+                    <p className="mt-0.5 text-sm text-white/65">{f.body}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
           </div>
-
-          <div className="mt-20 grid items-center gap-10 lg:grid-cols-2">
-            <Reveal className="order-2 text-ink lg:order-1">
-              <RecoveryPreview compact />
-            </Reveal>
-            <Reveal delay={100} className="order-1 lg:order-2">
-              <Badge tone="brand"><Calculator className="size-3" /> Recovery value calculator</Badge>
-              <h3 className="mt-4 text-2xl font-semibold">The best route, with the working shown</h3>
-              <ul className="mt-5 space-y-3 text-white/75">
-                {['Net value of restock, refurbish, liquidate and recycle', 'Grade and hygiene rules decide which routes are eligible', 'Sunk return shipping excluded — no double counting', 'Estimates, third-party quotes and realized proceeds kept separate', 'Override with a reason; every decision is logged'].map((t) => (
-                  <li key={t} className="flex gap-2.5"><Check className="mt-1 size-4 shrink-0 text-brand-300" />{t}</li>
-                ))}
-              </ul>
-            </Reveal>
-          </div>
-
-          <div className="mt-20 grid gap-4 md:grid-cols-3">
-            {[
-              { icon: Boxes, title: 'Inventory workspace', body: 'Search, filter by status, grade, category or route, edit, delete and export to CSV.' },
-              { icon: BarChart3, title: 'Live dashboard', body: 'Pipeline status, recoverable value, routes chosen and weekly intake — all computed from your records.' },
-              { icon: Sparkles, title: 'Operational insights', body: 'Top return categories, most frequent defects, best-value routes and what’s still unprocessed, plus an AI-written briefing.' },
-            ].map((f, i) => (
-              <Reveal key={f.title} delay={i * 80}>
-                <div className="h-full rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-                  <f.icon className="size-6 text-brand-300" />
-                  <h3 className="mt-4 font-semibold">{f.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/65">{f.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <Reveal delay={100} className="flex justify-center text-ink">
+            <InspectionPreview />
+          </Reveal>
         </div>
       </section>
 
-      {/* Benefits + use cases */}
-      <section className="mx-auto max-w-6xl px-5 py-24">
-        <div className="grid gap-14 lg:grid-cols-2">
-          <Reveal>
-            <Eyebrow>Why teams use it</Eyebrow>
-            <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight">Recover more value with less back-and-forth.</h2>
-            <div className="mt-8 grid gap-5 sm:grid-cols-2">
-              {benefits.map((b) => (
-                <div key={b.title}>
-                  <div className="grid size-9 place-items-center rounded-xl bg-brand-50 text-brand-700"><b.icon className="size-4.5" /></div>
-                  <h3 className="mt-3 text-sm font-semibold">{b.title}</h3>
-                  <p className="mt-1 text-sm text-muted">{b.body}</p>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-          <Reveal delay={100}>
+      {/* Benefits & use cases */}
+      <section className="mx-auto max-w-6xl px-5 py-20">
+        <Reveal className="grid gap-10 lg:grid-cols-2">
+          <div>
             <Eyebrow>Built for</Eyebrow>
-            <div className="mt-6 space-y-3">
-              {[
-                { icon: Store, title: 'D2C fashion & footwear brands', body: 'Ops teams handling returns from their own site and marketplaces who want one standard for every item.', tag: 'Now' },
-                { icon: Truck, title: 'Marketplace sellers', body: 'Sellers on Indian marketplaces deciding quickly what goes back to stock and what goes to a liquidation lot.', tag: 'Now' },
-                { icon: Warehouse, title: 'Returns warehouses & 3PLs', body: 'Processing returns for several brands with consistent grading and client-ready exports.', tag: 'Roadmap' },
-                { icon: Recycle, title: 'Sustainability reporting', body: 'Recording what was recovered, resold or recycled instead of written off.', tag: 'Roadmap' },
-              ].map((u) => (
-                <div key={u.title} className="flex gap-4 rounded-2xl border border-line bg-white p-5">
-                  <u.icon className="mt-0.5 size-5 shrink-0 text-brand-700" />
-                  <div>
-                    <p className="flex items-center gap-2 font-semibold">{u.title} <Badge tone={u.tag === 'Now' ? 'brand' : 'neutral'}>{u.tag}</Badge></p>
-                    <p className="mt-1 text-sm text-muted">{u.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </div>
+            <h2 className="mt-3 font-display text-4xl tracking-tight">D2C fashion and footwear teams.</h2>
+            <p className="mt-3 text-ink-2">Brands and marketplace sellers handling returns every week. Returns warehouses and 3PLs are next.</p>
+          </div>
+          <ul className="grid grid-cols-2 gap-3 self-center">
+            {benefits.map((b) => (
+              <li key={b} className="flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm font-medium">
+                <Check className="size-4 text-brand-600" /> {b}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </section>
 
       {/* Demo band */}
       <section className="px-5">
-        <Reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-brand-800 px-8 py-14 text-white sm:px-14">
+        <Reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-brand-800 px-8 py-12 text-white sm:px-14">
           <div className="grain absolute inset-0 opacity-25" />
-          <div className="relative grid items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="font-display text-4xl leading-tight sm:text-5xl">See it working in 30 seconds.</h2>
-              <p className="mt-3 max-w-xl text-brand-100/85">Open the demo workspace with ten fictional returns — no account needed. When you’re ready to inspect your own products with AI, start the free trial in under a minute.</p>
+              <h2 className="font-display text-4xl leading-tight">See it in 30 seconds.</h2>
+              <p className="mt-2 text-brand-100/85">Ten sample returns. No sign-up.</p>
             </div>
-            <div className="flex flex-wrap gap-3 lg:justify-end">
-              <Link to="/demo" className={buttonClass('secondary', 'lg', 'border-transparent')}>
-                <Camera className="size-4" /> Launch the demo
-              </Link>
-            </div>
+            <Link to="/demo" className={buttonClass('secondary', 'lg', 'border-transparent self-start lg:self-auto')}>Open the demo</Link>
           </div>
         </Reveal>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-5 py-24">
-        <Reveal className="mx-auto max-w-2xl text-center">
+      <section id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-5 py-20">
+        <Reveal className="text-center">
           <Eyebrow>Pricing</Eyebrow>
-          <h2 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">Simple, monthly, cancel anytime.</h2>
-          <p className="mt-3 text-ink-2">Try everything free for {LIMITS.trialDays} days — no card. Upgrade when returns become a weekly workflow.</p>
+          <h2 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">Try it free for {LIMITS.trialDays} days.</h2>
         </Reveal>
-        <div className="mx-auto mt-12 grid max-w-4xl gap-4 md:grid-cols-2">
+        <div className="mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2">
           {PLANS.map((p, i) => (
             <Reveal key={p.id} delay={i * 80}>
-              <div className={clsx('relative flex h-full flex-col rounded-3xl border p-7', p.id === 'pro' ? 'border-brand-700 bg-white shadow-xl shadow-brand-900/10 ring-1 ring-brand-700' : 'border-line bg-white')}>
-                {p.id === 'pro' && <span className="absolute -top-3 left-7 rounded-full bg-brand-700 px-3 py-1 text-xs font-semibold text-white">For growing brands</span>}
-                <h3 className="text-lg font-semibold">ReturnRescue {p.name}</h3>
-                <p className="mt-1 text-sm text-muted">{p.blurb}</p>
-                <p className="mt-6 font-display text-6xl leading-none tabular">
+              <div className={clsx('relative flex h-full flex-col rounded-3xl border bg-white p-7', p.id === 'pro' ? 'border-brand-700 shadow-xl shadow-brand-900/10 ring-1 ring-brand-700' : 'border-line')}>
+                <h3 className="text-lg font-semibold">{p.name}</h3>
+                <p className="mt-4 font-display text-5xl leading-none tabular">
                   {p.price ? inr(p.price) : '₹0'}
                   <span className="font-sans text-base text-muted"> {p.period}</span>
                 </p>
-                <ul className="mt-6 flex-1 space-y-2.5 text-sm">
+                <ul className="mt-6 flex-1 space-y-2 text-sm">
                   {p.features.map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-brand-600" />{f}</li>)}
                 </ul>
                 <Link
                   to={p.id === 'pro' ? (accountsEnabled ? '/signup?next=/app/billing' : '/demo') : accountsEnabled ? '/signup' : '/demo'}
-                  className={buttonClass(p.id === 'pro' ? 'primary' : 'secondary', 'lg', 'mt-8 w-full')}
+                  className={buttonClass(p.id === 'pro' ? 'primary' : 'secondary', 'lg', 'mt-7 w-full')}
                 >
                   {p.cta}
                 </Link>
@@ -418,20 +337,18 @@ export default function Landing() {
           ))}
         </div>
         <p className="mx-auto mt-6 max-w-xl text-center text-xs text-muted">
-          {AFTER_TRIAL} Prices in Indian rupees. Payments are processed by Dodo Payments; applicable taxes are shown at checkout. See <Link to="/refunds" className="underline">refunds & cancellation</Link>.
+          {AFTER_TRIAL} Prices in INR, processed by Dodo Payments. <Link to="/refunds" className="underline">Refunds & cancellation</Link>.
         </p>
       </section>
 
-      {/* Methodology & trust */}
       <Methodology />
 
       {/* FAQ */}
       <section id="faq" className="scroll-mt-20 border-t border-line bg-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-24 lg:grid-cols-[1fr_1.6fr]">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 lg:grid-cols-[1fr_1.6fr]">
           <Reveal>
             <Eyebrow>FAQ</Eyebrow>
-            <h2 className="mt-3 font-display text-4xl tracking-tight">Straight answers.</h2>
-            <p className="mt-3 text-sm text-muted">Something else? <Link to="/#contact" className="underline">Get in touch</Link>.</p>
+            <h2 className="mt-3 font-display text-4xl tracking-tight">Questions</h2>
           </Reveal>
           <div className="divide-y divide-line border-y border-line">
             {faqs.map(([q, a]) => (
@@ -448,18 +365,15 @@ export default function Landing() {
       </section>
 
       {/* Contact */}
-      <section id="contact" className="scroll-mt-20 mx-auto max-w-6xl px-5 py-24">
+      <section id="contact" className="scroll-mt-20 mx-auto max-w-6xl px-5 py-20">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr]">
           <Reveal>
             <Eyebrow>Contact</Eyebrow>
-            <h2 className="mt-3 font-display text-4xl tracking-tight">Talk to the team.</h2>
-            <p className="mt-3 text-ink-2">Questions about fit, pilots, billing or your data — send a note and we’ll get back within two working days.</p>
+            <h2 className="mt-3 font-display text-4xl tracking-tight">Talk to us.</h2>
+            <p className="mt-3 text-ink-2">We reply within two working days.</p>
             {config.contactEmail && (
-              <p className="mt-6 text-sm">
-                Or email <a className="font-medium text-brand-700 underline" href={`mailto:${config.contactEmail}`}>{config.contactEmail}</a>
-              </p>
+              <p className="mt-4 text-sm">Or email <a className="font-medium text-brand-700 underline" href={`mailto:${config.contactEmail}`}>{config.contactEmail}</a></p>
             )}
-            <div className="mt-6 flex items-center gap-2 text-sm text-muted"><FileSpreadsheet className="size-4" /> Based in India · Serving D2C brands</div>
           </Reveal>
           <Reveal delay={100} className="rounded-3xl border border-line bg-white p-6 sm:p-8">
             <ContactForm />

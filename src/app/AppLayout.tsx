@@ -123,14 +123,11 @@ export default function AppLayout() {
       <div className="lg:pl-64">
         {mode === 'demo' && (
           <div className="border-b border-brand-200 bg-brand-50 px-4 py-2 text-center text-xs text-brand-900 sm:text-sm">
-            <strong className="font-semibold">Demo workspace.</strong> Ten fictional sample returns, stored only in this browser and kept separate from real accounts.
+            <strong className="font-semibold">Demo</strong> · sample data in your browser.
             {accountsEnabled && (
               <>
                 {' '}
-                <Link to="/signup" className="font-semibold underline underline-offset-2">
-                  Create a free account
-                </Link>{' '}
-                to save your own.
+                <Link to="/signup" className="font-semibold underline underline-offset-2">Start free trial</Link> to use AI on your own returns.
               </>
             )}
           </div>

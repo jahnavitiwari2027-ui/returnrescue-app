@@ -17,9 +17,9 @@ test('landing page renders and links into the app', async ({ page }) => {
     await page.screenshot({ path: `${shots}/landing.png`, fullPage: true })
     await page.evaluate(() => window.scrollTo(0, 0))
   }
-  await page.getByRole('link', { name: /Try the live demo/ }).click()
+  await page.getByRole('link', { name: 'See the demo' }).click()
   await expect(page).toHaveURL(/\/demo$/)
-  await expect(page.getByText('Returned products')).toBeVisible()
+  await expect(page.getByText('To inspect', { exact: true })).toBeVisible()
 })
 
 test('full demo journey: add, inspect, grade, decide, persist, search, edit, export, delete', async ({ page }) => {
@@ -28,8 +28,8 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.reload()
 
   // Dashboard is computed from the 10 seeded sample records
-  const kpi = page.locator('p', { hasText: 'Returned products' }).locator('..')
-  await expect(kpi).toContainText('10')
+  await expect(page.getByText('To inspect', { exact: true })).toBeVisible()
+  await expect(page.getByText(/All 10 returns/)).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/dashboard.png`, fullPage: true })
 
   // Add a return with validation errors first
@@ -60,42 +60,46 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
 
   await expect(page).toHaveURL(/\/demo\/returns\/[^/]+\?new=1/)
   await expect(page.getByRole('heading', { name: 'E2E Test Runner Shoe' })).toBeVisible()
-  await expect(page.getByText('E2E-FTW-001')).toBeVisible()
+  await expect(page.getByText('Footwear · ₹3,000')).toBeVisible()
 
   // AI inspection: with no API key configured the app must show an error, never a made-up result
-  // In the demo, AI results require an account: the app offers the free trial instead of running AI.
-  await expect(page.getByRole('button', { name: 'Start free trial to run AI' })).toBeVisible()
+  // In the demo, AI results require an account: the app offers the free trial instead.
+  await expect(page.getByRole('link', { name: 'Start free trial' }).last()).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/inspection.png`, fullPage: true })
-  await page.getByRole('button', { name: 'Grade manually' }).click()
-  // Grade B with a stain recorded
+  await page.getByRole('button', { name: 'or grade it yourself' }).click()
   await page.getByRole('radio', { name: /Grade B/ }).click()
   await page.getByRole('checkbox', { name: 'Stain' }).check()
   await page.getByRole('button', { name: 'Save grade' }).click()
-  await expect(page.getByText(/Recorded grade: Grade B/)).toBeVisible()
 
-  // Recovery comparison: Grade B → restock ineligible, refurbish recommended
-  // refurbish = 2400 - 480 - 200 - 100 = 1620 ; liquidate = 900 - 50 - 100 = 750
-  await expect(page.getByText('Not allowed for Grade B.')).toBeVisible()
-  await expect(page.getByText(/Repackage \/ refurbish has the highest estimated net recovery among eligible routes \(₹1,620\)/)).toBeVisible()
+  // Verdict card: Grade B → best option is refurbish at 2400 - 480 - 200 - 100 = 1620
+  await expect(page.getByText('Best option')).toBeVisible()
+  await expect(page.getByText('Repackage / refurbish').first()).toBeVisible()
+  await expect(page.getByText('₹1,620').first()).toBeVisible()
+  if (shots) await page.screenshot({ path: `${shots}/verdict.png`, fullPage: true })
 
-  // Override to liquidation requires a reason
+  // Choose another option: override requires a reason
+  await page.getByRole('button', { name: 'Choose another option' }).click()
   await page.getByRole('radio', { name: /Liquidate/ }).click()
   await page.getByRole('button', { name: 'Save decision' }).click()
-  await expect(page.getByText(/add a short reason for the record/)).toBeVisible()
-  await page.getByLabel(/Reason for overriding/).fill('Liquidator collecting a footwear lot this week.')
+  await expect(page.getByText(/kept on the record/)).toBeVisible()
+  await page.getByLabel('Why this option?').fill('Liquidator collecting a footwear lot this week.')
   await page.getByRole('button', { name: 'Save decision' }).click()
-  await expect(page.getByText(/Override of recommended repackage/)).toBeVisible()
+  await expect(page.getByText('Decision saved')).toBeVisible()
+  await expect(page.getByText('₹750').first()).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/decision.png`, fullPage: true })
 
   // Persists after a full reload
   await page.reload()
-  await expect(page.getByText(/Override of recommended repackage/)).toBeVisible()
-  await expect(page.getByText('Decision made').first()).toBeVisible()
+  await expect(page.getByText('Decision saved')).toBeVisible()
 
-  // Record realized proceeds → completed
-  await page.getByLabel('Realized net proceeds').fill('780')
-  await page.getByRole('button', { name: 'Mark completed' }).click()
-  await expect(page.getByText(/vs estimate/)).toContainText('₹30')
+  // Record realized proceeds → done
+  await page.getByLabel(/Amount received/).fill('780')
+  await page.getByRole('button', { name: 'Mark done' }).click()
+  await expect(page.getByText(/₹30 above the estimate/)).toBeVisible()
+
+  // The maths is one tap away
+  await page.getByText('All options and the maths').click()
+  await expect(page.getByText('Not allowed for Grade B.')).toBeVisible()
 
   // Inventory search, filter, export
   await page.goto('/demo/returns')
@@ -103,6 +107,7 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.getByLabel('Search inventory').fill('e2e')
   await expect(page.getByText('Showing 1 of 11')).toBeVisible()
   await page.getByLabel('Search inventory').fill('')
+  await page.getByRole('button', { name: /Filters/ }).click()
   await page.getByLabel('Filter by grade').selectOption('MANUAL_REVIEW')
   await expect(page.getByText('Showing 1 of 11')).toBeVisible()
   await page.getByRole('button', { name: 'Clear filters' }).click()
@@ -139,6 +144,6 @@ test('mobile layout works @mobile', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Workspace' }).last()).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/mobile-dashboard.png`, fullPage: true })
   await page.goto('/demo/returns/sample-02')
-  await expect(page.getByText('Recovery value comparison')).toBeVisible()
+  await expect(page.getByText('All options and the maths')).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/mobile-detail.png`, fullPage: true })
 })

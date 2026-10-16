@@ -14,10 +14,10 @@ All sample products and brands are fictional. The homepage section **“No black
 1. **Landing page** — scroll through: problem, how it works, feature previews (the recovery card is computed live by the same engine as the app), pricing, FAQ, contact form, legal pages in the footer.
 2. **Dashboard** — every number is computed from stored records. Change something later and return here to see it update.
 3. **Add a return (signed in)** — *Add return* → just a photo, product name, category and original price (estimates and SKU are optional) → **Save return**. Use 1–4 clear photos of a real garment or shoe — a phone photo is ideal.
-4. **AI inspection** — starts automatically after saving (10–30 s). Review defects, proposed grade, rationale, limitations, suggested physical checks and the **AI-suggested recovery values** (labelled “AI estimate”, editable). Then **Accept** or **Correct grade** (a reason is required for a correction).
-5. **Recovery comparison** — see which routes the grade allows, expand a route for its line-by-line maths, read the recommendation. Choose a different route to see that an override requires a reason → **Save decision**.
-6. **Persistence** — refresh the page: grade, AI result and decision are still there. Record **Realized net proceeds** to complete the item and see the variance vs estimate.
-7. **Inventory** — search (e.g. “sneaker”), filter by grade/status/category/route, sort, edit, delete, **Export CSV**.
+4. **AI inspection** — starts automatically after saving (10–30 s). The result card shows the grade, a one-line summary and the **best option with its estimated value**. Tap **Confirm** to accept the grade and record the decision in one step, or **Change grade** / **Choose another option** (a reason is required). Open **What the AI saw** for defects, checks and limitations.
+5. **All options and the maths** — expand to see each route’s net value and its line-by-line breakdown, including routes the grade doesn’t allow.
+6. **Persistence** — refresh the page: grade, AI result and decision are still there. Enter the **amount received** to complete the item and see the variance vs estimate.
+7. **Inventory** — search (e.g. “sneaker”), **Filters** for grade/status/category/route, sort, edit, delete, **Export CSV**.
 8. **Insights** — top categories, defects, best-value routes, unprocessed items; **Generate summary** for the AI briefing (signed in).
 9. **Payments (test mode)** — **Plan & billing** shows the trial days left → **Upgrade with Dodo Payments**. Use test card **4242 4242 4242 4242**, expiry **06/32**, CVV **123**. You return to the billing page, which waits for the verified webhook and then shows **Pro**. To test a decline use **4000 0000 0000 0002**. No real money moves.
 10. **Mobile** — open the site on a phone: landing, bottom tab bar in the app, forms and photo upload from the camera.
