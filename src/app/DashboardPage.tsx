@@ -47,17 +47,15 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-end justify-between gap-4">
         <h1 className="font-display text-[36px] leading-none tracking-tight sm:text-[44px]">Dashboard</h1>
-        <LinkButton to={`${base}/returns/new`} icon={<Plus className="size-4" />}>Add return</LinkButton>
+        <div className="hidden lg:block"><LinkButton to={`${base}/returns/new`} icon={<Plus className="size-4" />}>Add return</LinkButton></div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {tiles.map((t) => (
-          <Card key={t.label} className={t.accent ? 'border-brand-800 bg-brand-800 text-white' : ''}>
-            <div className="p-4">
-              <p className={`text-xs ${t.accent ? 'text-brand-100' : 'text-muted'}`}>{t.label}</p>
-              <p className="mt-1.5 font-display text-2xl leading-none tabular sm:text-4xl">{t.value}</p>
-            </div>
-          </Card>
+          <div key={t.label} className={`rounded-2xl border p-3 sm:p-4 ${t.accent ? 'border-brand-800 bg-brand-800 text-white' : 'border-line bg-white'}`}>
+            <p className={`text-xs ${t.accent ? 'text-brand-100' : 'text-muted'}`}>{t.label}</p>
+            <p className="mt-1.5 font-display text-2xl leading-none tabular sm:text-4xl">{t.value}</p>
+          </div>
         ))}
       </div>
 

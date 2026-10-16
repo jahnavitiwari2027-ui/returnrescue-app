@@ -7,6 +7,7 @@ import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
 import { inr, shortDate } from '../lib/format'
 import { calculateRecovery } from '../lib/recovery'
 import { DEFECT_LABEL, type ReturnItem } from '../lib/types'
+import NextSteps from './detail/NextSteps'
 import VerdictCard from './detail/VerdictCard'
 
 export default function ReturnDetailPage() {
@@ -81,6 +82,7 @@ export default function ReturnDetailPage() {
       </div>
 
       <VerdictCard item={item} autoRun={!!params.get('new')} />
+      {item.decision_route && <NextSteps item={item} route={item.decision_route} />}
 
       <div className="mt-4 space-y-2">
         {item.ai_inspection && (

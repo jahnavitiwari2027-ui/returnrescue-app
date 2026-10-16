@@ -16,9 +16,10 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 4. **Add / edit returns** — only a photo, name, category and price are required; SKU, reason, notes and per-route estimates are optional, with validation.
 5. **AI product inspection (Google Gemini vision, server-side)** — runs automatically after saving; observable defects, proposed grade A/B/C/Manual review, rationale, confidence, limitations, suggested physical checks, potentially eligible routes and AI-suggested recovery values (clearly labelled and editable). The user accepts or corrects the grade. If the AI is unavailable, the app shows an error rather than inventing a result.
 6. **Recovery value calculator** — deterministic net value for restock, refurbish, liquidate and recycle; grade and hygiene eligibility rules; sunk costs excluded to avoid double counting; recommendation with explanation and line-by-line breakdown; manual override with reason; estimates, third-party quotes and realized proceeds kept separate.
-7. **Inventory** — search, filters, sorting, edit, delete, CSV export; changes persist.
-8. **Dashboard & insights** — totals, pipeline status, estimated recoverable value, routes chosen, weekly intake, top categories, frequent defects, best-value routes, unprocessed items, plus an AI-written briefing grounded only in the computed figures.
-9. **Subscriptions (Dodo Payments)** — server-side hosted checkout, signature-verified idempotent webhooks, entitlements stored server-side, Pro features unlocked only by verified payment, failure/cancel handling and a customer portal to manage or cancel.
+7. **Next steps & partners** — after a decision, a pathway for that route: checklist, “find nearby” map searches, checked Indian channels (resale, liquidation, donation, recycling) and the business’s own saved partners with one-tap contact.
+8. **Inventory** — search, filters, sorting, edit, delete, CSV export; changes persist.
+9. **Dashboard & insights** — totals, pipeline status, estimated recoverable value, routes chosen, weekly intake, top categories, frequent defects, best-value routes, unprocessed items, plus an AI-written briefing grounded only in the computed figures.
+10. **Subscriptions (Dodo Payments)** — server-side hosted checkout, signature-verified idempotent webhooks, entitlements stored server-side, Pro features unlocked only by verified payment, failure/cancel handling and a customer portal to manage or cancel.
 
 ## What evaluators should test
 

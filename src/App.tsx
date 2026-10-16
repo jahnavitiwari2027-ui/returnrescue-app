@@ -17,6 +17,7 @@ const ReturnForm = lazy(() => import('./app/ReturnFormPage'))
 const ReturnDetail = lazy(() => import('./app/ReturnDetailPage'))
 const Insights = lazy(() => import('./app/InsightsPage'))
 const Billing = lazy(() => import('./app/BillingPage'))
+const Partners = lazy(() => import('./app/PartnersPage'))
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
@@ -59,6 +60,7 @@ function workspaceRoutes(mode: 'demo' | 'account') {
       <Route path="returns/:id" element={<ReturnDetail />} />
       <Route path="returns/:id/edit" element={<ReturnForm />} />
       <Route path="insights" element={<Insights />} />
+      <Route path="partners" element={<Partners />} />
       {mode === 'account' && <Route path="billing" element={<Billing />} />}
       <Route path="*" element={<NotFound inApp />} />
     </>

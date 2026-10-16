@@ -88,6 +88,18 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await expect(page.getByText('₹750').first()).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/decision.png`, fullPage: true })
 
+  // Next-steps pathway for the chosen route
+  await expect(page.getByText('Next steps · Liquidate')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Excess2Sell/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Group similar items into a lot (same category or grade).' }).click()
+  await expect(page.getByText('1/4')).toBeVisible()
+  // Save a partner from the pathway
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByLabel('Name').fill('Test Liquidation Buyer')
+  await page.getByLabel('Phone / WhatsApp').fill('9876543210')
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/919876543210')
+
   // Persists after a full reload
   await page.reload()
   await expect(page.getByText('Decision saved')).toBeVisible()
@@ -123,6 +135,10 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.getByLabel('Product name').fill('E2E Test Runner Shoe v2')
   await page.getByRole('button', { name: 'Save changes' }).click()
   await expect(page.getByRole('heading', { name: 'E2E Test Runner Shoe v2' })).toBeVisible()
+
+  // Partners page lists the saved partner
+  await page.goto('/demo/partners')
+  await expect(page.getByText('Test Liquidation Buyer')).toBeVisible()
 
   // Insights computed from records
   await page.goto('/demo/insights')

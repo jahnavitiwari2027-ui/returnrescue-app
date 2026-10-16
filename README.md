@@ -21,6 +21,7 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 | **Recovery calculator** | Deterministic per-route net = proceeds − fees − costs; sunk return shipping excluded; grade and hygiene rules decide eligibility; highest eligible net is recommended with a plain-English explanation and an expandable line-by-line breakdown. Manual override with mandatory reason; decision snapshot recorded; realized proceeds recorded separately from estimates. |
 | **Inventory** | Thumbnails, SKU, grade, route, est. net, status; search; filters by status / grade / category / route; sort; edit; delete; CSV export (server-side and Pro-gated for accounts). |
 | **Insights** | Top categories, return reasons, grade mix, most frequent defects, best-value routes, overrides, unprocessed items — plus an optional AI-written briefing grounded only in those computed figures. |
+| **Next steps & partners** | After a decision, a route-specific pathway: checklist, Google Maps “find nearby” links (no API, no scraping), hand-checked Indian channels, and the business’s own saved partners with one-tap Call / WhatsApp / Email. |
 | **Billing** | Dodo Payments hosted checkout created server-side; Standard-Webhooks signature verification; idempotent event log; out-of-order protection; entitlement written only by the webhook; success page waits for the verified entitlement (visiting the return URL never unlocks anything); failure/cancel handling; Dodo customer portal for manage/cancel. |
 
 ### Plans

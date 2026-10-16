@@ -121,9 +121,9 @@ export default function InventoryPage() {
             <Button variant="secondary" icon={<Download className="size-4" />} onClick={exportCsv} loading={exporting} disabled={!items.length}>
               Export CSV
             </Button>
-            <LinkButton to={`${base}/returns/new`} icon={<Plus className="size-4" />}>
-              Add return
-            </LinkButton>
+            <div className="hidden lg:block">
+              <LinkButton to={`${base}/returns/new`} icon={<Plus className="size-4" />}>Add return</LinkButton>
+            </div>
           </>
         }
       />
