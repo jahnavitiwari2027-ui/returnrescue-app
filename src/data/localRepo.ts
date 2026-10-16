@@ -44,6 +44,16 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36)
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [head, body = ''] = dataUrl.split(',', 2)
+  const mime = /data:([^;]+)/.exec(head)?.[1] ?? 'application/octet-stream'
+  if (!head.includes(';base64')) return new Blob([decodeURIComponent(body)], { type: mime })
+  const bin = atob(body)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
 export function resetDemo() {
   write({ version: 1, items: buildDemoItems() })
 }
@@ -85,6 +95,9 @@ export const localRepo: ReturnsRepo = {
     return Object.fromEntries(refs.map((r) => [r, r]))
   },
   async photoBlob(ref) {
+    // Decode data: URLs directly — fetch() of data: URLs is blocked by the site's
+    // Content-Security-Policy (connect-src), which caused "Failed to fetch".
+    if (ref.startsWith('data:')) return dataUrlToBlob(ref)
     const res = await fetch(ref)
     if (!res.ok) throw new RepoError('PHOTO', 'Could not load this photo.')
     return res.blob()
