@@ -1,13 +1,13 @@
 import clsx from 'clsx'
 import { ArrowLeft, ChevronDown, ImageOff, Pencil, Trash2 } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, EmptyState, LinkButton, Modal, SampleBadge, Spinner, StatusBadge } from '../components/ui'
 import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
 import { inr, shortDate } from '../lib/format'
-import { calculateRecovery } from '../lib/recovery'
-import { DEFECT_LABEL, type ReturnItem } from '../lib/types'
+import { DEFECT_LABEL, GRADE_LABEL, type ReturnItem } from '../lib/types'
 import NextSteps from './detail/NextSteps'
+import OptionsMaths from './detail/OptionsMaths'
 import VerdictCard from './detail/VerdictCard'
 
 export default function ReturnDetailPage() {
@@ -91,7 +91,7 @@ export default function ReturnDetailPage() {
           </Section>
         )}
         <Section title="All options and the maths" hint="Net value of each route">
-          <Options item={item} />
+          <OptionsMaths item={item} />
         </Section>
         <Section title="Product details">
           <dl className="space-y-2 text-sm">
@@ -179,6 +179,14 @@ function AIFindings({ item }: { item: ReturnItem }) {
         <p className="font-medium">Why this grade</p>
         <p className="mt-0.5 text-ink-2">{ai.grade_rationale}</p>
       </div>
+      {ai.guardrail_notes && ai.guardrail_notes.length > 0 && (
+        <div className="rounded-lg bg-paper p-3">
+          <p className="font-medium">Rule checks{ai.ai_proposed_grade ? ` · AI said ${GRADE_LABEL[ai.ai_proposed_grade]}` : ''}</p>
+          <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-ink-2">
+            {ai.guardrail_notes.map((c, i) => <li key={i}>{c}</li>)}
+          </ul>
+        </div>
+      )}
       <div>
         <p className="font-medium">Check by hand</p>
         <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-ink-2">
@@ -191,57 +199,7 @@ function AIFindings({ item }: { item: ReturnItem }) {
           {ai.limitations.map((c, i) => <li key={i}>{c}</li>)}
         </ul>
       </div>
-      {ai.suggested_estimates?.rationale && (
-        <div>
-          <p className="font-medium">How values were estimated</p>
-          <p className="mt-0.5 text-ink-2">{ai.suggested_estimates.rationale} <a href="/#trust" className="text-brand-700 underline">Our method</a></p>
-        </div>
-      )}
       <p className="text-xs text-muted">{ai.model} · {shortDate(ai.created_at)} · AI results are provisional — a person confirms the grade.</p>
-    </div>
-  )
-}
-
-function Options({ item }: { item: ReturnItem }) {
-  const grade = item.grade ?? item.ai_inspection?.proposed_grade ?? null
-  const calc = useMemo(() => calculateRecovery({ ...item, grade }), [item, grade])
-  const [open, setOpen] = useState<string | null>(null)
-  return (
-    <div className="space-y-2">
-      {calc.routes.map((r) => (
-        <div key={r.route} className={clsx('rounded-xl border', calc.recommended === r.route ? 'border-brand-300' : 'border-line')}>
-          <button className="flex w-full items-center gap-3 px-3 py-2.5 text-left" onClick={() => setOpen(open === r.route ? null : r.route)} aria-expanded={open === r.route}>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">
-                {r.label}
-                {calc.recommended === r.route && <span className="ml-1.5 text-xs font-normal text-brand-700">best</span>}
-              </span>
-              <span className="block text-xs text-muted">
-                {!r.eligible ? r.ineligibleReason : !r.configured ? 'No value entered' : r.basis === 'ai' ? 'AI estimate' : r.basis === 'quote' ? 'From a quote' : 'Your estimate'}
-              </span>
-            </span>
-            <span className={clsx('font-semibold tabular', (!r.eligible || !r.configured) && 'text-muted')}>{r.configured ? inr(r.net) : '—'}</span>
-            <ChevronDown className={clsx('size-4 text-muted transition', open === r.route && 'rotate-180')} />
-          </button>
-          {open === r.route && (
-            <table className="mx-3 mb-3 w-[calc(100%-1.5rem)] text-xs">
-              <tbody>
-                {r.lines.map((l) => (
-                  <tr key={l.label}>
-                    <td className="py-0.5 text-muted">{l.label}</td>
-                    <td className={clsx('py-0.5 text-right tabular', l.amount < 0 && 'text-red-700')}>{l.amount < 0 ? '− ' : '+ '}{inr(Math.abs(l.amount), true)}</td>
-                  </tr>
-                ))}
-                <tr className="border-t border-line font-semibold">
-                  <td className="pt-1">Net</td>
-                  <td className="pt-1 text-right tabular">{inr(r.net, true)}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-        </div>
-      ))}
-      {calc.warnings.length > 0 && <p className="text-xs text-muted">{calc.warnings[0]}</p>}
     </div>
   )
 }

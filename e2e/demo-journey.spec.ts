@@ -45,15 +45,15 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.getByLabel('Original selling price').fill('3000')
   await page.getByLabel('Return reason').selectOption('Changed mind')
   await page.getByLabel('Condition notes').fill('Brown mark on the left side, box intact.')
-  await page.getByLabel('Channel / marketplace fee').fill('20')
-  await page.getByLabel('Handling & outbound shipping').fill('100')
-  await page.getByLabel('Expected resale price').fill('2800')
-  await page.getByLabel('Resale price after refurbishment').fill('2400')
-  await page.getByLabel('Repair / repackaging cost').fill('200')
+  await page.getByLabel('Selling fee').fill('20')
+  await page.getByLabel('Handling & shipping per order').fill('100')
+  await page.getByLabel('Resale price', { exact: true }).fill('2800')
+  await page.getByLabel('Resale price after repair').fill('2400')
+  await page.getByLabel('Repair & repackaging cost').fill('200')
   await page.getByLabel('Liquidation price').fill('900')
-  await page.getByLabel('Liquidation fee').fill('50')
-  await page.getByLabel('Recycling / salvage value').fill('40')
-  await page.getByLabel('Recycling / disposal cost').fill('20')
+  await page.getByLabel('Commission & bulk freight').fill('50')
+  await page.getByLabel('Scrap value').fill('40')
+  await page.getByLabel('Sorting & transport').fill('20')
   await page.getByLabel('Upload product photos').setInputFiles('e2e/fixtures/test-product.png')
   await expect(page.getByRole('img', { name: 'Return photo' })).toBeVisible()
   await page.getByRole('button', { name: 'Save return' }).click()
@@ -85,7 +85,7 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.getByLabel('Why this option?').fill('Liquidator collecting a footwear lot this week.')
   await page.getByRole('button', { name: 'Save decision' }).click()
   await expect(page.getByText('Decision saved')).toBeVisible()
-  await expect(page.getByText('₹750').first()).toBeVisible()
+  await expect(page.getByText('₹850').first()).toBeVisible() // bulk sale: 900 − 50, no per-order handling
   if (shots) await page.screenshot({ path: `${shots}/decision.png`, fullPage: true })
 
   // Next-steps pathway for the chosen route
@@ -105,7 +105,7 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await expect(page.getByText('Decision saved')).toBeVisible()
 
   // Record realized proceeds → done
-  await page.getByLabel(/Amount received/).fill('780')
+  await page.getByLabel(/Amount received/).fill('880')
   await page.getByRole('button', { name: 'Mark done' }).click()
   await expect(page.getByText(/₹30 above the estimate/)).toBeVisible()
 

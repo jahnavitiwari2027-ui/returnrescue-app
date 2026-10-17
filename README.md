@@ -29,7 +29,7 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 | | Demo (no sign-up) | 14-day free trial (no card) | Pro (₹999 / month, configurable) |
 |---|---|---|---|
 | Sample workspace, calculator, manual grading | ✓ | ✓ | ✓ |
-| AI photo inspection + AI-suggested values | — (sign in required) | up to 100 | fair use 300 / 30 days |
+| AI photo inspection (defects + grade) | — (sign in required) | up to 100 | fair use 300 / 30 days |
 | Returns stored | in browser only | unlimited | unlimited |
 | AI insight summary, CSV export | — | ✓ | ✓ |
 

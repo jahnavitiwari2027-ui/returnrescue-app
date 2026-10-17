@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { BarChart3, CreditCard, Handshake, LayoutDashboard, LogOut, PackageSearch, Plus, RotateCcw, Sparkles } from 'lucide-react'
+import { BarChart3, CreditCard, Handshake, LayoutDashboard, LogOut, PackageSearch, Plus, RotateCcw, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Badge, Button, buttonClass, Logo, Modal } from '../components/ui'
@@ -19,6 +19,7 @@ export default function AppLayout() {
     { to: `${base}/returns`, label: 'Inventory', short: 'Inventory', icon: PackageSearch, end: false },
     { to: `${base}/partners`, label: 'Partners', short: 'Partners', icon: Handshake, end: true },
     { to: `${base}/insights`, label: 'Insights', short: 'Insights', icon: BarChart3, end: true },
+    { to: `${base}/rates`, label: 'Your rates', short: 'Rates', icon: SlidersHorizontal, end: true },
     ...(mode === 'account' ? [{ to: `${base}/billing`, label: 'Plan & billing', short: 'Plan', icon: CreditCard, end: true }] : []),
   ]
 
@@ -85,6 +86,9 @@ export default function AppLayout() {
         {mode === 'demo' ? (
           <div className="flex items-center gap-1">
             {accountsEnabled && <Link to="/signup" className={buttonClass('primary', 'sm')}>Free trial</Link>}
+            <Link to={`${base}/rates`} className="rounded-lg p-2 text-muted hover:bg-ink/5" aria-label="Your rates">
+              <SlidersHorizontal className="size-4" />
+            </Link>
             <button className="rounded-lg p-2 text-muted hover:bg-ink/5" onClick={() => setConfirmReset(true)} aria-label="Reset demo data">
               <RotateCcw className="size-4" />
             </button>
@@ -92,6 +96,9 @@ export default function AppLayout() {
         ) : (
           <div className="flex items-center gap-1">
             <Link to={`${base}/billing`} aria-label="Plan and billing"><Badge tone={isPro || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
+            <Link to={`${base}/rates`} className="rounded-lg p-2 text-muted hover:bg-ink/5" aria-label="Your rates">
+              <SlidersHorizontal className="size-4" />
+            </Link>
             <button className="rounded-lg p-2 text-muted hover:bg-ink/5" onClick={doSignOut} aria-label="Sign out">
               <LogOut className="size-4" />
             </button>

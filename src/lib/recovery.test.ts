@@ -25,7 +25,7 @@ describe('calculateRecovery', () => {
     const byRoute = Object.fromEntries(r.routes.map((x) => [x.route, x.net]))
     expect(byRoute.restock).toBe(2799 - 559.8 - 80) // 2159.2
     expect(byRoute.refurbish).toBe(2399 - 479.8 - 150 - 80) // 1689.2
-    expect(byRoute.liquidate).toBe(900 - 50 - 80) // 770
+    expect(byRoute.liquidate).toBe(900 - 50) // bulk sale: no per-order handling
     expect(byRoute.recycle).toBe(10)
     expect(r.recommended).toBe('restock')
     expect(r.sunkCost).toBe(120)
@@ -57,7 +57,7 @@ describe('calculateRecovery', () => {
       ...emptyReturnInput(),
       grade: 'C',
       liquidation_price: 50,
-      liquidation_fee: 40,
+      liquidation_fee: 120,
       handling_cost: 100,
       recycling_cost: 60,
     })

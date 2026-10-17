@@ -79,7 +79,11 @@ export interface AIInspection {
   limitations: string[]
   recommended_physical_checks: string[]
   eligible_routes: RouteKey[]
-  /** Rough recovery values suggested by the AI (INR, per unit). Always editable; labelled as AI estimates. */
+  /** The model's own grade before rule checks, when the rules changed it. */
+  ai_proposed_grade?: Grade
+  /** Why the rules changed the grade, plus cautions (low confidence, limited photos). */
+  guardrail_notes?: string[]
+  /** Older inspections only: money values the AI used to suggest. New inspections never include these. */
   suggested_estimates?: SuggestedEstimates | null
 }
 
@@ -96,7 +100,8 @@ export interface SuggestedEstimates {
   rationale: string
 }
 
-export type ValueBasis = 'estimate' | 'quote' | 'ai'
+/** Where a value came from. 'rates' = the rate card; 'ai' = older AI-suggested values (kept for existing records). */
+export type ValueBasis = 'estimate' | 'quote' | 'ai' | 'rates'
 
 export interface ReturnItem {
   id: string
@@ -125,7 +130,8 @@ export interface ReturnItem {
   recycling_cost: number
   /** Already spent getting the item back. Shown for P&L but excluded from the decision (sunk). */
   return_shipping_cost: number
-  value_basis: Partial<Record<RouteKey, ValueBasis>>
+  /** Per route, plus 'costs' for the shared selling fee and handling. */
+  value_basis: Partial<Record<RouteKey | 'costs', ValueBasis>>
 
   // Inspection
   status: ReturnStatus

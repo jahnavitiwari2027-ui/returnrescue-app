@@ -33,7 +33,8 @@ export const PLANS = [
     features: [
       `Full Pro access for ${LIMITS.trialDays} days`,
       `Up to ${LIMITS.trialAiInspections} AI photo inspections`,
-      'AI-suggested recovery values and grades',
+      'AI grading with rule checks',
+      'Values from a sourced rate card you can edit',
       'Unlimited returns, insights and CSV export',
       'Keep your data if you don’t upgrade',
     ],

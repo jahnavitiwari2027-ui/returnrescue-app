@@ -1,16 +1,17 @@
 import { ChevronDown, Eye, FileClock, Lock, Scale, UserCheck, ClipboardCheck } from 'lucide-react'
+import { RATE_SOURCES, RATES_CHECKED_ON } from '../lib/rates'
 import { GRADE_GUIDE, GRADE_LABEL, GRADES } from '../lib/types'
 
 const formulas = [
-  ['Restock', 'resale price − channel fee − handling'],
-  ['Refurbish', 'resale after refurb − channel fee − repair − handling'],
-  ['Liquidate', 'liquidation price − fee − handling'],
-  ['Recycle', 'salvage value − disposal cost'],
+  ['Restock', 'your price − selling fee − handling & shipping'],
+  ['Refurbish', 'resale after repair (default 70% of your price) − selling fee − repairs − handling & shipping'],
+  ['Liquidate', 'liquidation price − commission & bulk freight'],
+  ['Recycle', 'scrap value − sorting & transport'],
 ]
 
 const trust = [
-  { icon: UserCheck, title: 'You make the call', body: 'The AI suggests. You confirm or correct.' },
-  { icon: Eye, title: 'Nothing hidden', body: 'Every number is shown and editable.' },
+  { icon: UserCheck, title: 'You make the call', body: 'The AI suggests a grade. Rules check it. You confirm.' },
+  { icon: Eye, title: 'No made-up money', body: 'The AI never sets a price. Every rupee links to a source.' },
   { icon: ClipboardCheck, title: 'Honest limits', body: 'It says what photos can’t prove.' },
   { icon: FileClock, title: 'Full record', body: 'Grades, decisions and outcomes are logged.' },
   { icon: Lock, title: 'Private data', body: 'Isolated workspaces and private photo storage.' },
@@ -44,7 +45,7 @@ export default function Methodology() {
           <div className="grid gap-8 border-t border-line px-6 py-6 lg:grid-cols-3">
             <div>
               <h3 className="font-semibold">Grading</h3>
-              <p className="mt-1 text-sm text-muted">A vision AI model (Google Gemini) follows a fixed rubric and may only report damage it can see.</p>
+              <p className="mt-1 text-sm text-muted">A vision AI model (Google Gemini) follows a fixed rubric and may only report damage it can see. Fixed rules then check its grade: any visible defect rules out A, a major or unrepairable one means C, and odour, unclear photos or a possible mismatch go to a person.</p>
               <dl className="mt-3 space-y-2 text-sm">
                 {GRADES.map((g) => (
                   <div key={g}>
@@ -57,10 +58,18 @@ export default function Methodology() {
             <div>
               <h3 className="font-semibold">Values</h3>
               <ul className="mt-1 space-y-2 text-sm text-muted">
-                <li>Enter your own prices, or leave them blank for AI suggestions.</li>
-                <li>AI suggestions start from the original price, then adjust for category and visible condition, with typical Indian marketplace fees (about 15–25%).</li>
-                <li>They’re labelled “AI estimate” — a starting point, not market data.</li>
-                <li>Replace them with real prices or a quote anytime. Money actually received is recorded separately.</li>
+                <li>The AI never sets a price. It only reports each defect and how severe it is.</li>
+                <li>Each defect maps to a fix with a cost: in-house work at Delhi minimum wage, or a cleaner, cobbler or tailor at published prices. Unrepairable damage rules out refurbishing.</li>
+                <li>Fees and shipping follow Amazon.in’s fee schedule (or your own website’s). Resale and liquidation are stated percentages of your price.</li>
+                <li>Every default links to its source or is labelled an assumption. Change any rate to your own; enter a quote and it’s kept as one.</li>
+              </ul>
+              <p className="mt-3 text-xs font-medium text-ink">Sources (checked {RATES_CHECKED_ON})</p>
+              <ul className="mt-1 space-y-1 text-xs">
+                {Object.values(RATE_SOURCES).map((src) => (
+                  <li key={src.url}>
+                    <a href={src.url} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">{src.title}</a>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
@@ -75,7 +84,7 @@ export default function Methodology() {
                 ))}
               </dl>
               <p className="mt-3 text-sm text-muted">
-                Grade A allows all routes, B excludes restock, C allows liquidate or recycle, and Manual review waits for a person. The highest net wins. Return shipping already paid is excluded.
+                Grade A allows all routes, B excludes restock, C allows liquidate or recycle, and Manual review waits for a person. The highest net wins. Return shipping already paid is excluded. Where a source gives a range, we take the cautious end.
               </p>
             </div>
           </div>

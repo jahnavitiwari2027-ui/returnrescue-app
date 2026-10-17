@@ -7,14 +7,18 @@ import { LIMITS } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { useWorkspace } from '../../context/WorkspaceContext'
 import { inr, shortDate } from '../../lib/format'
+import { useRates } from '../../data/rates'
+import { estimateFromRates, estimateInputFor, ratesPatch } from '../../lib/rates'
 import { calculateRecovery } from '../../lib/recovery'
 import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
+import { BASIS_SHORT } from '../../lib/basis'
 import GradeModal from './GradeModal'
 import { useInspection } from './useInspection'
 
 export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoRun: boolean }) {
   const { update, base, mode } = useWorkspace()
   const { hasAccess } = useAuth()
+  const { rates } = useRates()
   const { run, running, error, canRun } = useInspection(item, autoRun)
   const ai = item.ai_inspection
   const grade = item.grade ?? ai?.proposed_grade ?? null
@@ -65,7 +69,10 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
       item={{ ...item, grade }}
       onClose={() => setModal(null)}
       onSave={async (g, note, defects) => {
+        // A new grade or defect list changes the repair and liquidation estimates on the rate card.
+        const est = estimateFromRates(estimateInputFor(item, { grade: g, defects }), rates)
         await update(item.id, {
+          ...ratesPatch(item, est),
           grade: g,
           grade_source: modal === 'correct' ? 'ai_corrected' : 'manual',
           grade_note: note,
@@ -214,7 +221,7 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
               <p className={clsx('font-display text-3xl tabular', best.net < 0 && 'text-red-700')}>{inr(best.net)}</p>
             </div>
             <p className="text-xs text-muted">
-              Estimated net per unit{best.basis === 'ai' ? ' · AI estimate' : best.basis === 'quote' ? ' · from a quote' : ''}
+              Estimated net per unit · {BASIS_SHORT[best.basis]}
             </p>
           </div>
           <Button size="lg" className="mt-4 w-full" loading={saving} onClick={() => decide(best.route, '')} icon={<Check className="size-4" />}>

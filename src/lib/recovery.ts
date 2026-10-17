@@ -34,6 +34,8 @@ export type RecoveryInputs = Pick<
 export interface BreakdownLine {
   label: string
   amount: number // positive = money in, negative = money out
+  /** Which stored input this line comes from (lets the UI show where the number came from). */
+  field?: 'resale_price' | 'refurb_resale_price' | 'selling_fee_pct' | 'refurb_cost' | 'handling_cost' | 'liquidation_price' | 'liquidation_fee' | 'recycling_value' | 'recycling_cost'
 }
 
 export interface RouteResult {
@@ -110,27 +112,28 @@ export function calculateRecovery(input: RecoveryInputs): RecoveryResult {
     if (route === 'restock') {
       gross = num(input.resale_price)
       configured = gross > 0
-      lines.push({ label: 'Expected resale price', amount: gross })
-      if (fee) lines.push({ label: `Channel / marketplace fee (${round2(fee * 100)}%)`, amount: -gross * fee })
-      if (handling) lines.push({ label: 'Handling & outbound shipping', amount: -handling })
+      lines.push({ label: 'Resale price', amount: gross, field: 'resale_price' })
+      if (fee) lines.push({ label: `Selling fee (${round2(fee * 100)}%)`, amount: -gross * fee, field: 'selling_fee_pct' })
+      if (handling) lines.push({ label: 'Handling & shipping', amount: -handling, field: 'handling_cost' })
     } else if (route === 'refurbish') {
       gross = num(input.refurb_resale_price)
       configured = gross > 0
-      lines.push({ label: 'Expected resale price after repackaging / refurbishment', amount: gross })
-      if (fee) lines.push({ label: `Channel / marketplace fee (${round2(fee * 100)}%)`, amount: -gross * fee })
-      if (input.refurb_cost) lines.push({ label: 'Repair / repackaging cost', amount: -num(input.refurb_cost) })
-      if (handling) lines.push({ label: 'Handling & outbound shipping', amount: -handling })
+      lines.push({ label: 'Resale price after repair', amount: gross, field: 'refurb_resale_price' })
+      if (fee) lines.push({ label: `Selling fee (${round2(fee * 100)}%)`, amount: -gross * fee, field: 'selling_fee_pct' })
+      if (input.refurb_cost) lines.push({ label: 'Repair & repackaging', amount: -num(input.refurb_cost), field: 'refurb_cost' })
+      if (handling) lines.push({ label: 'Handling & shipping', amount: -handling, field: 'handling_cost' })
     } else if (route === 'liquidate') {
+      // Sold in bulk to a buyer: no per-order marketplace fees or shipping. Its own
+      // commission and bulk freight are in liquidation_fee.
       gross = num(input.liquidation_price)
       configured = gross > 0
-      lines.push({ label: 'Liquidation price', amount: gross })
-      if (input.liquidation_fee) lines.push({ label: 'Liquidation fee / commission', amount: -num(input.liquidation_fee) })
-      if (handling) lines.push({ label: 'Handling & outbound shipping', amount: -handling })
+      lines.push({ label: 'Liquidation price', amount: gross, field: 'liquidation_price' })
+      if (input.liquidation_fee) lines.push({ label: 'Commission & bulk freight', amount: -num(input.liquidation_fee), field: 'liquidation_fee' })
     } else {
       gross = num(input.recycling_value)
       configured = gross > 0 || num(input.recycling_cost) > 0
-      lines.push({ label: 'Recycling / salvage value', amount: gross })
-      if (input.recycling_cost) lines.push({ label: 'Recycling / disposal cost (all-in)', amount: -num(input.recycling_cost) })
+      lines.push({ label: 'Scrap value', amount: gross, field: 'recycling_value' })
+      if (input.recycling_cost) lines.push({ label: 'Sorting & transport', amount: -num(input.recycling_cost), field: 'recycling_cost' })
     }
 
     const roundedLines = lines.map((l) => ({ ...l, amount: round2(l.amount) }))
@@ -183,8 +186,10 @@ export function calculateRecovery(input: RecoveryInputs): RecoveryResult {
     }
     if (recommended.basis === 'estimate') {
       explanation += ' This is based on your estimates, not a confirmed offer.'
+    } else if (recommended.basis === 'rates') {
+      explanation += ' Values come from your rate card — an estimate, not a confirmed offer.'
     } else if (recommended.basis === 'ai') {
-      explanation += ' This uses AI-suggested estimates — check them against your real channel prices before acting.'
+      explanation += ' This uses older AI-suggested values — recalculate with the rate card or check them against real prices.'
     } else {
       explanation += ' The recommended route uses a third-party quote you recorded.'
     }

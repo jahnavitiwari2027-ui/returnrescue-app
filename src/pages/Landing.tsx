@@ -159,7 +159,8 @@ function ContactForm() {
 }
 
 const faqs: [string, ReactNode][] = [
-  ['What does the AI do?', 'It looks at your photos and notes, lists visible defects, proposes a grade (A, B, C or Manual review) and suggests rough recovery values. You confirm or correct it — the AI never makes the final call.'],
+  ['What does the AI do?', 'It looks at your photos and notes, lists each visible defect with how severe it is, and proposes a grade. It never sets a price. Fixed rules check the grade matches the defects, and you confirm or correct it.'],
+  ['Where do the rupee values come from?', 'A published rate card: Amazon.in fees, courier rates, Delhi minimum wage for in-house work, real cleaner, cobbler and tailor price lists, and surplus-stock and scrap rates. Every line links to its source, assumptions are labelled, and you can change any rate to your own.'],
   ['How is the best option chosen?', 'By plain arithmetic, not AI: expected proceeds minus fees and costs for each route the grade allows. The highest net wins, and every line of the maths is visible.'],
   ['Can photos prove an item is fine to resell?', 'No. Hidden damage, hygiene, odour and authenticity need a person. Every AI result says what to check by hand.'],
   ['Do I need to sign up?', `Not to look around — the demo is open. To inspect your own products, start the ${LIMITS.trialDays}-day free trial. No card needed.`],
@@ -170,8 +171,8 @@ const faqs: [string, ReactNode][] = [
 export default function Landing() {
   const steps = [
     { icon: Camera, title: 'Snap a photo', body: 'Add the product, its price and a photo.' },
-    { icon: ScanSearch, title: 'AI grades it', body: 'Defects, a grade and rough values in seconds.' },
-    { icon: Calculator, title: 'See the best option', body: 'Restock, refurbish, liquidate or recycle — by net value.' },
+    { icon: ScanSearch, title: 'AI grades it', body: 'Visible defects and a grade in seconds.' },
+    { icon: Calculator, title: 'See the best option', body: 'Each option priced from your rate card, best net value first.' },
     { icon: Flag, title: 'Confirm', body: 'One tap to record the decision. Track what you recover.' },
   ]
   const problems = [
@@ -181,7 +182,7 @@ export default function Landing() {
   ]
   const features = [
     { icon: Eye, title: 'AI photo inspection', body: 'Visible defects, a grade with reasons, and what to check by hand.' },
-    { icon: Calculator, title: 'Recovery calculator', body: 'Net value of every route, with the working shown.' },
+    { icon: Calculator, title: 'Recovery calculator', body: 'Every rupee traced to a published rate or your own price.' },
     { icon: Boxes, title: 'Inventory & insights', body: 'Search, export, and see where your returns value goes.' },
   ]
   const benefits = ['Consistent grading', 'Transparent maths', 'A decision record', 'Less waste']
@@ -264,7 +265,7 @@ export default function Landing() {
           <Reveal>
             <Eyebrow>The grades</Eyebrow>
             <h2 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">Every return gets one of four grades.</h2>
-            <p className="mt-3 max-w-2xl text-ink-2">The grade decides which options are allowed. The AI proposes it from the photos, and you confirm or change it.</p>
+            <p className="mt-3 max-w-2xl text-ink-2">The grade decides which options are allowed. The AI proposes it from the photos, fixed rules check it against the defects found, and you confirm or change it.</p>
           </Reveal>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {GRADES.map((g, i) => (

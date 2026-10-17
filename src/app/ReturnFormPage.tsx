@@ -6,7 +6,9 @@ import { Alert, Button, Card, CardHeader, Field, Input, MoneyInput, PageHeader, 
 import { LIMITS } from '../config'
 import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
 import { RepoError } from '../data/repo'
+import { useRates } from '../data/rates'
 import { validateImageFile } from '../lib/image'
+import { estimateFromRates, estimateInputFor, ratesPatch } from '../lib/rates'
 import {
   CATEGORIES,
   HYGIENE_SENSITIVE,
@@ -86,6 +88,7 @@ export default function ReturnFormPage() {
   const cameraInput = useRef<HTMLInputElement>(null)
   const [cameraOpen, setCameraOpen] = useState(false)
   const existingUrls = usePhotoUrls(form.photos)
+  const { rates } = useRates()
 
   useEffect(() => {
     if (!id) return
@@ -101,14 +104,15 @@ export default function ReturnFormPage() {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((f) => {
       const next = { ...f, [k]: v }
-      // Editing an AI-suggested value makes it the user's own estimate.
-      const route = FIELD_ROUTE[k as string]
-      if (route && f.value_basis[route] === 'ai') next.value_basis = { ...f.value_basis, [route]: 'estimate' }
+      // Typing over a rate-card (or older AI) value makes it the user's own estimate.
+      const key = FIELD_ROUTE[k as string] ?? (k === 'selling_fee_pct' || k === 'handling_cost' ? 'costs' : null)
+      const b = key ? f.value_basis[key] : null
+      if (key && b !== 'estimate' && b !== 'quote') next.value_basis = { ...f.value_basis, [key]: 'estimate' }
       return next
     })
     setErrors((e) => ({ ...e, [k]: undefined }))
   }
-  const setBasis = (route: RouteKey, b: ValueBasis) => setForm((f) => ({ ...f, value_basis: { ...f.value_basis, [route]: b } }))
+  const setBasis = (route: RouteKey | 'costs', b: ValueBasis) => setForm((f) => ({ ...f, value_basis: { ...f.value_basis, [route]: b } }))
 
   const photoCount = form.photos.length + pending.length
   const hygiene = HYGIENE_SENSITIVE.includes(form.category as Category)
@@ -183,6 +187,9 @@ export default function ReturnFormPage() {
         photos: [...form.photos, ...uploaded],
       }
       for (const k of NUM_KEYS) payload[k] = form[k] === '' ? 0 : Math.round(Number(form[k]) * 100) / 100
+      // Routes on the rate card (and blank ones) are priced from the rates, using the
+      // current category, price, grade and defects. User estimates and quotes stay as entered.
+      Object.assign(payload, ratesPatch(payload, estimateFromRates(estimateInputFor(payload), rates)))
       let savedId = id
       if (editing && id) {
         const { photos, ...rest } = payload
@@ -225,22 +232,27 @@ export default function ReturnFormPage() {
     </Field>
   )
 
-  const basisToggle = (route: RouteKey) => (
-    <div className="flex rounded-lg bg-paper-2 p-0.5 text-xs" role="radiogroup" aria-label="Value basis">
-      {((form.value_basis[route] === 'ai' ? ['ai', 'estimate', 'quote'] : ['estimate', 'quote']) as ValueBasis[]).map((b) => (
-        <button
-          type="button"
-          key={b}
-          role="radio"
-          aria-checked={(form.value_basis[route] ?? 'estimate') === b}
-          onClick={() => setBasis(route, b)}
-          className={`rounded-md px-2 py-1 font-medium transition ${(form.value_basis[route] ?? 'estimate') === b ? 'bg-white shadow-sm' : 'text-muted'}`}
-        >
-          {b === 'estimate' ? 'My estimate' : b === 'quote' ? 'Third-party quote' : 'AI estimate'}
-        </button>
-      ))}
-    </div>
-  )
+  const basisToggle = (route: RouteKey | 'costs') => {
+    const current: ValueBasis = form.value_basis[route] ?? 'rates'
+    const options: ValueBasis[] = route === 'costs' ? ['rates', 'estimate'] : ['rates', 'estimate', 'quote']
+    if (current === 'ai') options.unshift('ai')
+    return (
+      <div className="flex rounded-lg bg-paper-2 p-0.5 text-xs" role="radiogroup" aria-label="Where this value comes from">
+        {options.map((b) => (
+          <button
+            type="button"
+            key={b}
+            role="radio"
+            aria-checked={current === b}
+            onClick={() => setBasis(route, b)}
+            className={`rounded-md px-2 py-1 font-medium transition ${current === b ? 'bg-white shadow-sm' : 'text-muted'}`}
+          >
+            {b === 'rates' ? 'Rate card' : b === 'estimate' ? 'My price' : b === 'quote' ? 'Quote' : 'Old AI value'}
+          </button>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -249,7 +261,7 @@ export default function ReturnFormPage() {
       </Link>
       <PageHeader
         title={editing ? 'Edit return' : 'Add a return'}
-        subtitle={editing ? 'Update product details, photos or recovery estimates.' : 'Just a photo, name, category and price — the AI inspects the item and suggests recovery values.'}
+        subtitle={editing ? 'Update product details, photos or recovery estimates.' : 'Just a photo, name, category and price. The AI finds the defects and your rate card prices each option.'}
       />
 
       <form onSubmit={onSubmit} noValidate className="grid gap-4 lg:grid-cols-3">
@@ -315,48 +327,48 @@ export default function ReturnFormPage() {
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
               <span>
                 <span className="block text-[15px] font-semibold">Recovery estimates <span className="font-normal text-muted">(optional)</span></span>
-                <span className="block text-sm text-muted">Leave blank and the AI suggests them from the photos. Enter your own if you know your real prices.</span>
+                <span className="block text-sm text-muted">Filled from <Link to={`${base}/rates`} className="text-brand-700 underline">your rate card</Link> using the grade and defects found. Type your own price or a quote to override any of them.</span>
               </span>
               <ChevronDown className="size-4 shrink-0 text-muted transition group-open:rotate-180" />
             </summary>
             <div className="space-y-5 border-t border-line p-5">
               <fieldset className="grid gap-4 sm:grid-cols-2">
-                <legend className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
-                  Selling (applies to restock and refurbish)
+                <legend className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
+                  Selling costs (restock and refurbish) {basisToggle('costs')}
                 </legend>
-                {num('selling_fee_pct', 'Channel / marketplace fee', 'Commission + payment fees as % of selling price.', false)}
-                {num('handling_cost', 'Handling & outbound shipping', 'Per-unit cost to move the item onward. Applied once per route.')}
+                {num('selling_fee_pct', 'Selling fee', 'Marketplace commission or payment fees, % of the sale price incl. GST.', false)}
+                {num('handling_cost', 'Handling & shipping per order', 'Shipping, closing fee, pick & pack and packing materials.')}
               </fieldset>
               <hr className="border-line" />
               <fieldset className="grid gap-4 sm:grid-cols-2">
                 <legend className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
                   Restock & resell as-is {basisToggle('restock')}
                 </legend>
-                {num('resale_price', 'Expected resale price')}
+                {num('resale_price', 'Resale price')}
               </fieldset>
               <hr className="border-line" />
               <fieldset className="grid gap-4 sm:grid-cols-2">
                 <legend className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
                   Repackage / refurbish {basisToggle('refurbish')}
                 </legend>
-                {num('refurb_resale_price', 'Resale price after refurbishment')}
-                {num('refurb_cost', 'Repair / repackaging cost')}
+                {num('refurb_resale_price', 'Resale price after repair')}
+                {num('refurb_cost', 'Repair & repackaging cost')}
               </fieldset>
               <hr className="border-line" />
               <fieldset className="grid gap-4 sm:grid-cols-2">
                 <legend className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
                   Liquidate {basisToggle('liquidate')}
                 </legend>
-                {num('liquidation_price', 'Liquidation price', 'What a liquidator / off-price channel pays.')}
-                {num('liquidation_fee', 'Liquidation fee', 'Commission or listing fee.')}
+                {num('liquidation_price', 'Liquidation price', 'What a liquidator / off-price buyer pays.')}
+                {num('liquidation_fee', 'Commission & bulk freight', 'Sold in bulk, so no per-order shipping.')}
               </fieldset>
               <hr className="border-line" />
               <fieldset className="grid gap-4 sm:grid-cols-2">
                 <legend className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
                   Recycle / dispose {basisToggle('recycle')}
                 </legend>
-                {num('recycling_value', 'Recycling / salvage value')}
-                {num('recycling_cost', 'Recycling / disposal cost', 'All-in, including pickup.')}
+                {num('recycling_value', 'Scrap value')}
+                {num('recycling_cost', 'Sorting & transport', 'All-in, including pickup.')}
               </fieldset>
               {softWarnings.map((w) => (
                 <Alert key={w} tone="warning" icon={<Info className="size-4" />}>{w}</Alert>

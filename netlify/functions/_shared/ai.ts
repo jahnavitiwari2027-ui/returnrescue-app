@@ -140,7 +140,7 @@ export async function structuredVision(opts: {
             responseMimeType: 'application/json',
             responseSchema: toGeminiSchema(opts.schema),
             maxOutputTokens: opts.maxTokens * 3,
-            temperature: 0.2,
+            temperature: 0,
           },
         },
         50_000,
@@ -161,7 +161,7 @@ export async function structuredVision(opts: {
               ],
             },
           ],
-          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: opts.maxTokens * 3, temperature: 0.2 },
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: opts.maxTokens * 3, temperature: 0 },
         },
         45_000,
       )

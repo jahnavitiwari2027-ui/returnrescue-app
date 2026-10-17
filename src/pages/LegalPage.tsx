@@ -53,7 +53,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
         <h2>AI assessments are provisional</h2>
         <p>AI inspection analyses only what is visible in your photos and what you write. It cannot verify hidden defects, hygiene, odour, authenticity, safety or regulatory compliance, and it can be wrong. You are responsible for physically checking items and for every resale, liquidation or disposal decision you make.</p>
         <h2>Estimates are not offers</h2>
-        <p>Recovery values are calculated from your estimates and quotes. They are not guarantees, valuations or offers from ReturnRescue or any third party.</p>
+        <p>Recovery values are calculated from your rate card (published prices and stated assumptions), your own estimates and quotes. They are not guarantees, valuations or offers from ReturnRescue or any third party.</p>
         <h2>Your content</h2>
         <p>You own the data and photos you upload and grant us permission to process them only to provide the service. Do not upload images of people or personal data of your customers.</p>
         <h2>Plans and payment</h2>

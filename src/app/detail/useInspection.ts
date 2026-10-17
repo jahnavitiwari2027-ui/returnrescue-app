@@ -3,7 +3,8 @@ import { LIMITS } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { useWorkspace } from '../../context/WorkspaceContext'
 import { api, ApiError } from '../../lib/api'
-import { aiEstimatePatch } from '../../lib/aiEstimates'
+import { useRates } from '../../data/rates'
+import { estimateFromRates, estimateInputFor, ratesPatch } from '../../lib/rates'
 import { imageForInspection } from '../../lib/image'
 import type { ReturnItem } from '../../lib/types'
 
@@ -16,6 +17,7 @@ export interface InspectionError {
 export function useInspection(item: ReturnItem, autoRun: boolean) {
   const { repo, update, mode } = useWorkspace()
   const { hasAccess, refresh } = useAuth()
+  const { rates } = useRates()
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<InspectionError | null>(null)
   const canRun = mode === 'account' && hasAccess
@@ -41,9 +43,9 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
           original_price: item.original_price,
         },
       })
-      // Fill any recovery values left blank with the AI's suggestions (labelled as AI estimates).
-      const fill = inspection.suggested_estimates ? aiEstimatePatch(item, inspection.suggested_estimates, false) : {}
-      await update(item.id, { ai_inspection: inspection, ...fill })
+      // Price the defects the AI found with the rate card. Values the user entered or quoted are left alone.
+      const est = estimateFromRates(estimateInputFor({ ...item, ai_inspection: inspection }), rates)
+      await update(item.id, { ai_inspection: inspection, ...ratesPatch(item, est) })
       refresh()
     } catch (e) {
       if (e instanceof ApiError) setError({ text: e.message, upgrade: ['TRIAL_ENDED', 'TRIAL_LIMIT', 'PRO_REQUIRED'].includes(e.code) })
@@ -51,7 +53,7 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
     } finally {
       setRunning(false)
     }
-  }, [item, mode, repo, update, refresh])
+  }, [item, mode, repo, update, refresh, rates])
 
   const started = useRef(false)
   useEffect(() => {
