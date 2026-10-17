@@ -22,7 +22,8 @@ import { accountsEnabled, AFTER_TRIAL, config, LIMITS, PLANS } from '../config'
 import Methodology from './Methodology'
 import { buildDemoItems } from '../data/demoSeed'
 import { inr, pct } from '../lib/format'
-import { calculateRecovery } from '../lib/recovery'
+import { calculateRecovery, GRADE_ELIGIBILITY } from '../lib/recovery'
+import { GRADE_GUIDE, GRADES, ROUTE_LABEL, type Grade } from '../lib/types'
 
 function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -40,6 +41,13 @@ function Reveal({ children, className, delay = 0 }: { children: ReactNode; class
       {children}
     </div>
   )
+}
+
+const GRADE_TONE: Record<Grade, { card: string; chip: string }> = {
+  A: { card: 'border-brand-200 bg-brand-50/40', chip: 'bg-brand-100 text-brand-800' },
+  B: { card: 'border-sky-200 bg-sky-50/40', chip: 'bg-sky-100 text-sky-800' },
+  C: { card: 'border-amber-200 bg-amber-50/40', chip: 'bg-amber-100 text-amber-800' },
+  MANUAL_REVIEW: { card: 'border-red-200 bg-red-50/40', chip: 'bg-red-100 text-red-800' },
 }
 
 function Eyebrow({ children }: { children: ReactNode }) {
@@ -247,6 +255,52 @@ export default function Landing() {
               </Reveal>
             ))}
           </ol>
+        </div>
+      </section>
+
+      {/* Grades */}
+      <section id="grades" className="scroll-mt-20 border-t border-line bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-20">
+          <Reveal>
+            <Eyebrow>The grades</Eyebrow>
+            <h2 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">Every return gets one of four grades.</h2>
+            <p className="mt-3 max-w-2xl text-ink-2">The grade decides which options are allowed. The AI proposes it from the photos, and you confirm or change it.</p>
+          </Reveal>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {GRADES.map((g, i) => (
+              <Reveal key={g} delay={i * 70}>
+                <div className={clsx('flex h-full flex-col rounded-2xl border p-5', GRADE_TONE[g].card)}>
+                  <div className="flex items-center gap-3">
+                    <span className={clsx('grid size-11 place-items-center rounded-xl font-display text-2xl', GRADE_TONE[g].chip)}>
+                      {g === 'MANUAL_REVIEW' ? '?' : g}
+                    </span>
+                    <div>
+                      <p className="text-xs font-medium text-muted">{g === 'MANUAL_REVIEW' ? 'Manual review' : `Grade ${g}`}</p>
+                      <h3 className="font-semibold leading-tight">{GRADE_GUIDE[g].short}</h3>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-ink-2">{GRADE_GUIDE[g].meaning}</p>
+                  <div className="min-h-4 flex-1" />
+                  <div className="border-t border-line pt-3">
+                    <p className="text-xs font-medium text-muted">What happens next</p>
+                    <p className="mt-0.5 text-sm font-medium">{GRADE_GUIDE[g].allows}</p>
+                    <ul className="mt-2 flex flex-wrap gap-1.5">
+                      {GRADE_ELIGIBILITY[g].length ? (
+                        GRADE_ELIGIBILITY[g].map((r) => (
+                          <li key={r} className="rounded-md bg-paper-2 px-2 py-0.5 text-xs text-ink-2">{ROUTE_LABEL[r]}</li>
+                        ))
+                      ) : (
+                        <li className="rounded-md bg-paper-2 px-2 py-0.5 text-xs text-ink-2">Held until checked</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <p className="mt-6 text-sm text-muted">
+            Innerwear and swimwear can only be restocked or refurbished if the hygiene seal is intact. Among the allowed options, ReturnRescue recommends the one that recovers the most money.
+          </p>
         </div>
       </section>
 

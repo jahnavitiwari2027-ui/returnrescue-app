@@ -17,6 +17,7 @@ export function SiteHeader() {
   }, [])
   const links = [
     ['How it works', '/#how'],
+    ['Grades', '/#grades'],
     ['Features', '/#features'],
     ['Pricing', '/#pricing'],
     ['Why trust it', '/#trust'],
