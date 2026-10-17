@@ -113,13 +113,13 @@ export function calculateRecovery(input: RecoveryInputs): RecoveryResult {
       gross = num(input.resale_price)
       configured = gross > 0
       lines.push({ label: 'Resale price', amount: gross, field: 'resale_price' })
-      if (fee) lines.push({ label: `Selling fee (${round2(fee * 100)}%)`, amount: -gross * fee, field: 'selling_fee_pct' })
+      if (fee) lines.push({ label: `Fees & GST (${round2(fee * 100)}% of the price)`, amount: -gross * fee, field: 'selling_fee_pct' })
       if (handling) lines.push({ label: 'Handling & shipping', amount: -handling, field: 'handling_cost' })
     } else if (route === 'refurbish') {
       gross = num(input.refurb_resale_price)
       configured = gross > 0
       lines.push({ label: 'Resale price after repair', amount: gross, field: 'refurb_resale_price' })
-      if (fee) lines.push({ label: `Selling fee (${round2(fee * 100)}%)`, amount: -gross * fee, field: 'selling_fee_pct' })
+      if (fee) lines.push({ label: `Fees & GST (${round2(fee * 100)}% of the price)`, amount: -gross * fee, field: 'selling_fee_pct' })
       if (input.refurb_cost) lines.push({ label: 'Repair & repackaging', amount: -num(input.refurb_cost), field: 'refurb_cost' })
       if (handling) lines.push({ label: 'Handling & shipping', amount: -handling, field: 'handling_cost' })
     } else if (route === 'liquidate') {

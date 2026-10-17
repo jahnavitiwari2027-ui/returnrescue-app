@@ -137,6 +137,9 @@ export default function GradeModal({
             These issues usually mean at least {GRADE_LABEL[floor.grade]} ({floor.why}). You can still save your grade.
           </p>
         )}
+        {item.decision_route && item.status !== 'completed' && (
+          <p className="rounded-lg bg-paper px-3 py-2 text-xs text-ink-2">Saving a new grade clears the saved decision and re-prices this return with your current rates.</p>
+        )}
         <Field label={mode === 'correct' ? 'Reason for correction' : 'Note (optional)'} error={err} required={mode === 'correct'}>
           {(id) => <Textarea id={id} value={note} onChange={(e) => { setNote(e.target.value); setErr('') }} placeholder="e.g. Stain lifted after spot cleaning test." className="min-h-20" />}
         </Field>

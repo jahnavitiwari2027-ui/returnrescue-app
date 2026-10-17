@@ -336,7 +336,7 @@ export default function ReturnFormPage() {
                 <legend className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-semibold sm:col-span-2">
                   Selling costs (restock and refurbish) {basisToggle('costs')}
                 </legend>
-                {num('selling_fee_pct', 'Selling fee', 'Marketplace commission or payment fees, % of the sale price incl. GST.', false)}
+                {num('selling_fee_pct', 'Fees & GST on the sale', 'Marketplace or gateway fees plus the GST share of the price, as % of what the customer pays.', false)}
                 {num('handling_cost', 'Handling & shipping per order', 'Shipping, closing fee, pick & pack and packing materials.')}
               </fieldset>
               <hr className="border-line" />

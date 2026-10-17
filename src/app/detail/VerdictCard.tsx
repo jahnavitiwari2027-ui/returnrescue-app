@@ -12,6 +12,7 @@ import { estimateFromRates, estimateInputFor, ratesPatch } from '../../lib/rates
 import { calculateRecovery } from '../../lib/recovery'
 import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
 import { BASIS_SHORT } from '../../lib/basis'
+import { SummaryLine } from '../../components/recovery'
 import GradeModal from './GradeModal'
 import { useInspection } from './useInspection'
 
@@ -70,9 +71,10 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
       onClose={() => setModal(null)}
       onSave={async (g, note, defects) => {
         // A new grade or defect list changes the repair and liquidation estimates on the rate card.
+        // Saving a new grade clears an open decision, so its values may be repriced too.
         const est = estimateFromRates(estimateInputFor(item, { grade: g, defects }), rates)
         await update(item.id, {
-          ...ratesPatch(item, est),
+          ...ratesPatch(item, est, { allowDecided: item.status !== 'completed' }),
           grade: g,
           grade_source: modal === 'correct' ? 'ai_corrected' : 'manual',
           grade_note: note,
@@ -201,7 +203,7 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
         <GradeBadge grade={grade} className="px-2.5 py-1 text-sm" />
         <span className="text-sm font-medium">{GRADE_GUIDE[grade].short}</span>
         {suggestedByAI && <span className="text-xs text-muted">· suggested by AI, {ai!.confidence} confidence</span>}
-        {item.grade_source === 'manual' && <span className="text-xs text-muted">· graded by you</span>}
+        {item.grade_source === 'manual' && <span className="text-xs text-muted">· {item.is_sample ? 'sample, graded by hand' : 'graded by you'}</span>}
       </div>
       <p className="mt-1 text-xs text-muted">{GRADE_GUIDE[grade].allows}</p>
       <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{ai?.summary && suggestedByAI ? ai.summary : GRADE_GUIDE[grade].meaning}</p>
@@ -223,6 +225,22 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
             <p className="text-xs text-muted">
               Estimated net per unit · {BASIS_SHORT[best.basis]}
             </p>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 border-t border-brand-200/70 pt-2">
+              <SummaryLine r={best} className="text-ink-2" />
+              <button
+                type="button"
+                className="whitespace-nowrap text-xs font-medium text-brand-700 hover:underline"
+                onClick={() => {
+                  const el = document.getElementById('maths') as HTMLDetailsElement | null
+                  if (el) {
+                    el.open = true
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }}
+              >
+                See the maths
+              </button>
+            </div>
           </div>
           <Button size="lg" className="mt-4 w-full" loading={saving} onClick={() => decide(best.route, '')} icon={<Check className="size-4" />}>
             Confirm
@@ -336,6 +354,7 @@ function Outcome({ item, compact }: { item: ReturnItem; compact?: boolean }) {
   return (
     <div className="mt-4 border-t border-line pt-4">
       <label htmlFor="realized" className="text-sm font-medium">Sold or disposed? Amount received</label>
+      <p className="text-xs text-muted">What actually reached you, after fees and excluding GST. It’s kept separate from the estimate.</p>
       <div className="mt-1.5 flex gap-2">
         <div className="flex-1">
           <MoneyInput id="realized" value={amount} min={undefined} onChange={(e) => { setAmount(e.target.value); setErr('') }} placeholder="0" />

@@ -193,7 +193,7 @@ export function buildDemoItems(now = new Date()): ReturnItem[] {
       is_sample: true,
     }
     // Recovery values come from the published default rate card, like a new account's.
-    Object.assign(item, ratesPatch(item, estimateFromRates(estimateInputFor(item), DEFAULT_RATES)))
+    Object.assign(item, ratesPatch(item, estimateFromRates(estimateInputFor(item), DEFAULT_RATES), { allowDecided: true }))
     const calc = calculateRecovery(item)
     if (item.grade) item.recommended_route = calc.recommended
     if (item.decision_route) {
