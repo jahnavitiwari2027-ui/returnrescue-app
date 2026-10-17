@@ -1,6 +1,6 @@
 # Evaluator guide
 
-**Live site:** `https://<custom-domain>` · **Source:** `https://github.com/<username>/returnrescue-app`
+**Live site:** `https://returnrescue.dpdns.org` · **Source:** `https://github.com/jahnavitiwari2027-ui/returnrescue-app`
 
 No setup is needed. Two ways in:
 
@@ -30,4 +30,4 @@ All sample products and brands are fictional. The homepage section **“No black
 - Recovery values are estimates from a sourced rate card (or the user’s own prices), not offers. Quotes and realized proceeds are labelled separately. Rate-card sources were checked on 17 Oct 2026.
 - Payments are in Dodo **test mode** until merchant verification is complete.
 
-Integration status can be checked at `https://<custom-domain>/api/status`.
+Integration status can be checked at `https://returnrescue.dpdns.org/api/status`.

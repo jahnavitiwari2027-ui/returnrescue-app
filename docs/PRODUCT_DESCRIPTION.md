@@ -2,7 +2,7 @@
 
 **Tagline:** Every return deserves a second chance.
 
-**Live product:** https://<custom-domain> · **Repository:** https://github.com/<username>/returnrescue-app
+**Live product:** https://returnrescue.dpdns.org · **Repository:** https://github.com/jahnavitiwari2027-ui/returnrescue-app
 
 ## What it is
 
