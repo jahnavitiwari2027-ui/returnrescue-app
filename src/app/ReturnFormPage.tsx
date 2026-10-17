@@ -1,6 +1,7 @@
-import { ArrowLeft, Camera, ChevronDown, Info, Trash2 } from 'lucide-react'
+import { ArrowLeft, Camera, ChevronDown, ImageUp, Info, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { CameraCapture, cameraSupported } from '../components/CameraCapture'
 import { Alert, Button, Card, CardHeader, Field, Input, MoneyInput, PageHeader, Select, Spinner, Textarea } from '../components/ui'
 import { LIMITS } from '../config'
 import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
@@ -82,6 +83,8 @@ export default function ReturnFormPage() {
   const [saving, setSaving] = useState(false)
   const [submitError, setSubmitError] = useState<{ text: string; limit?: boolean } | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  const cameraInput = useRef<HTMLInputElement>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
   const existingUrls = usePhotoUrls(form.photos)
 
   useEffect(() => {
@@ -119,7 +122,9 @@ export default function ReturnFormPage() {
     return w
   }, [form.original_price, form.resale_price, form.refurb_resale_price])
 
-  const addFiles = (files: FileList | null) => {
+  const openCamera = () => (cameraSupported() ? setCameraOpen(true) : cameraInput.current?.click())
+
+  const addFiles = (files: FileList | File[] | null) => {
     if (!files) return
     const errs: string[] = []
     const next: PendingPhoto[] = []
@@ -135,6 +140,7 @@ export default function ReturnFormPage() {
     setPending((p) => [...p, ...next])
     setErrors((e) => ({ ...e, photos: errs.join(' ') || undefined }))
     if (fileInput.current) fileInput.current.value = ''
+    if (cameraInput.current) cameraInput.current.value = ''
   }
 
   const validate = () => {
@@ -387,14 +393,22 @@ export default function ReturnFormPage() {
                   />
                 ))}
                 {photoCount < LIMITS.maxPhotos && (
-                  <button
-                    type="button"
-                    onClick={() => fileInput.current?.click()}
-                    className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-line text-sm text-muted transition hover:border-brand-400 hover:bg-brand-50/50 hover:text-brand-800"
-                  >
-                    <Camera className="size-5" />
-                    Add photo
-                  </button>
+                  <div className="grid aspect-square grid-rows-2 overflow-hidden rounded-xl border-2 border-dashed border-line text-sm">
+                    <button
+                      type="button"
+                      onClick={openCamera}
+                      className="flex items-center justify-center gap-2 font-medium text-brand-800 transition hover:bg-brand-50"
+                    >
+                      <Camera className="size-4" /> Take photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInput.current?.click()}
+                      className="flex items-center justify-center gap-2 border-t-2 border-dashed border-line text-muted transition hover:bg-paper hover:text-ink"
+                    >
+                      <ImageUp className="size-4" /> Upload
+                    </button>
+                  </div>
                 )}
               </div>
               <input
@@ -405,6 +419,26 @@ export default function ReturnFormPage() {
                 className="sr-only"
                 aria-label="Upload product photos"
                 onChange={(e) => addFiles(e.target.files)}
+              />
+              <input
+                ref={cameraInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(e) => addFiles(e.target.files)}
+              />
+              <CameraCapture
+                open={cameraOpen}
+                remaining={LIMITS.maxPhotos - photoCount}
+                onCapture={(file) => addFiles([file])}
+                onClose={() => setCameraOpen(false)}
+                onFallback={(kind) => {
+                  setCameraOpen(false)
+                  ;(kind === 'camera' ? cameraInput : fileInput).current?.click()
+                }}
               />
               {errors.photos && <p className="mt-2 text-xs font-medium text-red-700" role="alert">{errors.photos}</p>}
               <p className="mt-3 text-xs text-muted">
