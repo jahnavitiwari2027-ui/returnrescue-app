@@ -16,21 +16,21 @@ export function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   const links = [
-    ['See an example', '/#example'],
-    ['Who does what', '/#roles'],
+    ['How it works', '/#how'],
     ['Grades', '/#grades'],
+    ['Features', '/#features'],
     ['Pricing', '/#pricing'],
-    ['Method', '/#trust'],
+    ['Why trust it', '/#trust'],
     ['FAQ', '/#faq'],
   ]
   return (
     <header className={`sticky top-0 z-40 transition-all ${scrolled || open ? 'border-b border-line bg-paper/85 backdrop-blur-md' : 'border-b border-transparent'}`}>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link to="/" aria-label="ReturnRescue home"><Logo /></Link>
-        <nav className="hidden items-center gap-6 text-sm text-ink-2 lg:flex" aria-label="Main">
+        <nav className="hidden items-center gap-7 text-sm text-ink-2 md:flex" aria-label="Main">
           {links.map(([l, h]) => <Link key={h} to={h} className="transition-colors hover:text-ink">{l}</Link>)}
         </nav>
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 md:flex">
           {session ? (
             <Link to="/app" className={buttonClass('primary', 'sm')}>Open workspace</Link>
           ) : (
@@ -40,33 +40,18 @@ export function SiteHeader() {
             </>
           )}
         </div>
-        <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen((o) => !o)} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open}>
+        <button className="rounded-lg p-2 md:hidden" onClick={() => setOpen((o) => !o)} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open}>
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
       </div>
       {open && (
-        <nav className="border-t border-line bg-paper px-5 pb-5 pt-2 lg:hidden" aria-label="Mobile">
-          <ul className="divide-y divide-line">
-            {links.map(([l, h]) => (
-              <li key={h}>
-                <Link to={h} onClick={() => setOpen(false)} className="flex items-center justify-between py-3 text-[15px]">
-                  {l} <span className="text-muted" aria-hidden>→</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-3 grid gap-2">
-            {session ? (
-              <Link to="/app" onClick={() => setOpen(false)} className={buttonClass('primary', 'lg', 'w-full')}>Open workspace</Link>
-            ) : (
-              <>
-                {accountsEnabled && <Link to="/signup" onClick={() => setOpen(false)} className={buttonClass('primary', 'lg', 'w-full')}>Start free trial</Link>}
-                <div className="grid grid-cols-2 gap-2">
-                  <Link to="/demo" onClick={() => setOpen(false)} className={buttonClass('secondary', 'md', 'w-full')}>Live demo</Link>
-                  {accountsEnabled && <Link to="/login" onClick={() => setOpen(false)} className={buttonClass('ghost', 'md', 'w-full')}>Log in</Link>}
-                </div>
-              </>
-            )}
+        <nav className="border-t border-line px-5 py-4 md:hidden" aria-label="Mobile">
+          <div className="flex flex-col gap-3 text-sm">
+            {links.map(([l, h]) => <Link key={h} to={h} onClick={() => setOpen(false)}>{l}</Link>)}
+            <div className="mt-2 flex gap-2">
+              {accountsEnabled && !session && <Link to="/login" className={buttonClass('secondary', 'md', 'flex-1')}>Log in</Link>}
+              <Link to={session ? '/app' : '/demo'} className={buttonClass('primary', 'md', 'flex-1')}>{session ? 'Open workspace' : 'Launch app'}</Link>
+            </div>
           </div>
         </nav>
       )}

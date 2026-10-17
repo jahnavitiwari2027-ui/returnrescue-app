@@ -90,7 +90,7 @@ export default function ReturnDetailPage() {
             <AIFindings item={item} />
           </Section>
         )}
-        <Section id="maths" title="All options and the maths" hint="Where every rupee comes from">
+        <Section title="All options and the maths" hint="Net value of each route">
           <OptionsMaths item={item} />
         </Section>
         <Section title="Product details">
@@ -141,9 +141,9 @@ export default function ReturnDetailPage() {
   )
 }
 
-function Section({ id, title, hint, children }: { id?: string; title: string; hint?: string; children: ReactNode }) {
+function Section({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
-    <details id={id} className="group scroll-mt-20 rounded-2xl border border-line bg-white">
+    <details className="group rounded-2xl border border-line bg-white">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="block text-sm font-medium">{title}</span>

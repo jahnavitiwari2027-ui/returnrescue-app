@@ -12,7 +12,6 @@ import { estimateFromRates, estimateInputFor, ratesPatch } from '../../lib/rates
 import { calculateRecovery } from '../../lib/recovery'
 import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
 import { BASIS_SHORT } from '../../lib/basis'
-import { SummaryLine } from '../../components/recovery'
 import GradeModal from './GradeModal'
 import { useInspection } from './useInspection'
 
@@ -225,22 +224,6 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
             <p className="text-xs text-muted">
               Estimated net per unit · {BASIS_SHORT[best.basis]}
             </p>
-            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 border-t border-brand-200/70 pt-2">
-              <SummaryLine r={best} className="text-ink-2" />
-              <button
-                type="button"
-                className="whitespace-nowrap text-xs font-medium text-brand-700 hover:underline"
-                onClick={() => {
-                  const el = document.getElementById('maths') as HTMLDetailsElement | null
-                  if (el) {
-                    el.open = true
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
-                }}
-              >
-                See the maths
-              </button>
-            </div>
           </div>
           <Button size="lg" className="mt-4 w-full" loading={saving} onClick={() => decide(best.route, '')} icon={<Check className="size-4" />}>
             Confirm

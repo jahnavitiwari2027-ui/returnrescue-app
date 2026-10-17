@@ -5,22 +5,11 @@ const shots = process.env.E2E_SCREENSHOTS
 
 test('landing page renders and links into the app', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Know what every return is worth')
-  for (const id of ['example', 'how', 'roles', 'grades', 'pricing', 'trust', 'faq', 'contact']) await expect(page.locator(`#${id}`)).toBeAttached()
-  // The hero example runs the real engine on fictional products and shows where each line comes from
-  const example = page.locator('#example')
-  await expect(example).toContainText('Example · fictional product')
-  await example.getByRole('tab', { name: 'Denim' }).click()
-  await expect(example.getByText('Not allowed for Grade C.').first()).toBeAttached()
-  await example.getByRole('button', { name: /Liquidate/ }).click()
-  await expect(example.getByText(/of your price for Grade C, before GST/)).toBeVisible()
-  await expect(example.getByText('Assumption').first()).toBeVisible()
-  // Grades are interactive
-  await page.locator('#grades').getByRole('tab', { name: /Significant damage/ }).click()
-  await expect(page.locator('#grades').getByText('Grade C · Significant damage')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Every return deserves')
+  for (const id of ['how', 'features', 'pricing', 'faq', 'contact']) await expect(page.locator(`#${id}`)).toBeAttached()
   await expect(page.locator('#pricing')).toContainText('₹999')
   await expect(page.locator('#pricing')).toContainText('14 days')
-  await expect(page.locator('#trust')).toContainText('Every number says where it came from')
+  await expect(page.locator('#trust')).toContainText('No black boxes')
   await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible()
   if (shots) {
     for (let y = 0; y < 9000; y += 600) await page.mouse.wheel(0, 600).then(() => page.waitForTimeout(120))
@@ -28,7 +17,7 @@ test('landing page renders and links into the app', async ({ page }) => {
     await page.screenshot({ path: `${shots}/landing.png`, fullPage: true })
     await page.evaluate(() => window.scrollTo(0, 0))
   }
-  await page.getByRole('link', { name: 'Open the live demo' }).click()
+  await page.getByRole('link', { name: 'See the demo' }).click()
   await expect(page).toHaveURL(/\/demo$/)
   await expect(page.getByText('To inspect', { exact: true })).toBeVisible()
 })

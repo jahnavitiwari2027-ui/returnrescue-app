@@ -1,28 +1,27 @@
 import clsx from 'clsx'
-import { ArrowRight, ChevronDown, ExternalLink, RefreshCw, RotateCcw } from 'lucide-react'
+import { ChevronDown, ExternalLink, RefreshCw, RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Alert, Button, Card } from '../components/ui'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useRates } from '../data/rates'
-import { inr } from '../lib/format'
 import {
   ASSUMPTIONS,
   DEFAULT_RATES,
   estimateFromRates,
+  estimateInputFor,
   RANGE_POLICY,
   RATE_SOURCES,
   RATES_CHECKED_ON,
-  rateMeta,
-  repriceable,
+  ratesPatch,
   type Channel,
   type RateCard,
   type SourceKey,
 } from '../lib/rates'
-import { calculateRecovery } from '../lib/recovery'
-import { CATEGORIES, emptyReturnInput, ROUTE_LABEL, type Category } from '../lib/types'
+import { CATEGORIES, type Category } from '../lib/types'
 
 type Unit = '₹' | '%' | 'kg'
 
+/** Read/write a nested value by path, e.g. ['services', 'dry_clean', 'Topwear']. */
 const getAt = (o: unknown, path: string[]): number => path.reduce<unknown>((v, k) => (v as Record<string, unknown>)[k], o) as number
 function setAt(o: RateCard, path: string[], value: number): RateCard {
   const next = JSON.parse(JSON.stringify(o)) as RateCard
@@ -30,14 +29,6 @@ function setAt(o: RateCard, path: string[], value: number): RateCard {
   for (const k of path.slice(0, -1)) cur = cur[k] as Record<string, unknown>
   cur[path[path.length - 1]] = value
   return next
-}
-
-/** A fixed example so the effect of an edit is visible before saving. */
-const EXAMPLE = { category: 'Topwear' as Category, original_price: 1999, grade: 'B' as const, defects: [{ type: 'stain' as const, severity: 'moderate' as const }] }
-function exampleNets(r: RateCard) {
-  const e = estimateFromRates(EXAMPLE, r)
-  const c = calculateRecovery({ ...emptyReturnInput(), ...EXAMPLE, ...e.values, value_basis: {} })
-  return c.routes.filter((x) => x.eligible && x.configured).map((x) => ({ route: x.route, net: x.net, best: x.route === c.recommended }))
 }
 
 export default function RatesPage() {
@@ -50,12 +41,18 @@ export default function RatesPage() {
   useEffect(() => setDraft(rates), [rates])
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(rates)
-  const pending = useMemo(() => repriceable(items, rates), [items, rates])
-  const decidedCount = items.filter((i) => i.decision_route || i.status === 'completed').length
-  const before = useMemo(() => exampleNets(rates), [rates])
-  const after = useMemo(() => exampleNets(draft), [draft])
+  // Undecided returns whose rate-card values differ from what the current rates give.
+  const open = useMemo(
+    () =>
+      items.filter((i) => {
+        if (i.decision_route || i.status === 'completed' || !Object.values(i.value_basis).includes('rates')) return false
+        const patch = ratesPatch(i, estimateFromRates(estimateInputFor(i), rates)) as Record<string, unknown>
+        return Object.entries(patch).some(([k, v]) => k !== 'value_basis' && (i as unknown as Record<string, unknown>)[k] !== v)
+      }),
+    [items, rates],
+  )
 
-  const row = (label: string, path: string[], unit: Unit, hint?: string) => (
+  const row = (label: string, path: string[], unit: Unit, source?: SourceKey, hint?: string) => (
     <NumRow
       key={path.join('.')}
       label={label}
@@ -63,7 +60,7 @@ export default function RatesPage() {
       unit={unit}
       value={getAt(draft, path)}
       def={getAt(DEFAULT_RATES, path)}
-      meta={rateMeta(path)}
+      source={source}
       onChange={(v) => setDraft((d) => setAt(d, path, v))}
     />
   )
@@ -73,7 +70,7 @@ export default function RatesPage() {
     setMsg(null)
     try {
       await save(next)
-      setMsg({ tone: 'success', text: next ? 'Rates saved. New inspections and grades use them now.' : 'Back to the published defaults.' })
+      setMsg({ tone: 'success', text: next ? 'Rates saved. New inspections and grades use them.' : 'Back to the published defaults.' })
     } catch (e) {
       setMsg({ tone: 'error', text: (e as Error).message })
     } finally {
@@ -84,8 +81,8 @@ export default function RatesPage() {
   const applyToOpen = async () => {
     setApplying(true)
     try {
-      for (const p of pending) await update(p.item.id, p.patch)
-      setMsg({ tone: 'success', text: `Updated ${pending.length} return${pending.length === 1 ? '' : 's'} without a decision. Saved decisions were left as they are.` })
+      for (const i of open) await update(i.id, ratesPatch(i, estimateFromRates(estimateInputFor(i), rates)))
+      setMsg({ tone: 'success', text: `Updated ${open.length} open return${open.length === 1 ? '' : 's'}. Saved decisions were left as they are.` })
     } catch (e) {
       setMsg({ tone: 'error', text: (e as Error).message })
     } finally {
@@ -94,53 +91,26 @@ export default function RatesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl pb-28">
+    <div className="mx-auto max-w-2xl pb-24">
       <h1 className="font-display text-[36px] leading-none tracking-tight sm:text-[44px]">Your rates</h1>
       <p className="mt-2 text-sm text-muted">
-        Every rupee estimate comes from these numbers — the AI only spots the damage. Each default is either a published rate (with its source) or a labelled assumption. Sources checked {RATES_CHECKED_ON}.
+        Every rupee estimate comes from these numbers — the AI only spots the damage. Defaults use public Indian prices, checked {RATES_CHECKED_ON}. Change anything to match your real costs.
         {mode === 'demo' && ' In the demo, changes stay in this browser.'}
       </p>
 
-      <Card className="mt-5 p-4">
-        <p className="text-sm font-semibold">How a change applies</p>
-        <ul className="mt-2 space-y-1 text-sm text-ink-2">
-          <li className="flex gap-2"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-600" /> New inspections and grade changes use your rates straight away.</li>
-          <li className="flex gap-2"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-600" /> Returns without a decision update when you choose <strong className="font-medium">Update them</strong>.</li>
-          <li className="flex gap-2"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-600" /> Saved decisions and completed returns{decidedCount ? ` (${decidedCount} now)` : ''} never change.</li>
-        </ul>
-        <div className="mt-4 rounded-xl bg-paper p-3">
-          <p className="text-xs font-medium text-muted">Example: ₹1,999 shirt, Grade B, moderate stain</p>
-          <ul className="mt-1.5 space-y-1">
-            {after.map((a) => {
-              const b = before.find((x) => x.route === a.route)
-              const changed = dirty && b && Math.round(b.net) !== Math.round(a.net)
-              return (
-                <li key={a.route} className="flex items-center justify-between gap-3 text-sm">
-                  <span>{ROUTE_LABEL[a.route]}{a.best && <span className="ml-1.5 text-xs text-brand-700">best</span>}</span>
-                  <span className="flex items-center gap-1.5 whitespace-nowrap tabular">
-                    {changed && <><span className="text-muted line-through">{inr(b!.net)}</span><ArrowRight className="size-3 text-muted" /></>}
-                    <span className={clsx(changed && 'font-semibold text-brand-800')}>{inr(a.net)}</span>
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      </Card>
-
       {msg && <Alert tone={msg.tone} className="mt-4">{msg.text}</Alert>}
-      {!dirty && pending.length > 0 && (
-        <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 border-brand-300 p-4">
-          <p className="text-sm">{pending.length} return{pending.length === 1 ? '' : 's'} without a decision {pending.length === 1 ? 'uses' : 'use'} earlier values.</p>
+      {!dirty && open.length > 0 && customised && (
+        <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="text-sm">{open.length} undecided return{open.length === 1 ? '' : 's'} still use{open.length === 1 ? 's' : ''} earlier values.</p>
           <Button size="sm" variant="secondary" loading={applying} onClick={applyToOpen} icon={<RefreshCw className="size-3.5" />}>Update them</Button>
         </Card>
       )}
 
       <Group title="Where you sell" open>
-        <div className="grid grid-cols-2 gap-2 py-3" role="radiogroup" aria-label="Sales channel">
+        <div className="flex gap-2 py-2" role="radiogroup" aria-label="Sales channel">
           {(
             [
-              ['marketplace', 'Marketplace', 'Amazon.in fees, Easy Ship'],
+              ['marketplace', 'Marketplace', 'Amazon.in fees'],
               ['own_site', 'Own website', 'Payment gateway + courier'],
             ] as [Channel, string, string][]
           ).map(([v, l, d]) => (
@@ -150,7 +120,7 @@ export default function RatesPage() {
               role="radio"
               aria-checked={draft.channel === v}
               onClick={() => setDraft((x) => ({ ...x, channel: v }))}
-              className={clsx('rounded-xl border px-3 py-2.5 text-left', draft.channel === v ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-line')}
+              className={clsx('flex-1 rounded-xl border px-3 py-2.5 text-left', draft.channel === v ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-line')}
             >
               <span className="block text-sm font-medium">{l}</span>
               <span className="block text-xs text-muted">{d}</span>
@@ -159,19 +129,23 @@ export default function RatesPage() {
         </div>
         {draft.channel === 'marketplace' ? (
           <>
-            {row('No referral fee up to', ['fee_free_up_to'], '₹')}
-            {CATEGORIES.map((c) => row(`${c} referral fee`, ['referral_pct', c], '%'))}
+            {row('No referral fee up to', ['fee_free_up_to'], '₹', 'amazon_fees')}
+            {CATEGORIES.map((c) => row(`${c} referral fee`, ['referral_pct', c], '%', 'amazon_fees'))}
+            {row('GST on fees', ['gst_on_fees_pct'], '%', 'amazon_fees')}
           </>
         ) : (
-          row('Payment gateway fee', ['payment_gateway_pct'], '%')
+          <>
+            {row('Payment gateway fee', ['payment_gateway_pct'], '%', 'gateway')}
+            {row('GST on fees', ['gst_on_fees_pct'], '%', 'gateway')}
+          </>
         )}
       </Group>
 
-      <Group title="GST" open>
-        <div className="flex items-center justify-between gap-4 py-3">
-          <div>
+      <Group title="GST">
+        <div className="flex items-center justify-between gap-4 py-2.5">
+          <div className="min-w-0">
             <p className="text-sm">GST-registered business</p>
-            <p className="text-xs text-muted">Registered: GST on the sale is deducted, and GST on fees is claimed back. Not registered: GST on fees is a cost.</p>
+            <p className="text-xs text-muted">Registered: GST on the sale is deducted and GST on fees is claimed back. Not registered: GST on fees is a cost.</p>
           </div>
           <button
             type="button"
@@ -184,77 +158,76 @@ export default function RatesPage() {
             <span className={clsx('absolute top-0.5 size-5 rounded-full bg-white shadow transition-all', draft.gst_registered ? 'left-[22px]' : 'left-0.5')} />
           </button>
         </div>
-        {row('Clothing & footwear GST up to the threshold', ['goods_gst_low_pct'], '%')}
-        {row('Threshold per piece or pair', ['goods_gst_threshold'], '₹')}
-        {row('Clothing & footwear GST above it', ['goods_gst_high_pct'], '%')}
-        {row('Bags & accessories GST', ['bags_gst_pct'], '%', 'Check your HSN code')}
-        {row('GST on marketplace and gateway fees', ['gst_on_fees_pct'], '%')}
+        {row('Clothing & footwear GST up to the threshold', ['goods_gst_low_pct'], '%', 'gst_goods')}
+        {row('Threshold per piece or pair', ['goods_gst_threshold'], '₹', 'gst_goods')}
+        {row('Clothing & footwear GST above it', ['goods_gst_high_pct'], '%', 'gst_goods')}
+        {row('Bags & accessories GST', ['bags_gst_pct'], '%', undefined, 'Assumption: check your HSN code')}
       </Group>
 
       <Group title="Shipping, packing & labour">
-        {row(draft.channel === 'marketplace' ? 'Weight handling, first 500 g' : 'Courier, first 500 g', ['ship_first_500g', draft.channel], '₹')}
-        {row('Each extra 500 g', ['ship_extra_500g'], '₹', draft.channel === 'own_site' ? 'Amazon’s slab rate used as a proxy' : undefined)}
-        {row('Packing materials per unit', ['packing_materials'], '₹')}
-        {row('Labour per hour', ['labour_per_hour'], '₹', '₹710/day ÷ 8 h + 16.25% employer PF & ESI')}
+        {row(draft.channel === 'marketplace' ? 'Weight handling, first 500 g' : 'Courier, first 500 g', ['ship_first_500g', draft.channel], '₹', draft.channel === 'marketplace' ? 'amazon_fees' : 'courier')}
+        {row('Each extra 500 g', ['ship_extra_500g'], '₹', 'amazon_fees', draft.channel === 'own_site' ? 'Amazon’s slab rate used as a proxy · assumption' : undefined)}
+        {row('Packing materials per unit', ['packing_materials'], '₹', undefined, 'Assumption')}
+        {row('Labour per hour', ['labour_per_hour'], '₹', 'wage', '₹710/day ÷ 8 h + 16.25% employer PF & ESI')}
       </Group>
 
       <Group title="Resale & liquidation">
-        {row('Repaired items resell at', ['refurb_resale_pct'], '%', '% of your original price')}
-        {row('Liquidation, Grade A', ['liquidation_pct', 'A'], '%', '% of your original price, before GST')}
-        {row('Liquidation, Grade B', ['liquidation_pct', 'B'], '%')}
-        {row('Liquidation, Grade C', ['liquidation_pct', 'C'], '%')}
-        {row('Liquidation, not graded yet', ['liquidation_pct', 'ungraded'], '%')}
-        {row('Liquidation commission', ['liquidation_commission_pct'], '%')}
-        {row('Bulk freight per unit', ['liquidation_freight'], '₹')}
+        {row('Repaired items resell at', ['refurb_resale_pct'], '%', undefined, '% of the original price · assumption')}
+        {row('Liquidation, Grade A', ['liquidation_pct', 'A'], '%', 'surplus', '% of the original price, before GST')}
+        {row('Liquidation, Grade B', ['liquidation_pct', 'B'], '%', undefined, 'Assumption')}
+        {row('Liquidation, Grade C', ['liquidation_pct', 'C'], '%', undefined, 'Assumption: damaged stock')}
+        {row('Liquidation, not graded yet', ['liquidation_pct', 'ungraded'], '%', undefined, 'Assumption')}
+        {row('Liquidation commission', ['liquidation_commission_pct'], '%', undefined, 'Assumption')}
+        {row('Bulk freight per unit', ['liquidation_freight'], '₹', undefined, 'Assumption')}
       </Group>
 
       <Group title="Cleaning & repair prices">
-        <p className="pb-1 pt-3 text-xs font-medium text-muted">Professional cleaning, per item</p>
-        {CATEGORIES.filter((c) => c !== 'Footwear' && c !== 'Bags & accessories').map((c) => row(c, ['services', 'dry_clean', c], '₹'))}
+        <p className="pb-1 pt-2 text-xs font-medium text-muted">Professional cleaning, per item</p>
+        {CATEGORIES.filter((c) => c !== 'Footwear' && c !== 'Bags & accessories').map((c) => row(c, ['services', 'dry_clean', c], '₹', 'dryclean'))}
         <p className="pb-1 pt-3 text-xs font-medium text-muted">Cobbler (shoes and bags)</p>
-        {row('Cleaning & polish', ['services', 'shoe_clean'], '₹')}
-        {row('Hard-stain removal (extra)', ['services', 'shoe_hard_stain'], '₹')}
-        {row('Sole pasting', ['services', 'shoe_sole_paste'], '₹')}
-        {row('Sole replacement', ['services', 'shoe_sole_replace'], '₹')}
-        {row('Stitching work', ['services', 'shoe_stitch'], '₹')}
-        {row('Patch work', ['services', 'shoe_patch'], '₹')}
-        {row('Heel replacement', ['services', 'shoe_heel'], '₹')}
-        {row('Colour change / restoration', ['services', 'shoe_colour'], '₹')}
-        {row('Leather / upper replacement', ['services', 'shoe_leather_replace'], '₹')}
-        {row('Replacement shoebox', ['services', 'shoe_box'], '₹')}
+        {row('Cleaning & polish', ['services', 'shoe_clean'], '₹', 'shoe')}
+        {row('Hard-stain removal (extra)', ['services', 'shoe_hard_stain'], '₹', 'shoe')}
+        {row('Sole pasting', ['services', 'shoe_sole_paste'], '₹', 'shoe')}
+        {row('Sole replacement', ['services', 'shoe_sole_replace'], '₹', 'shoe')}
+        {row('Stitching work', ['services', 'shoe_stitch'], '₹', 'shoe')}
+        {row('Patch work', ['services', 'shoe_patch'], '₹', 'shoe')}
+        {row('Heel replacement', ['services', 'shoe_heel'], '₹', 'shoe')}
+        {row('Colour change / restoration', ['services', 'shoe_colour'], '₹', 'shoe')}
+        {row('Leather / upper replacement', ['services', 'shoe_leather_replace'], '₹', 'shoe')}
+        {row('Replacement shoebox', ['services', 'shoe_box'], '₹', undefined, 'Assumption')}
         <p className="pb-1 pt-3 text-xs font-medium text-muted">Tailor</p>
-        {row('Small darn or patch', ['services', 'tailor_small_repair'], '₹')}
-        {row('Larger darn, patch or stitch repair', ['services', 'tailor_repair'], '₹')}
-        {row('Seam repair', ['services', 'seam_repair'], '₹')}
-        {row('Zip replacement', ['services', 'zip_replace'], '₹')}
-        {row('Zip & hardware replacement (major)', ['services', 'zip_replace_major'], '₹')}
+        {row('Small darn or patch', ['services', 'tailor_small_repair'], '₹', undefined, 'Assumption')}
+        {row('Larger darn, patch or stitch repair', ['services', 'tailor_repair'], '₹', undefined, 'Assumption')}
+        {row('Seam repair', ['services', 'seam_repair'], '₹', 'tailor')}
+        {row('Zip replacement', ['services', 'zip_replace'], '₹', 'tailor')}
+        {row('Zip & hardware replacement (major)', ['services', 'zip_replace_major'], '₹', 'tailor')}
       </Group>
 
       <Group title="Recycling">
-        {row('Textile scrap value per kg', ['scrap_per_kg'], '₹')}
-        {row('Transport per unit', ['recycle_transport'], '₹')}
+        {row('Scrap value per kg', ['scrap_per_kg'], '₹', 'scrap')}
+        {row('Transport per unit', ['recycle_transport'], '₹', undefined, 'Assumption')}
       </Group>
 
       <Group title="Packed weight per item">
-        {CATEGORIES.map((c) => row(c, ['weight_kg', c], 'kg'))}
+        {CATEGORIES.map((c: Category) => row(c, ['weight_kg', c], 'kg', undefined, 'Assumption'))}
       </Group>
 
       <Group title="Sources and assumptions">
-        <ul className="space-y-2.5 py-3 text-sm">
+        <ul className="space-y-2 py-2 text-sm">
           {(Object.keys(RATE_SOURCES) as SourceKey[]).map((k) => (
             <li key={k}>
               <a href={RATE_SOURCES[k].url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline">
                 {RATE_SOURCES[k].publisher} — {RATE_SOURCES[k].title} <ExternalLink className="size-3" />
               </a>
-              <p className="text-xs text-muted">{RATE_SOURCES[k].used_for} <span className="text-ink-2">{RATE_SOURCES[k].effective}.</span></p>
+              <p className="text-xs text-muted">{RATE_SOURCES[k].used_for} {RATE_SOURCES[k].effective}.</p>
             </li>
           ))}
         </ul>
-        <p className="pt-3 text-xs font-medium">Assumptions — no public source; replace them with your own figures or quotes</p>
+        <p className="pt-2 text-xs font-medium">Assumptions (no public source — change them to your own figures)</p>
         <ul className="list-disc space-y-0.5 py-2 pl-4 text-xs text-muted">
           {ASSUMPTIONS.map((a) => <li key={a}>{a}</li>)}
         </ul>
-        <p className="pb-3 text-xs text-muted">{RANGE_POLICY} Fee and GST bands use the original price; a repaired item sold lower may fall in a cheaper band, so refurbish estimates err low.</p>
+        <p className="pb-2 text-xs text-muted">{RANGE_POLICY} Fee and GST bands are set by the original price.</p>
       </Group>
 
       <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:bottom-0 lg:left-60">
@@ -289,47 +262,22 @@ function Group({ title, open, children }: { title: string; open?: boolean; child
   )
 }
 
-function NumRow({
-  label,
-  hint,
-  unit,
-  value,
-  def,
-  meta,
-  onChange,
-}: {
-  label: string
-  hint?: string
-  unit: Unit
-  value: number
-  def: number
-  meta: { kind: 'business' | 'published' | 'assumption'; source?: SourceKey }
-  onChange: (v: number) => void
-}) {
+function NumRow({ label, hint, unit, value, def, source, onChange }: { label: string; hint?: string; unit: Unit; value: number; def: number; source?: SourceKey; onChange: (v: number) => void }) {
   const [text, setText] = useState(String(value))
   useEffect(() => setText(String(value)), [value])
   const changed = value !== def
   const id = `rate-${label.replace(/\W+/g, '-').toLowerCase()}`
-  const src = meta.source ? RATE_SOURCES[meta.source] : null
-  const fmt = (n: number) => (unit === '₹' ? `₹${n}` : unit === '%' ? `${n}%` : `${n} kg`)
   return (
     <div className="flex items-center justify-between gap-3 py-2.5">
       <div className="min-w-0">
         <label htmlFor={id} className="block text-sm">{label}</label>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted">
-          {changed ? (
-            <span className="rounded bg-brand-50 px-1.5 py-px text-[10px] font-medium text-brand-800">Your value · default {fmt(def)}</span>
-          ) : meta.kind === 'published' ? (
-            <span className="rounded bg-ink/[0.06] px-1.5 py-px text-[10px] font-medium text-ink">Published</span>
-          ) : (
-            <span className="rounded bg-amber-50 px-1.5 py-px text-[10px] font-medium text-amber-800">Assumption</span>
-          )}
-          {src && !changed && (
-            <a href={src.url} target="_blank" rel="noreferrer" title={`${src.title} — ${src.effective}`} className="inline-flex items-center gap-0.5 text-brand-700 hover:underline">
-              {src.publisher} <ExternalLink className="size-2.5" />
+        <p className="text-xs text-muted">
+          {changed ? <>Default {unit === '₹' ? `₹${def}` : `${def}${unit === '%' ? '%' : ' kg'}`}</> : hint}
+          {source && (
+            <a href={RATE_SOURCES[source].url} target="_blank" rel="noreferrer" title={RATE_SOURCES[source].title} className={clsx('inline-flex items-center gap-0.5 text-brand-700 hover:underline', (changed || hint) && 'ml-1.5')}>
+              source <ExternalLink className="size-2.5" />
             </a>
           )}
-          {hint && <span>{hint}</span>}
         </p>
       </div>
       <div className="relative w-28 shrink-0">
@@ -350,7 +298,7 @@ function NumRow({
           onBlur={() => setText(String(value))}
           className={clsx(
             'h-10 w-full rounded-xl border bg-white text-right text-sm tabular outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
-            unit === '₹' ? 'pl-7 pr-3' : 'pl-3 pr-9',
+            unit === '₹' ? 'pl-7 pr-3' : 'pl-3 pr-8',
             changed ? 'border-brand-400' : 'border-line',
           )}
         />

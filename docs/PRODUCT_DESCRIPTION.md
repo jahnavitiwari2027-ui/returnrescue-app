@@ -10,7 +10,7 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 
 ## Working features
 
-1. **Marketing site** — homepage built around the positioning *AI identifies visible damage; transparent rate cards calculate recovery options; your business decides*: a live, interactive example in the hero (the real engine on fictional products, with source labels), a compact 4-step process, a “who does what” section, interactive grades, pricing (14-day free trial with no card, then Pro ₹999 per month), a “No black boxes” methodology & trust section, FAQ, working contact form, privacy policy, terms and refund/cancellation policy.
+1. **Marketing site** — landing page with problem, 4-step workflow, live feature previews, use cases, pricing (14-day free trial with no card, then Pro ₹999 per month), a “No black boxes” methodology & trust section, FAQ, working contact form, privacy policy, terms and refund/cancellation policy.
 2. **Demo workspace** — 10 clearly labelled fictional returns, no sign-up, stored only in the visitor’s browser and separate from real accounts.
 3. **Accounts** — email sign-up/sign-in/password reset; each business’s data is isolated with database row-level security and private photo storage.
 4. **Add / edit returns** — only a photo (upload or live camera), name, category and price are required; SKU, reason, notes and per-route overrides are optional, with validation.
