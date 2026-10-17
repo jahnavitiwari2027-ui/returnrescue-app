@@ -10,17 +10,12 @@ vi.mock('../netlify/functions/_shared/ai', () => ({
   structuredVision: (...a: unknown[]) => model(...a),
 }))
 const recordUsage = vi.fn(async () => undefined)
-const ws = { current: { ownerId: 'u1', owner: { id: 'u1' }, role: 'owner' as 'owner' | 'staff' | 'pending' } }
-const countUsage = vi.fn(async () => 0)
-const catalogue = { rows: [] as { sku: string; name: string; category: string }[] }
 vi.mock('../netlify/functions/_shared/supabaseAdmin', () => ({
   supabaseConfigured: () => true,
-  getUser: async () => ({ id: 'staff-1' }),
-  workspaceFor: async () => ws.current,
-  getAccess: async (u: { id: string }) => ({ pro: false, trial: u.id === 'u1' }),
-  countUsage: (...a: unknown[]) => countUsage(...(a as [])),
+  getUser: async () => ({ id: 'u1' }),
+  getAccess: async () => ({ pro: false, trial: true }),
+  countUsage: async () => 0,
   recordUsage: (...a: unknown[]) => recordUsage(...(a as [])),
-  getAdmin: () => ({ from: () => ({ select: () => ({ eq: () => ({ limit: async () => ({ data: catalogue.rows }) }) }) }) }),
   trialAiLimit: () => 100,
   trialDays: () => 14,
 }))
@@ -37,13 +32,7 @@ const call = async (category: string) => {
 const base = { image_quality: 'good', product_match: 'matches', summary: 's', grade_rationale: 'r', confidence: 'high', limitations: ['l'], recommended_physical_checks: ['c'] }
 
 describe('inspection scope', () => {
-  beforeEach(() => {
-    model.mockReset()
-    recordUsage.mockClear()
-    countUsage.mockClear()
-    catalogue.rows = []
-    ws.current = { ownerId: 'u1', owner: { id: 'u1' }, role: 'owner' }
-  })
+  beforeEach(() => { model.mockReset(); recordUsage.mockClear() })
 
   it('refuses to grade a photo of medicine filed as footwear', async () => {
     model.mockResolvedValue({ ...base, item_kind: 'other', item_seen: 'a strip of tablets', defects: [{ type: 'other', description: 'x', severity: 'minor' }], proposed_grade: 'A' })
@@ -71,26 +60,5 @@ describe('inspection scope', () => {
     const i = (await call('Footwear')).body.inspection
     expect(i.proposed_grade).toBe('B')
     expect(i.item_kind).toBe('footwear')
-  })
-
-  it('staff use the brand owner’s plan and allowance; pending members are refused', async () => {
-    ws.current = { ownerId: 'u1', owner: { id: 'u1' }, role: 'staff' }
-    model.mockResolvedValue({ ...base, item_kind: 'footwear', item_seen: 'a sneaker', defects: [], proposed_grade: 'A' })
-    expect((await call('Footwear')).status).toBe(200)
-    expect(countUsage).toHaveBeenCalledWith('u1', 'inspection')
-    expect(recordUsage).toHaveBeenCalledWith('u1', 'inspection')
-    ws.current = { ownerId: 'u1', owner: { id: 'staff-1' }, role: 'pending' }
-    expect((await call('Footwear')).status).toBe(403)
-  })
-
-  it('suggests a SKU only when it is really in the brand’s product list', async () => {
-    catalogue.rows = [{ sku: 'NIM-0311', name: 'Nimbus sneaker', category: 'Footwear' }]
-    model.mockResolvedValue({ ...base, item_kind: 'footwear', item_seen: 'a sneaker', defects: [], proposed_grade: 'A', matched_sku: 'nim-0311', match_reason: 'same canvas upper' })
-    let i = (await call('Footwear')).body.inspection
-    expect(i.matched_sku).toBe('NIM-0311')
-    expect(String(model.mock.calls[0][0].text)).toContain('NIM-0311: Nimbus sneaker')
-    model.mockResolvedValue({ ...base, item_kind: 'footwear', item_seen: 'a sneaker', defects: [], proposed_grade: 'A', matched_sku: 'MADE-UP-1' })
-    i = (await call('Footwear')).body.inspection
-    expect(i.matched_sku).toBeUndefined()
   })
 })

@@ -1,11 +1,10 @@
-import { ArrowRight, BarChart3, Flag, PackageOpen, Plus, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, PackageOpen, Plus } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Card, EmptyState, LinkButton, Spinner } from '../components/ui'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { inr } from '../lib/format'
 import { computeStats, deriveInsights } from '../lib/insights'
-import { teamActivity } from '../lib/team'
 import { ROUTE_LABEL, STATUS_LABEL, type ReturnStatus } from '../lib/types'
 import { Thumb } from './InventoryPage'
 
@@ -17,9 +16,8 @@ const STATUS_COLOR: Record<ReturnStatus, string> = {
 }
 
 export default function DashboardPage() {
-  const { items, loading, error, base, products } = useWorkspace()
+  const { items, loading, error, base } = useWorkspace()
   const stats = useMemo(() => computeStats(items), [items])
-  const team = useMemo(() => teamActivity(items, products), [items, products])
 
   if (loading) return <Spinner />
   if (error) return <Alert tone="error" title="Couldn’t load your returns">{error}</Alert>
@@ -60,17 +58,6 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
-
-      {(team.flagged.length > 0 || team.people.length > 0) && (
-        <Link to={`${base}/team`} className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 text-sm transition-colors hover:bg-paper">
-          {team.flagged.length ? <Flag className="size-4 shrink-0 text-amber-600" aria-hidden /> : <Users className="size-4 shrink-0 text-brand-700" aria-hidden />}
-          <span className="min-w-0 flex-1">
-            {team.flagged.length ? <span className="font-medium">{team.flagged.length} flagged for you · </span> : null}
-            <span className="text-muted">{team.people.map((p) => `${p.name} ${p.last30}`).slice(0, 3).join(' · ')}{team.people.length ? ' logged in the last 30 days' : ''}</span>
-          </span>
-          <ArrowRight className="size-4 text-muted" aria-hidden />
-        </Link>
-      )}
 
       <h2 className="mb-2 mt-8 text-sm font-semibold">Next up</h2>
       {stats.unprocessed.length ? (

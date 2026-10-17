@@ -4,17 +4,15 @@ import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, EmptyState, LinkButton, Modal, SampleBadge, Spinner, StatusBadge } from '../components/ui'
 import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
-import { dateTime, inr, shortDate } from '../lib/format'
+import { inr, shortDate } from '../lib/format'
 import { DEFECT_LABEL, GRADE_LABEL, type ReturnItem } from '../lib/types'
 import NextSteps from './detail/NextSteps'
 import OptionsMaths from './detail/OptionsMaths'
 import VerdictCard, { SupportNote } from './detail/VerdictCard'
-import { FlagBanner, ProductSuggestion } from './detail/TeamActions'
-import { isLocked } from '../lib/rates'
 
 export default function ReturnDetailPage() {
   const { id } = useParams()
-  const { items, loading, base, remove, isOwner, products } = useWorkspace()
+  const { items, loading, base, remove } = useWorkspace()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const item = items.find((i) => i.id === id)
@@ -37,27 +35,20 @@ export default function ReturnDetailPage() {
     )
 
   const photo = item.photos[active] ? urls[item.photos[active]] : undefined
-  // Staff can edit a return until it has a decision; only the owner deletes.
-  const canEdit = isOwner || !isLocked(item)
-  const product = item.product_id ? products.find((p) => p.id === item.product_id) : undefined
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center justify-between">
         <Link to={`${base}/returns`} className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
-          <ArrowLeft className="size-4" /> Returns
+          <ArrowLeft className="size-4" /> Inventory
         </Link>
         <div className="flex gap-1">
-          {canEdit && (
-            <Link to={`${base}/returns/${item.id}/edit`} className="rounded-lg p-2 text-muted hover:bg-ink/5 hover:text-ink" aria-label="Edit">
-              <Pencil className="size-4" />
-            </Link>
-          )}
-          {isOwner && (
-            <button onClick={() => setConfirmDelete(true)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-700" aria-label="Delete">
-              <Trash2 className="size-4" />
-            </button>
-          )}
+          <Link to={`${base}/returns/${item.id}/edit`} className="rounded-lg p-2 text-muted hover:bg-ink/5 hover:text-ink" aria-label="Edit">
+            <Pencil className="size-4" />
+          </Link>
+          <button onClick={() => setConfirmDelete(true)} className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-700" aria-label="Delete">
+            <Trash2 className="size-4" />
+          </button>
         </div>
       </div>
 
@@ -73,12 +64,6 @@ export default function ReturnDetailPage() {
           <h1 className="font-display text-[28px] leading-tight tracking-tight sm:text-[34px]">{item.name}</h1>
           <p className="mt-1 text-sm text-muted">
             {item.category} · {inr(item.original_price)}
-            {product && <> · <span className="font-mono text-xs">{product.sku}</span></>}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">
-            Logged {dateTime(item.created_at)}
-            {item.logged_by_name ? ` by ${item.logged_by_name}` : ''}
-            {item.order_id ? ` · Order ${item.order_id}` : ''}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <StatusBadge status={item.status} />
@@ -96,10 +81,6 @@ export default function ReturnDetailPage() {
         </div>
       </div>
 
-      <div className="mb-4 space-y-3 empty:hidden">
-        <FlagBanner item={item} />
-        <ProductSuggestion item={item} />
-      </div>
       <VerdictCard item={item} autoRun={!!params.get('new')} />
       {item.decision_route && <NextSteps item={item} route={item.decision_route} />}
 
@@ -116,13 +97,10 @@ export default function ReturnDetailPage() {
           <dl className="space-y-2 text-sm">
             {[
               ['SKU', item.sku],
-              ['Product', product ? `${product.name}` : 'Not linked to your product list'],
-              ['Order ID', item.order_id || '—'],
-              ['Logged by', item.logged_by_name || '—'],
               ['Return reason', item.return_reason],
               ['Notes', item.condition_notes || '—'],
               ['Return shipping paid', `${inr(item.return_shipping_cost)} (not counted — already spent)`],
-              ['Logged', dateTime(item.created_at)],
+              ['Added', shortDate(item.created_at)],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4">
                 <dt className="text-muted">{k}</dt>
@@ -130,11 +108,9 @@ export default function ReturnDetailPage() {
               </div>
             ))}
           </dl>
-          {canEdit && (
-            <LinkButton to={`${base}/returns/${item.id}/edit`} variant="secondary" size="sm" className="mt-4" icon={<Pencil className="size-3.5" />}>
-              {isOwner ? 'Edit details or values' : 'Edit details'}
-            </LinkButton>
-          )}
+          <LinkButton to={`${base}/returns/${item.id}/edit`} variant="secondary" size="sm" className="mt-4" icon={<Pencil className="size-3.5" />}>
+            Edit details or values
+          </LinkButton>
         </Section>
       </div>
 

@@ -10,8 +10,6 @@ import { useRates } from '../data/rates'
 import { validateImageFile } from '../lib/image'
 import { estimateFromRates, estimateInputFor, isLocked, ratesPatch, saleOf, type SaleSetup } from '../lib/rates'
 import { SaleSetupCard } from './SaleSetupCard'
-import { ProductPicker } from './ProductPicker'
-import { productToInput, skuKey } from '../data/products'
 import {
   CATEGORIES,
   HYGIENE_SENSITIVE,
@@ -78,7 +76,7 @@ interface PendingPhoto {
 export default function ReturnFormPage() {
   const { id } = useParams()
   const editing = Boolean(id)
-  const { repo, base, create, update, mode, isOwner, products, saveProduct, items } = useWorkspace()
+  const { repo, base, create, update, mode } = useWorkspace()
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(() => toForm(emptyReturnInput()))
   const [loaded, setLoaded] = useState(!editing)
@@ -95,8 +93,6 @@ export default function ReturnFormPage() {
   // The platform card: null until the seller changes something, so the saved or default setup shows.
   const [sale, setSale] = useState<SaleSetup | null>(null)
   const [saveDefault, setSaveDefault] = useState(false)
-  const [saveAsProduct, setSaveAsProduct] = useState(false)
-  const [updateProduct, setUpdateProduct] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -124,21 +120,6 @@ export default function ReturnFormPage() {
 
   const locked = isLocked(form)
   const shownSale = sale ?? saleOf(form.sale_setup, rates)
-  const selected = products.find((p) => p.id === form.product_id) ?? null
-  const skuMatch = !selected && form.sku.trim() ? products.find((p) => skuKey(p.sku) === skuKey(form.sku)) ?? null : null
-  const pick = (p: (typeof products)[number] | null) => {
-    if (!p) {
-      setForm((f) => ({ ...f, product_id: null }))
-      return
-    }
-    setForm((f) => ({ ...f, product_id: p.id, name: p.name, sku: p.sku, category: p.category, original_price: String(p.selling_price) }))
-    setSale(p.sale_setup ?? rates.default_sale)
-    setErrors((e) => ({ ...e, name: undefined, original_price: undefined, sku: undefined }))
-  }
-  // Another return already logged for the same order: worth a second look, never blocked.
-  const orderClash = form.order_id?.trim()
-    ? items.find((i) => i.id !== id && i.order_id && i.order_id.trim().toUpperCase() === form.order_id!.trim().toUpperCase())
-    : undefined
   const photoCount = form.photos.length + pending.length
   const hygiene = HYGIENE_SENSITIVE.includes(form.category as Category)
 
@@ -189,7 +170,6 @@ export default function ReturnFormPage() {
     }
     if (Number(form.selling_fee_pct) > 100) e.selling_fee_pct = 'A fee can’t exceed 100%.'
     if (form.condition_notes.length > 2000) e.condition_notes = 'Keep notes under 2,000 characters.'
-    if ((form.order_id ?? '').trim().length > 80) e.order_id = 'Keep the order ID under 80 characters.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -203,37 +183,19 @@ export default function ReturnFormPage() {
     }
     setSaving(true)
     try {
-      if (saveDefault && !locked && isOwner) await saveRates({ ...rates, default_sale: shownSale })
-      // Link to the product list: a typed SKU that's already there, or a new product saved from this return.
-      let productId = form.product_id ?? skuMatch?.id ?? null
-      const sku = (form.sku.trim() || autoSku()).toUpperCase()
-      if (isOwner && !productId && saveAsProduct) {
-        const created = await saveProduct({ sku, name: form.name.trim(), category: form.category, selling_price: Math.round(Number(form.original_price) * 100) / 100, mrp: null, sale_setup: shownSale, notes: '' })
-        productId = created.id
-        // If saving the return fails below, a retry links to this product instead of adding it twice.
-        setForm((f) => ({ ...f, product_id: created.id, sku: created.sku }))
-        setSaveAsProduct(false)
-      }
-      if (isOwner && selected && updateProduct) await saveProduct({ ...productToInput(selected), sale_setup: shownSale }, selected.id)
+      if (saveDefault && !locked) await saveRates({ ...rates, default_sale: shownSale })
       const uploaded: string[] = []
       for (const p of pending) uploaded.push(await repo.uploadPhoto(p.file))
       const payload: ReturnInput = {
         ...(form as unknown as ReturnInput),
         name: form.name.trim(),
-        sku,
-        product_id: productId,
-        order_id: form.order_id?.trim() || null,
+        sku: (form.sku.trim() || autoSku()).toUpperCase(),
         seal_intact: hygiene ? form.seal_intact : false,
         photos: [...form.photos, ...uploaded],
         // New returns always record their platform; edits only when the seller changed it.
         sale_setup: locked ? form.sale_setup : editing && !sale ? form.sale_setup : shownSale,
       }
       for (const k of NUM_KEYS) payload[k] = form[k] === '' ? 0 : Math.round(Number(form[k]) * 100) / 100
-      // Staff logging a product that isn't in the list: ask ops to add it.
-      if (!editing && !isOwner && !productId && products.length) {
-        payload.flag_note = `Not in the product list — please add SKU ${sku} or link the right product.`
-        payload.flagged_at = new Date().toISOString()
-      }
       // Routes on the rate card (and blank ones) are priced from the rates, using the
       // current category, price, grade and defects. User estimates and quotes stay as entered.
       Object.assign(payload, ratesPatch(payload, estimateFromRates(estimateInputFor(payload), rates)))
@@ -242,7 +204,7 @@ export default function ReturnFormPage() {
         const { photos, ...rest } = payload
         const patch: Partial<ReturnInput> = { photos }
         for (const k of [
-          'name', 'sku', 'category', 'original_price', 'return_reason', 'condition_notes', 'seal_intact', 'product_id', 'order_id',
+          'name', 'sku', 'category', 'original_price', 'return_reason', 'condition_notes', 'seal_intact',
           ...NUM_KEYS, 'value_basis', ...(sale && !locked ? (['sale_setup'] as const) : []),
         ] as const) {
           ;(patch as Record<string, unknown>)[k] = (rest as Record<string, unknown>)[k]
@@ -263,13 +225,6 @@ export default function ReturnFormPage() {
   }
 
   if (!loaded) return <Spinner />
-  if (!isOwner && editing && locked) {
-    return (
-      <Alert tone="info" title="This return has a saved decision">
-        Only your brand’s owner or ops team can change it now. <Link to={`${base}/returns/${id}`} className="font-medium underline">Back to the return</Link>
-      </Alert>
-    )
-  }
 
   const num = (k: NumKey, label: string, hint?: string, money = true) => (
     <Field label={label} hint={hint} error={errors[k]} required={k === 'original_price'}>
@@ -311,7 +266,7 @@ export default function ReturnFormPage() {
   return (
     <>
       <Link to={editing ? `${base}/returns/${id}` : `${base}/returns`} className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
-        <ArrowLeft className="size-4" /> {editing ? 'Back to return' : 'Back to returns'}
+        <ArrowLeft className="size-4" /> {editing ? 'Back to return' : 'Back to inventory'}
       </Link>
       <PageHeader
         title={editing ? 'Edit return' : 'Add a return'}
@@ -321,14 +276,8 @@ export default function ReturnFormPage() {
       <form onSubmit={onSubmit} noValidate className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card>
-            <CardHeader title="Product" subtitle={products.length ? 'Pick it from your products, or type the details.' : undefined} />
+            <CardHeader title="Product" />
             <div className="grid gap-4 p-5 sm:grid-cols-2">
-              {products.length > 0 && (
-                <div className="sm:col-span-2">
-                  <ProductPicker products={products} selected={selected} onPick={pick} />
-                  {skuMatch && <p className="mt-2 text-xs text-brand-800">SKU {skuMatch.sku} is in your products ({skuMatch.name}) — this return will be linked to it.</p>}
-                </div>
-              )}
               <Field label="Product name" error={errors.name} required className="sm:col-span-2">
                 {(fid, d) => <Input id={fid} aria-describedby={d} value={form.name} onChange={(e) => set('name', e.target.value)} invalid={!!errors.name} placeholder="e.g. Classic white cotton shirt" />}
               </Field>
@@ -339,30 +288,7 @@ export default function ReturnFormPage() {
                   </Select>
                 )}
               </Field>
-              {num('original_price', 'Original selling price', selected ? 'From the product. Change it if this customer paid a different price.' : 'What the customer paid (per unit).')}
-              <Field label="SKU" error={errors.sku} hint={selected ? 'From the product.' : 'Leave blank to auto-generate one.'}>
-                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.sku} onChange={(e) => set('sku', e.target.value)} invalid={!!errors.sku} placeholder="e.g. TOP-WHT-M-001" className="font-mono uppercase" />}
-              </Field>
-              <Field label="Order ID (optional)" error={errors.order_id} hint={orderClash ? undefined : 'Date, time and who logged it are recorded automatically.'}>
-                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.order_id ?? ''} onChange={(e) => set('order_id', e.target.value)} invalid={!!errors.order_id} placeholder="e.g. 408-1234567-1234567" className="font-mono" />}
-              </Field>
-              {orderClash && (
-                <p className="text-xs text-amber-800 sm:col-span-2" role="status">
-                  Order {orderClash.order_id} already has a return logged ({orderClash.name}). Check this isn’t a duplicate.
-                </p>
-              )}
-              {isOwner && !selected && !skuMatch && !editing && (
-                <label className="flex items-start gap-2.5 rounded-xl border border-brand-200 bg-brand-50/50 px-3 py-2.5 text-sm sm:col-span-2">
-                  <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={saveAsProduct} onChange={(e) => setSaveAsProduct(e.target.checked)} />
-                  <span>
-                    Save to my product list with these settings
-                    <span className="block text-xs text-muted">Next time, pick it from your products and the name, price, platform, GST and delivery fill in with one tap.</span>
-                  </span>
-                </label>
-              )}
-              {!isOwner && !selected && !skuMatch && products.length > 0 && !editing && (
-                <p className="text-xs text-muted sm:col-span-2">Can’t find the product? Type the details — the return is flagged so ops can add it to the list.</p>
-              )}
+              {num('original_price', 'Original selling price', 'What the customer paid (per unit).')}
             </div>
           </Card>
 
@@ -374,20 +300,8 @@ export default function ReturnFormPage() {
               rates={rates}
               onChange={setSale}
               saveDefault={saveDefault}
-              onSaveDefault={isOwner ? setSaveDefault : undefined}
+              onSaveDefault={setSaveDefault}
               ownCosts={form.value_basis.costs === 'estimate'}
-              locked={!isOwner}
-              extra={
-                isOwner && selected ? (
-                  <label className="flex items-start gap-2.5 text-sm">
-                    <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={updateProduct} onChange={(e) => setUpdateProduct(e.target.checked)} />
-                    <span>
-                      Save these settings to {selected.sku}
-                      <span className="block text-xs text-muted">Future returns of this product start with this platform, GST and delivery.</span>
-                    </span>
-                  </label>
-                ) : undefined
-              }
             />
           )}
 
@@ -396,11 +310,14 @@ export default function ReturnFormPage() {
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
               <span>
                 <span className="block text-[15px] font-semibold">More details <span className="font-normal text-muted">(optional)</span></span>
-                <span className="block text-sm text-muted">Return reason, notes for the AI, return shipping.</span>
+                <span className="block text-sm text-muted">SKU, return reason, notes for the AI, return shipping.</span>
               </span>
               <ChevronDown className="size-4 text-muted transition group-open:rotate-180" />
             </summary>
             <div className="grid gap-4 border-t border-line p-5 sm:grid-cols-2">
+              <Field label="SKU" error={errors.sku} hint="Leave blank to auto-generate one.">
+                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.sku} onChange={(e) => set('sku', e.target.value)} invalid={!!errors.sku} placeholder="e.g. TOP-WHT-M-001" className="font-mono uppercase" />}
+              </Field>
               <Field label="Return reason" required>
                 {(fid) => (
                   <Select id={fid} value={form.return_reason} onChange={(e) => set('return_reason', e.target.value)}>
@@ -427,7 +344,6 @@ export default function ReturnFormPage() {
             </details>
           </Card>
 
-          {isOwner && (
           <Card>
             <details open={editing} className="group">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
@@ -482,7 +398,6 @@ export default function ReturnFormPage() {
             </div>
             </details>
           </Card>
-          )}
         </div>
 
         <div className="space-y-4">

@@ -18,7 +18,7 @@ const KIND_FILTERS: [DirectoryEntry['kind'] | 'all', string][] = [
 const CITY_FILTERS: (NcrCity | 'all')[] = ['all', 'Delhi', 'Gurugram', 'Noida', 'Haryana', 'Online']
 
 export default function PartnersPage() {
-  const { mode, isOwner } = useWorkspace()
+  const { mode } = useWorkspace()
   const { partners, upsert, remove } = usePartners(mode)
   const [editing, setEditing] = useState<Partner | null | 'new'>(null)
   const [deleting, setDeleting] = useState<Partner | null>(null)
@@ -35,13 +35,9 @@ export default function PartnersPage() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-2 flex items-end justify-between gap-4">
         <h1 className="font-display text-[36px] leading-none tracking-tight sm:text-[44px]">Partners</h1>
-        {isOwner && <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Add partner</Button>}
+        <Button icon={<Plus className="size-4" />} onClick={() => setEditing('new')}>Add partner</Button>
       </div>
-      <p className="mb-6 text-sm text-muted">
-        {isOwner
-          ? 'Your approved refurbishers, liquidation buyers and recyclers. Your team sees them as next steps on matching returns.'
-          : 'Partners your brand works with, set up by your ops team. Use them as next steps on returns.'}
-      </p>
+      <p className="mb-6 text-sm text-muted">Your refurbishers, liquidation buyers and recyclers. They show up as next steps on matching returns.</p>
       {error && <Alert tone="error" className="mb-4">{error}</Alert>}
 
       {partners.length === 0 ? (
@@ -49,8 +45,8 @@ export default function PartnersPage() {
           <EmptyState
             icon={<Handshake className="size-6" />}
             title="No partners yet"
-            body={isOwner ? 'Add the people you already work with — a cobbler, a tailor, a liquidation buyer — or save one from the Delhi NCR directory below. They show up as next steps on matching returns.' : 'Your ops team hasn’t added partners yet. The Delhi NCR directory below lists businesses you can contact.'}
-            action={isOwner ? <Button onClick={() => setEditing('new')} icon={<Plus className="size-4" />}>Add your first partner</Button> : undefined}
+            body="Add the people you already work with — a cobbler, a tailor, a liquidation buyer — or save one from the Delhi NCR directory below. They show up as next steps on matching returns."
+            action={<Button onClick={() => setEditing('new')} icon={<Plus className="size-4" />}>Add your first partner</Button>}
           />
         </Card>
       ) : (
@@ -71,8 +67,8 @@ export default function PartnersPage() {
                           <div className="mt-2"><PartnerActions partner={p} /></div>
                         </div>
                         <div className="flex shrink-0 gap-1">
-                          {isOwner && <button className="rounded-lg p-2 text-muted hover:bg-ink/5 hover:text-ink" onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}><Pencil className="size-4" /></button>}
-                          {isOwner && <button className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-700" onClick={() => setDeleting(p)} aria-label={`Delete ${p.name}`}><Trash2 className="size-4" /></button>}
+                          <button className="rounded-lg p-2 text-muted hover:bg-ink/5 hover:text-ink" onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}><Pencil className="size-4" /></button>
+                          <button className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-700" onClick={() => setDeleting(p)} aria-label={`Delete ${p.name}`}><Trash2 className="size-4" /></button>
                         </div>
                       </li>
                     ))}
@@ -103,7 +99,7 @@ export default function PartnersPage() {
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {listed.map((e) => (
-            <DirectoryCard key={e.id} entry={e} saved={savedNames.has(e.name.toLowerCase())} onSave={isOwner ? saveEntry : undefined} />
+            <DirectoryCard key={e.id} entry={e} saved={savedNames.has(e.name.toLowerCase())} onSave={saveEntry} />
           ))}
         </div>
         {!listed.length && <p className="mt-4 text-sm text-muted">Nothing listed for that combination yet.</p>}

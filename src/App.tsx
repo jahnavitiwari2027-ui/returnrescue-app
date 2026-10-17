@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Spinner } from './components/ui'
 import { accountsEnabled } from './config'
 import { useAuth } from './context/AuthContext'
-import { useWorkspace, WorkspaceProvider } from './context/WorkspaceContext'
+import { WorkspaceProvider } from './context/WorkspaceContext'
 
 const Landing = lazy(() => import('./pages/Landing'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
@@ -19,11 +19,6 @@ const Insights = lazy(() => import('./app/InsightsPage'))
 const Billing = lazy(() => import('./app/BillingPage'))
 const Partners = lazy(() => import('./app/PartnersPage'))
 const Rates = lazy(() => import('./app/RatesPage'))
-const Products = lazy(() => import('./app/ProductsPage'))
-const Team = lazy(() => import('./app/TeamPage'))
-const Today = lazy(() => import('./app/TodayPage'))
-const JoinTeam = lazy(() => import('./pages/JoinTeam'))
-const OwnerOnly = lazy(() => import('./app/OwnerOnly'))
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
@@ -57,32 +52,18 @@ function FullPageSpinner() {
   )
 }
 
-/** Owner home is the dashboard; warehouse staff start on "Today". */
-function Home() {
-  const { isOwner } = useWorkspace()
-  return isOwner ? <Dashboard /> : <Today />
-}
-
-/** Pages only the brand owner or ops can open. */
-function Owner({ children }: { children: ReactNode }) {
-  const { isOwner } = useWorkspace()
-  return isOwner ? <>{children}</> : <OwnerOnly />
-}
-
 function workspaceRoutes(mode: 'demo' | 'account') {
   return (
     <>
-      <Route index element={<Home />} />
+      <Route index element={<Dashboard />} />
       <Route path="returns" element={<Inventory />} />
       <Route path="returns/new" element={<ReturnForm />} />
       <Route path="returns/:id" element={<ReturnDetail />} />
       <Route path="returns/:id/edit" element={<ReturnForm />} />
-      <Route path="products" element={<Products />} />
+      <Route path="insights" element={<Insights />} />
       <Route path="partners" element={<Partners />} />
-      <Route path="insights" element={<Owner><Insights /></Owner>} />
-      <Route path="rates" element={<Owner><Rates /></Owner>} />
-      <Route path="team" element={<Owner><Team /></Owner>} />
-      {mode === 'account' && <Route path="billing" element={<Owner><Billing /></Owner>} />}
+      <Route path="rates" element={<Rates />} />
+      {mode === 'account' && <Route path="billing" element={<Billing />} />}
       <Route path="*" element={<NotFound inApp />} />
     </>
   )
@@ -98,7 +79,6 @@ export default function App() {
         <Route path="/signup" element={<AuthPage mode="signup" />} />
         <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
         <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="/join" element={<RequireAuth><JoinTeam /></RequireAuth>} />
         <Route path="/privacy" element={<LegalPage doc="privacy" />} />
         <Route path="/terms" element={<LegalPage doc="terms" />} />
         <Route path="/refunds" element={<LegalPage doc="refunds" />} />

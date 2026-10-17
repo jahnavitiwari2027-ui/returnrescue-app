@@ -16,9 +16,3 @@ export const relativeDays = (iso: string) => {
   if (d === 1) return 'yesterday'
   return `${d} days ago`
 }
-
-/** "17 Oct 2026, 7:12 pm" in Indian time. */
-export const dateTime = (iso: string | null | undefined) =>
-  iso
-    ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
-    : '—'

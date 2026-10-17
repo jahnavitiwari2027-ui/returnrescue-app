@@ -34,8 +34,6 @@ If you ran `schema.sql` before 17 Oct 2026 02:30 IST, also run `supabase/update-
 
 If you ran `schema.sql` before 18 Oct 2026, also run `supabase/update-2026-10-18-platforms.sql` once (it adds the optional `sale_setup` column that remembers which platform each return sells on). Until you do, the app still saves returns — just without the platform.
 
-If you ran `schema.sql` before 19 Oct 2026, also run `supabase/update-2026-10-19-teams.sql` once. It adds brand teams (join codes, owner approval), the product list (SKUs), order IDs, “logged by” and “flag for ops”, and updates the row-level security so approved staff can see and log their brand’s returns while only the owner can delete, export, bill, change settings or products, grade by hand or override a decision. It’s safe to re-run. `tests/sql.test.ts` runs it on an embedded Postgres and checks these rules.
-
 ### 2c. Sign in with Google (optional, free)
 1. console.cloud.google.com → create (or pick) a project → **APIs & Services → OAuth consent screen** → External → app name *ReturnRescue*, your email as support and developer contact → save. Scopes: leave the defaults (email, profile). Then **Publish app** so anyone can sign in (basic scopes need no Google review).
 2. **APIs & Services → Credentials → Create credentials → OAuth client ID** → *Web application*. Under **Authorised redirect URIs** add `https://<your-project-ref>.supabase.co/auth/v1/callback` (Supabase shows this exact URL on its Google provider page). Create, then copy the **Client ID** and **Client secret**.

@@ -3,7 +3,7 @@
 
 import { compressImage } from '../lib/image'
 import { PHOTO_BUCKET, supabase } from '../lib/supabase'
-import { withDefaults, type ReturnInput, type ReturnItem } from '../lib/types'
+import type { ReturnInput, ReturnItem } from '../lib/types'
 import { RepoError, type ReturnsRepo } from './repo'
 
 const NUMERIC: (keyof ReturnItem)[] = [
@@ -29,7 +29,7 @@ function normalize(row: Record<string, unknown>): ReturnItem {
   r.defects = r.defects ?? []
   r.value_basis = r.value_basis ?? {}
   r.sale_setup = r.sale_setup ?? null
-  return withDefaults(r as unknown as ReturnItem)
+  return r as unknown as ReturnItem
 }
 
 function clean(patch: Partial<ReturnInput>) {
@@ -38,47 +38,32 @@ function clean(patch: Partial<ReturnInput>) {
   delete out.id
   delete out.created_at
   delete out.updated_at
-  // Set by the database: who logged it, and whose workspace it's in.
-  delete out.logged_by
-  delete out.logged_by_name
-  delete out.user_id
   return out
 }
 
-export function fail(error: { message: string; code?: string } | null): never {
+function fail(error: { message: string; code?: string } | null): never {
   const msg = error?.message ?? 'Unknown error'
   if (msg.includes('FREE_PLAN_LIMIT')) {
     throw new RepoError('FREE_PLAN_LIMIT', msg.replace(/^.*FREE_PLAN_LIMIT:\s*/, ''))
   }
-  const known = /^(?:.*?)(STAFF_ONLY|PRODUCT|TEAM|CODE):\s*(.*)$/.exec(msg)
-  if (known) throw new RepoError(known[1], known[2])
   if (msg.toLowerCase().includes('jwt') || error?.code === 'PGRST301') {
     throw new RepoError('AUTH', 'Your session expired. Please sign in again.')
   }
   throw new RepoError('DB', msg)
 }
 
-// Columns added after launch (supabase/update-2026-10-18-platforms.sql and
-// update-2026-10-19-teams.sql). If a project hasn't run an update yet, save
-// without that column rather than failing.
-const OPTIONAL_COLUMNS = ['sale_setup', 'order_id', 'product_id', 'flag_note', 'flagged_at']
+// The sale_setup column was added after launch (supabase/update-2026-10-18-platforms.sql).
+// If a project hasn't run that update yet, save without it rather than failing.
 type Res = { data: unknown; error: { message: string; code?: string } | null }
-/** The optional column a "missing column" error is about, if any. */
-export function missingOptionalColumn(e: Res['error']): string | null {
-  if (!e || !(e.code === 'PGRST204' || e.code === '42703' || /column/i.test(e.message))) return null
-  return OPTIONAL_COLUMNS.find((c) => new RegExp(`['"]${c}['"]`).test(e.message)) ?? null
-}
+export const missingSaleColumn = (e: Res['error']) => !!e && e.message.includes('sale_setup') && (e.code === 'PGRST204' || e.code === '42703' || /column/i.test(e.message))
 export async function writeRow(body: Record<string, unknown>, run: (b: Record<string, unknown>) => PromiseLike<Res>): Promise<Res> {
-  let b = body
-  for (let i = 0; i <= OPTIONAL_COLUMNS.length; i++) {
-    const res = await run(b)
-    const col = missingOptionalColumn(res.error)
-    if (!col || !(col in b)) return res
-    const { [col]: _drop, ...rest } = b
+  const res = await run(body)
+  if (res.error && 'sale_setup' in body && missingSaleColumn(res.error)) {
+    const { sale_setup: _drop, ...rest } = body
     void _drop
-    b = rest
+    return run(rest)
   }
-  return run(b)
+  return res
 }
 
 const urlCache = new Map<string, { url: string; exp: number }>()
@@ -88,12 +73,10 @@ function client() {
   return supabase
 }
 
-/** The returns of one brand workspace: the owner's own, or the brand a staff member joined. */
-export function createSupabaseRepo(ownerId: string): ReturnsRepo {
-  return {
+export const supabaseRepo: ReturnsRepo = {
   mode: 'account',
   async list() {
-    const { data, error } = await client().from('returns').select('*').eq('user_id', ownerId).order('created_at', { ascending: false })
+    const { data, error } = await client().from('returns').select('*').order('created_at', { ascending: false })
     if (error) fail(error)
     return (data ?? []).map(normalize)
   },
@@ -103,7 +86,7 @@ export function createSupabaseRepo(ownerId: string): ReturnsRepo {
     return data ? normalize(data) : null
   },
   async create(input) {
-    const { data, error } = await writeRow({ ...clean(input), user_id: ownerId }, (b) => client().from('returns').insert(b).select('*').single())
+    const { data, error } = await writeRow(clean(input), (b) => client().from('returns').insert(b).select('*').single())
     if (error) fail(error)
     return normalize(data as Record<string, unknown>)
   },
@@ -121,10 +104,10 @@ export function createSupabaseRepo(ownerId: string): ReturnsRepo {
   async uploadPhoto(file) {
     const sb = client()
     const { data: userData } = await sb.auth.getUser()
-    if (!userData.user?.id) throw new RepoError('AUTH', 'Please sign in again to upload photos.')
+    const userId = userData.user?.id
+    if (!userId) throw new RepoError('AUTH', 'Please sign in again to upload photos.')
     const jpeg = await compressImage(file)
-    // Photos live in the brand owner's folder, so the whole team can see them.
-    const path = `${ownerId}/${crypto.randomUUID()}.jpg`
+    const path = `${userId}/${crypto.randomUUID()}.jpg`
     const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, jpeg, { contentType: 'image/jpeg', upsert: false })
     if (error) throw new RepoError('UPLOAD', `Photo upload failed: ${error.message}`)
     return path
@@ -159,5 +142,4 @@ export function createSupabaseRepo(ownerId: string): ReturnsRepo {
     if (!refs.length) return
     await client().storage.from(PHOTO_BUCKET).remove(refs)
   },
-}
 }

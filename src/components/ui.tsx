@@ -308,7 +308,7 @@ export function Modal({
             <X className="size-5" />
           </button>
         </div>
-        <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto px-5 py-4">{children}</div>
+        <div className="px-5 py-4">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
       </div>
     </div>

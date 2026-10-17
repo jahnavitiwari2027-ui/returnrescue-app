@@ -37,7 +37,7 @@ import {
 type SortKey = 'newest' | 'oldest' | 'value' | 'name'
 
 export default function InventoryPage() {
-  const { items, loading, error, base, mode, remove, isOwner } = useWorkspace()
+  const { items, loading, error, base, mode, remove } = useWorkspace()
   const { hasAccess } = useAuth()
   const navigate = useNavigate()
   const [q, setQ] = useState('')
@@ -115,14 +115,13 @@ export default function InventoryPage() {
   return (
     <>
       <PageHeader
-        title="Returns"
+        title="Inventory"
+        
         actions={
           <>
-            {isOwner && (
-              <Button variant="secondary" icon={<Download className="size-4" />} onClick={exportCsv} loading={exporting} disabled={!items.length}>
-                Export CSV
-              </Button>
-            )}
+            <Button variant="secondary" icon={<Download className="size-4" />} onClick={exportCsv} loading={exporting} disabled={!items.length}>
+              Export CSV
+            </Button>
             <div className="hidden lg:block">
               <LinkButton to={`${base}/returns/new`} icon={<Plus className="size-4" />}>Add return</LinkButton>
             </div>
@@ -257,11 +256,9 @@ export default function InventoryPage() {
                             <Link to={`${base}/returns/${item.id}/edit`} className="rounded-lg p-1.5 text-muted hover:bg-ink/5 hover:text-ink" aria-label={`Edit ${item.name}`}>
                               <Pencil className="size-4" />
                             </Link>
-                            {isOwner && (
-                              <button onClick={() => setToDelete(item)} className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-700" aria-label={`Delete ${item.name}`}>
-                                <Trash2 className="size-4" />
-                              </button>
-                            )}
+                            <button onClick={() => setToDelete(item)} className="rounded-lg p-1.5 text-muted hover:bg-red-50 hover:text-red-700" aria-label={`Delete ${item.name}`}>
+                              <Trash2 className="size-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -292,11 +289,9 @@ export default function InventoryPage() {
                       <Link to={`${base}/returns/${item.id}/edit`} className="rounded-lg p-1.5 text-muted" aria-label={`Edit ${item.name}`}>
                         <Pencil className="size-4" />
                       </Link>
-                      {isOwner && (
-                        <button onClick={() => setToDelete(item)} className="rounded-lg p-1.5 text-muted" aria-label={`Delete ${item.name}`}>
-                          <Trash2 className="size-4" />
-                        </button>
-                      )}
+                      <button onClick={() => setToDelete(item)} className="rounded-lg p-1.5 text-muted" aria-label={`Delete ${item.name}`}>
+                        <Trash2 className="size-4" />
+                      </button>
                     </div>
                   </li>
                 ))}

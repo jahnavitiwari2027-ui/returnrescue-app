@@ -34,7 +34,7 @@ function useChecklist(itemId: string, count: number) {
 }
 
 export default function NextSteps({ item, route }: { item: ReturnItem; route: RouteKey }) {
-  const { mode, base, isOwner } = useWorkspace()
+  const { mode, base } = useWorkspace()
   const { partners, upsert } = usePartners(mode)
   const path = pathwayFor(route, item.category)
   const { done, toggle } = useChecklist(item.id, path.steps.length)
@@ -69,11 +69,9 @@ export default function NextSteps({ item, route }: { item: ReturnItem; route: Ro
       <div className="mt-5 border-t border-line pt-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-medium">Your partners</h3>
-          {isOwner && (
-            <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">
-              <Plus className="size-3.5" /> Add
-            </button>
-          )}
+          <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">
+            <Plus className="size-3.5" /> Add
+          </button>
         </div>
         {mine.length ? (
           <ul className="mt-2 space-y-3">
@@ -99,7 +97,7 @@ export default function NextSteps({ item, route }: { item: ReturnItem; route: Ro
           <ul className="mt-2 divide-y divide-line">
             {local.slice(0, 4).map((e) => (
               <li key={e.id} className="py-3 first:pt-1">
-                <DirectoryCard compact entry={e} saved={savedNames.has(e.name.toLowerCase())} onSave={isOwner ? async (x) => { await upsert(entryToPartner(x)) } : undefined} />
+                <DirectoryCard compact entry={e} saved={savedNames.has(e.name.toLowerCase())} onSave={async (x) => { await upsert(entryToPartner(x)) }} />
               </li>
             ))}
           </ul>

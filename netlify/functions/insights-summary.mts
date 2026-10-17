@@ -7,7 +7,7 @@ import { computeStats, type WorkspaceStats } from '../../src/lib/insights'
 import { aiErrorResponse, aiModel, aiProvider, generateText } from './_shared/ai'
 import { fail, json, readJson } from './_shared/http'
 import { normalizeRow } from './_shared/rows'
-import { getAccess, getAdmin, getUser, recordUsage, supabaseConfigured, trialDays, workspaceFor } from './_shared/supabaseAdmin'
+import { getAccess, getAdmin, getUser, recordUsage, supabaseConfigured, trialDays } from './_shared/supabaseAdmin'
 
 export default async (req: Request) => {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Use POST.')
@@ -21,7 +21,6 @@ export default async (req: Request) => {
     if (!supabaseConfigured()) return fail(503, 'NOT_CONFIGURED', 'Accounts are not configured.')
     const user = await getUser(req)
     if (!user) return fail(401, 'AUTH', 'Please sign in again.')
-    if ((await workspaceFor(user)).role !== 'owner') return fail(403, 'OWNER_ONLY', 'Insights are for the brand owner or ops.')
     if (!(await getAccess(user)).allowed) return fail(402, 'PRO_REQUIRED', 'Your free trial has ended. AI summaries are part of ReturnRescue Pro.')
     userId = user.id
     const { data, error } = await getAdmin().from('returns').select('*').eq('user_id', user.id).limit(5000)

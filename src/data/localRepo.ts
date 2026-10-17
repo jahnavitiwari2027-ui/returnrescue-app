@@ -2,12 +2,11 @@
 // separate from any real business account data.
 
 import { imageToDataUrl } from '../lib/image'
-import { withDefaults, type ReturnInput, type ReturnItem } from '../lib/types'
+import type { ReturnInput, ReturnItem } from '../lib/types'
 import { buildDemoItems } from './demoSeed'
 import { RepoError, type ReturnsRepo } from './repo'
 
-// v2 (19 Oct 2026): sample returns gained products, order IDs and who logged them.
-const KEY = 'returnrescue.demo.v2'
+const KEY = 'returnrescue.demo.v1'
 
 interface Store {
   version: 1
@@ -19,7 +18,7 @@ function read(): Store {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Store
-      if (parsed?.version === 1 && Array.isArray(parsed.items)) return { ...parsed, items: parsed.items.map((i) => withDefaults(i)) }
+      if (parsed?.version === 1 && Array.isArray(parsed.items)) return parsed
     }
   } catch {
     /* fall through to a fresh seed */
