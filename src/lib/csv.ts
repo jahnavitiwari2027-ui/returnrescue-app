@@ -1,3 +1,4 @@
+import { PLATFORM_LABEL } from './rates'
 import { calculateRecovery } from './recovery'
 import { DEFECT_LABEL, GRADE_LABEL, ROUTE_LABEL, STATUS_LABEL, type ReturnItem } from './types'
 
@@ -16,6 +17,7 @@ export function returnsToCsv(items: ReturnItem[]): string {
     'Product name',
     'SKU',
     'Category',
+    'Sold on',
     'Original price (INR)',
     'Return reason',
     'Condition notes',
@@ -43,6 +45,7 @@ export function returnsToCsv(items: ReturnItem[]): string {
       i.name,
       i.sku,
       i.category,
+      i.sale_setup?.platform ? PLATFORM_LABEL[i.sale_setup.platform] ?? '' : '',
       i.original_price,
       i.return_reason,
       i.condition_notes,

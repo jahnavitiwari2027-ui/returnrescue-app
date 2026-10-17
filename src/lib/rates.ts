@@ -26,8 +26,13 @@ import {
 
 export type SourceKey =
   | 'amazon_fees'
-  | 'closing_fees'
+  | 'amazon_2026'
+  | 'flipkart'
+  | 'flipkart_fixed'
+  | 'flipkart_ship'
+  | 'meesho'
   | 'courier'
+  | 'speedpost'
   | 'gateway'
   | 'gst_goods'
   | 'wage'
@@ -35,7 +40,10 @@ export type SourceKey =
   | 'dryclean'
   | 'shoe'
   | 'tailor'
+  | 'tailor_delhi'
+  | 'bgrade'
   | 'surplus'
+  | 'surplus_delhi'
   | 'scrap'
 
 export interface RateSource {
@@ -55,22 +63,57 @@ export const RATE_SOURCES: Record<SourceKey, RateSource> = {
     title: 'Pricing & seller fees',
     publisher: 'Amazon.in',
     url: 'https://sell.amazon.in/fees-and-pricing',
-    effective: 'Current fee page; closing-fee change from 7 Sep 2026',
-    used_for: 'Referral fee by category (0% up to ₹1,000), Easy Ship weight handling (₹51 first 500 g, ₹17 per extra 500 g), 18% GST on fees.',
+    effective: 'Current fee page',
+    used_for: 'Referral fee by category (0% up to ₹1,000), 18% GST on fees.',
   },
-  closing_fees: {
-    title: 'Amazon commission rates in India',
-    publisher: 'Shiprocket (secondary source)',
-    url: 'https://www.shiprocket.in/blog/amazon-commission-rates-in-india/',
-    effective: 'Published Feb 2025, updated Jan 2026',
-    used_for: 'Easy Ship closing fee by price band (₹5 / ₹9 / ₹30 / ₹56), plus Amazon’s 7 Sep 2026 increase of ₹1 (up to ₹500) or ₹3 (above). Confirm in Seller Central.',
+  amazon_2026: {
+    title: 'Amazon seller fees India 2026: referral, closing & FBA fees',
+    publisher: 'Blooprint (secondary source, cites Amazon.in)',
+    url: 'https://blooprint.in/blog/amazon-seller-fees-india-explained/',
+    effective: 'Published 16 Sep 2026; closing fees from 7 Sep 2026',
+    used_for: 'Easy Ship closing fee ₹2 (up to ₹300), ₹23 (₹301–500), ₹48 (₹501–1,000), ₹79 (above ₹1,000). Easy Ship weight handling ₹55 up to 500 g, ₹75 up to 1 kg, ₹112 up to 2 kg, ₹34 per extra kg.',
+  },
+  flipkart: {
+    title: 'Flipkart seller fees & commission 2026: rate card explained',
+    publisher: 'Blooprint (secondary source, cites Flipkart Seller Hub)',
+    url: 'https://blooprint.in/blog/flipkart-seller-fees-explained/',
+    effective: 'Fee schedule checked 18 Sep 2026; fashion change from 8 Jul 2026',
+    used_for: 'Fashion pays 0% commission at any price; local and zonal shipping is free under 500 g; no collection fee on prepaid orders. Flipkart shows exact fixed and shipping fees only inside Seller Hub.',
+  },
+  flipkart_fixed: {
+    title: 'Flipkart seller fees 2026: complete cost breakdown',
+    publisher: 'Brand Chanakya (secondary source)',
+    url: 'https://brandchanakya.in/flipkart-seller-commission-fees/',
+    effective: 'Published 29 Jul 2026',
+    used_for: 'Fixed fee roughly ₹8–35 per order by price slab and seller tier (we use the ₹22 midpoint).',
+  },
+  flipkart_ship: {
+    title: 'Flipkart fee revision November 2025',
+    publisher: 'Rekonsile (secondary source)',
+    url: 'https://rekonsile.com/flipkart-fee-revision-november-2025-complete-guide',
+    effective: 'Updated 25 Nov 2025',
+    used_for: 'National shipping under 500 g ₹16; local and zonal under 500 g free.',
+  },
+  meesho: {
+    title: 'Meesho commission & seller fees',
+    publisher: 'GoNukkad (secondary source)',
+    url: 'https://www.gonukkad.com/blog/meesho-commission-seller-fees',
+    effective: 'Published 24 Mar 2026 (shipping rates are 2026 estimates)',
+    used_for: '0% commission and no fixed or closing fee. Shipping is deducted from your payout: under 500 g ₹35–45 local, ₹45–70 regional, ₹55–90 national; 500 g–1 kg ₹50–70 / ₹65–95 / ₹80–120; 1–2 kg ₹60–85 / ₹80–120 / ₹100–150, plus 18% GST. We use each midpoint.',
   },
   courier: {
-    title: 'Cheapest courier services for small businesses (2026)',
-    publisher: 'IndiaPost.org',
-    url: 'https://indiapost.org/cheapest-courier-service',
-    effective: '2026',
-    used_for: 'Own-website shipping: 500 g parcel via an aggregator ≈ ₹40–45 all-in.',
+    title: 'Shipping plans & pricing',
+    publisher: 'Shiprocket',
+    url: 'https://shiprocket.in/pricing/',
+    effective: 'Current pricing page',
+    used_for: 'Free (Lite) plan: average shipment cost ₹45.',
+  },
+  speedpost: {
+    title: 'Speed Post charges 2026',
+    publisher: 'Shiprocket (secondary source, India Post tariff)',
+    url: 'https://www.shiprocket.in/blog/speed-post-charges/',
+    effective: 'Published 4 Dec 2025 (tariff excludes taxes)',
+    used_for: 'Speed Post 251–500 g: ₹28 local, ₹70 up to 200 km, ₹93 above 2,000 km.',
   },
   gateway: {
     title: 'Razorpay payment gateway pricing explained',
@@ -121,12 +164,33 @@ export const RATE_SOURCES: Record<SourceKey, RateSource> = {
     effective: '2026 guide (prices include GST)',
     used_for: 'Zip replacement ₹300–700 (we use ₹500, and ₹700 for major), seam work ₹400–1,000 (we use ₹700).',
   },
+  tailor_delhi: {
+    title: 'Tailors in Delhi: doorstep alterations',
+    publisher: 'RunTailor',
+    url: 'https://www.runtailor.com/tailors-in/delhi',
+    effective: 'Current Delhi price list (starting prices)',
+    used_for: 'Tear fixing & damage repair from ₹89; open & re-stitch from ₹449.',
+  },
+  bgrade: {
+    title: 'B-grade products explained',
+    publisher: 'Liquidation Stock (secondary source)',
+    url: 'https://liquidationstock.com/blogs/guides/b-grade-products-explained-how-resellers-can-maximize-profit-margins',
+    effective: 'Published 12 Nov 2025',
+    used_for: 'Most B-grade goods sell 20–50% below new (we use 50% of the price, the low end of what you receive). The same guide lists apparel at 50–80% off through resellers, so lower this if you clear stock that way.',
+  },
   surplus: {
     title: 'The surpassing surplus business',
     publisher: 'Apparel Resources',
     url: 'https://apparelresources.com/business-news/retail/surpassing-surplus-business/',
     effective: 'Industry article (undated)',
     used_for: 'Unsold branded stock sells to surplus buyers for 20–30% of its original value (we use 20%).',
+  },
+  surplus_delhi: {
+    title: 'Surplus garments in Delhi',
+    publisher: 'IndiaMART listings',
+    url: 'https://m.indiamart.com/city/delhi/surplus-garments.html',
+    effective: 'Listings checked 17 Oct 2026',
+    used_for: 'Market check: 22 Delhi NCR listings of adult surplus clothing ask ₹50–490 a piece (median ₹109). Traders pay sellers less than they ask.',
   },
   scrap: {
     title: 'Scrap rates in India',
@@ -141,9 +205,39 @@ export const RATE_SOURCES: Record<SourceKey, RateSource> = {
 export const RANGE_POLICY =
   'Where a source gives a range, money you receive uses the low end and costs use the midpoint; where a source lists two prices for the same service, we use the higher one.'
 
+// ─────────────────────────── Platforms ───────────────────────────
+
+export type PlatformKey = 'amazon' | 'flipkart' | 'meesho' | 'own_site'
+export const PLATFORMS: PlatformKey[] = ['amazon', 'flipkart', 'meesho', 'own_site']
+export const PLATFORM_LABEL: Record<PlatformKey, string> = {
+  amazon: 'Amazon.in',
+  flipkart: 'Flipkart',
+  meesho: 'Meesho',
+  own_site: 'Your own website',
+}
+
+/**
+ * Where a return will be resold, and anything the seller set by hand for it.
+ * Fields left out are worked out from the rate card.
+ */
+export interface SaleSetup {
+  platform: PlatformKey
+  /** GST rate on the sale (%), when the seller sets it instead of the automatic rate. */
+  gst_pct?: number
+  /** Commission, referral or gateway fee (% of the price), when set by hand. */
+  commission_pct?: number
+  /** Closing or fixed fee (₹ per order), when set by hand. */
+  fixed_fee?: number
+  /** A delivery preset id (see deliveryPresets). Left out = picked by packed weight. */
+  delivery?: string
+  /** A delivery charge (₹ per order) typed by the seller. Wins over a preset. */
+  delivery_custom?: number
+}
+
+export const GST_CHOICES = [0, 5, 18] as const
+
 // ─────────────────────────── Rate card ───────────────────────────
 
-export type Channel = 'marketplace' | 'own_site'
 export type InputKind = 'business' | 'published' | 'assumption'
 
 export interface ServicePrices {
@@ -168,22 +262,45 @@ export interface ServicePrices {
 type SvcKey = Exclude<keyof ServicePrices, 'dry_clean'>
 
 export interface RateCard {
-  channel: Channel
+  /** Used for new returns, and for returns saved before platforms existed. */
+  default_sale: SaleSetup
   /** GST-registered sellers keep the price minus GST, and can claim GST on fees back as input tax credit. */
   gst_registered: boolean
   goods_gst_threshold: number
   goods_gst_low_pct: number
   goods_gst_high_pct: number
   bags_gst_pct: number
-  /** Marketplace referral fee % by category, charged when the price is above fee_free_up_to. */
+  gst_on_fees_pct: number
+  // Amazon.in (Easy Ship)
+  /** Referral fee % by category, charged when the price is above fee_free_up_to. */
   referral_pct: Record<Category, number>
   fee_free_up_to: number
+  amazon_closing_fee: { up_to_300: number; up_to_500: number; up_to_1000: number; above_1000: number }
+  amazon_weight_handling: { up_to_500g: number; up_to_1kg: number; up_to_2kg: number; per_extra_kg: number }
+  // Flipkart
+  flipkart_commission_pct: number
+  flipkart_fixed_fee: number
+  flipkart_shipping: { local_zonal_500g: number; national_500g: number }
+  // Meesho
+  meesho_commission_pct: number
+  meesho_shipping: {
+    local_500g: number
+    regional_500g: number
+    national_500g: number
+    local_1kg: number
+    regional_1kg: number
+    national_1kg: number
+    local_2kg: number
+    regional_2kg: number
+    national_2kg: number
+  }
+  // Your own website
   payment_gateway_pct: number
-  gst_on_fees_pct: number
+  courier_first_500g: number
+  courier_extra_500g: number
+  // Costs
   labour_per_hour: number
   packing_materials: number
-  ship_first_500g: Record<Channel, number>
-  ship_extra_500g: number
   weight_kg: Record<Category, number>
   refurb_resale_pct: number
   liquidation_pct: Record<Grade | 'ungraded', number>
@@ -197,12 +314,13 @@ export interface RateCard {
 const byCat = (v: Record<Category, number>) => v
 
 export const DEFAULT_RATES: RateCard = {
-  channel: 'marketplace',
+  default_sale: { platform: 'amazon' },
   gst_registered: true,
   goods_gst_threshold: 2500,
   goods_gst_low_pct: 5,
   goods_gst_high_pct: 18,
   bags_gst_pct: 18,
+  gst_on_fees_pct: 18,
   // Amazon.in referral fees above ₹1,000 (most common sub-category per group).
   referral_pct: byCat({
     Topwear: 21, // Shirts 21% (Men's T-shirts 23%)
@@ -215,12 +333,29 @@ export const DEFAULT_RATES: RateCard = {
     'Bags & accessories': 12, // Handbags 12% (Backpacks 14.5%, Wallets 14%)
   }),
   fee_free_up_to: 1000,
+  amazon_closing_fee: { up_to_300: 2, up_to_500: 23, up_to_1000: 48, above_1000: 79 },
+  amazon_weight_handling: { up_to_500g: 55, up_to_1kg: 75, up_to_2kg: 112, per_extra_kg: 34 },
+  flipkart_commission_pct: 0,
+  flipkart_fixed_fee: 22,
+  flipkart_shipping: { local_zonal_500g: 0, national_500g: 16 },
+  meesho_commission_pct: 0,
+  // Midpoints of the seller-reported ranges.
+  meesho_shipping: {
+    local_500g: 40,
+    regional_500g: 58,
+    national_500g: 73,
+    local_1kg: 60,
+    regional_1kg: 80,
+    national_1kg: 100,
+    local_2kg: 73,
+    regional_2kg: 100,
+    national_2kg: 125,
+  },
   payment_gateway_pct: 2,
-  gst_on_fees_pct: 18,
+  courier_first_500g: 45,
+  courier_extra_500g: 17,
   labour_per_hour: 103, // ₹88.75 wage + 16.25% employer PF/ESI
   packing_materials: 15,
-  ship_first_500g: { marketplace: 51, own_site: 45 },
-  ship_extra_500g: 17,
   weight_kg: byCat({
     Topwear: 0.3,
     Bottomwear: 0.5,
@@ -231,7 +366,7 @@ export const DEFAULT_RATES: RateCard = {
     Footwear: 1,
     'Bags & accessories': 0.7,
   }),
-  refurb_resale_pct: 70,
+  refurb_resale_pct: 50,
   liquidation_pct: { A: 20, B: 15, C: 10, MANUAL_REVIEW: 10, ungraded: 15 },
   liquidation_commission_pct: 0,
   liquidation_freight: 15,
@@ -257,8 +392,8 @@ export const DEFAULT_RATES: RateCard = {
     shoe_heel: 599,
     shoe_colour: 999,
     shoe_leather_replace: 1799,
-    tailor_small_repair: 150,
-    tailor_repair: 300,
+    tailor_small_repair: 89,
+    tailor_repair: 449,
     seam_repair: 700,
     zip_replace: 500,
     zip_replace_major: 700,
@@ -266,28 +401,38 @@ export const DEFAULT_RATES: RateCard = {
   },
 }
 
+type Meta = { kind: InputKind; source?: SourceKey }
+
 /** Where each default comes from. Anything not listed as published is an assumption. */
-const SCALAR_META: Partial<Record<keyof RateCard, { kind: InputKind; source?: SourceKey }>> = {
+const SCALAR_META: Partial<Record<keyof RateCard, Meta>> = {
   goods_gst_threshold: { kind: 'published', source: 'gst_goods' },
   goods_gst_low_pct: { kind: 'published', source: 'gst_goods' },
   goods_gst_high_pct: { kind: 'published', source: 'gst_goods' },
   bags_gst_pct: { kind: 'assumption' },
+  gst_on_fees_pct: { kind: 'published', source: 'amazon_fees' },
   referral_pct: { kind: 'published', source: 'amazon_fees' },
   fee_free_up_to: { kind: 'published', source: 'amazon_fees' },
+  amazon_closing_fee: { kind: 'published', source: 'amazon_2026' },
+  amazon_weight_handling: { kind: 'published', source: 'amazon_2026' },
+  flipkart_commission_pct: { kind: 'published', source: 'flipkart' },
+  // Flipkart publishes fixed fees only inside Seller Hub; secondary sources give a range.
+  flipkart_fixed_fee: { kind: 'assumption', source: 'flipkart_fixed' },
+  meesho_commission_pct: { kind: 'published', source: 'meesho' },
+  meesho_shipping: { kind: 'published', source: 'meesho' },
   payment_gateway_pct: { kind: 'published', source: 'gateway' },
-  gst_on_fees_pct: { kind: 'published', source: 'amazon_fees' },
+  courier_first_500g: { kind: 'published', source: 'courier' },
+  courier_extra_500g: { kind: 'assumption' },
   labour_per_hour: { kind: 'published', source: 'wage' },
   packing_materials: { kind: 'assumption' },
-  ship_extra_500g: { kind: 'published', source: 'amazon_fees' },
   weight_kg: { kind: 'assumption' },
-  refurb_resale_pct: { kind: 'assumption' },
+  refurb_resale_pct: { kind: 'published', source: 'bgrade' },
   liquidation_commission_pct: { kind: 'assumption' },
   liquidation_freight: { kind: 'assumption' },
   scrap_per_kg: { kind: 'published', source: 'scrap' },
   recycle_transport: { kind: 'assumption' },
 }
 
-const SERVICE_META: Record<SvcKey | 'dry_clean', { kind: InputKind; source?: SourceKey }> = {
+const SERVICE_META: Record<SvcKey | 'dry_clean', Meta> = {
   dry_clean: { kind: 'published', source: 'dryclean' },
   shoe_clean: { kind: 'published', source: 'shoe' },
   shoe_hard_stain: { kind: 'published', source: 'shoe' },
@@ -298,8 +443,8 @@ const SERVICE_META: Record<SvcKey | 'dry_clean', { kind: InputKind; source?: Sou
   shoe_heel: { kind: 'published', source: 'shoe' },
   shoe_colour: { kind: 'published', source: 'shoe' },
   shoe_leather_replace: { kind: 'published', source: 'shoe' },
-  tailor_small_repair: { kind: 'assumption' },
-  tailor_repair: { kind: 'assumption' },
+  tailor_small_repair: { kind: 'published', source: 'tailor_delhi' },
+  tailor_repair: { kind: 'published', source: 'tailor_delhi' },
   seam_repair: { kind: 'published', source: 'tailor' },
   zip_replace: { kind: 'published', source: 'tailor' },
   zip_replace_major: { kind: 'published', source: 'tailor' },
@@ -307,24 +452,32 @@ const SERVICE_META: Record<SvcKey | 'dry_clean', { kind: InputKind; source?: Sou
 }
 
 /** Meta for a rate-card path, e.g. ['liquidation_pct','A'] or ['services','shoe_clean']. Used by the Rates page. */
-export function rateMeta(path: string[]): { kind: InputKind; source?: SourceKey } {
+export function rateMeta(path: string[]): Meta {
   if (path[0] === 'services') return SERVICE_META[path[1] as SvcKey | 'dry_clean'] ?? { kind: 'assumption' }
-  if (path[0] === 'ship_first_500g') return path[1] === 'marketplace' ? { kind: 'published', source: 'amazon_fees' } : { kind: 'published', source: 'courier' }
   if (path[0] === 'liquidation_pct') return path[1] === 'A' ? { kind: 'published', source: 'surplus' } : { kind: 'assumption' }
+  if (path[0] === 'flipkart_shipping') return path[1] === 'national_500g' ? { kind: 'published', source: 'flipkart_ship' } : { kind: 'published', source: 'flipkart' }
   return SCALAR_META[path[0] as keyof RateCard] ?? { kind: 'assumption' }
+}
+
+const at = (obj: unknown, path: string[]): unknown => path.reduce<unknown>((o, k) => (isObj(o) ? o[k] : undefined), obj)
+
+/** Meta for a path in a rate card: the default's meta, or 'business' once the business changed it. */
+export function metaIn(rates: RateCard, path: string[]): Meta {
+  return at(rates, path) === at(DEFAULT_RATES, path) ? rateMeta(path) : { kind: 'business' }
 }
 
 /** The assumptions in the default rate card, in plain words. */
 export const ASSUMPTIONS: string[] = [
-  'Repaired items resell at 70% of the original price (sold as “minor flaw”).',
-  'Liquidation: Grade B at 15%, Grade C and unreviewed items at 10%, ungraded at 15% of the original price — below the 20% low end that surplus buyers pay for unsold stock, because returns are used or damaged.',
+  'Liquidation: Grade B at 15%, Grade C and unreviewed items at 10%, ungraded at 15% of the original price — below the 20% low end that surplus buyers pay for unsold stock, because returns are used or damaged. Your own completed sales can replace these (see “From your own results”).',
   'Liquidation commission 0% (add your platform’s rate) and bulk freight ₹15 per unit.',
+  'Flipkart fixed fee ₹22 per order: the midpoint of the ₹8–35 range reported for 2026. Flipkart shows the exact fee only in Seller Hub.',
+  'Flipkart parcels over 500 g: Flipkart doesn’t publish these rates, so we use the own-website courier rate.',
+  'Meesho and Flipkart shipping use the national zone unless you pick another, because the buyer’s location isn’t known in advance.',
   'Bags and accessories GST 18% — check your product’s HSN code.',
   'Packing materials ₹15 per unit (polybag, label, tissue); replacement shoebox ₹40.',
   'Packed weight per item (0.15–1 kg by category).',
-  'Small clothing repairs at a local tailor ₹150, larger ₹300.',
   'In-house task times: steaming 5–10 min, spot clean 10 min, re-tag or repack 3 min, re-inspection 5 min. The hourly labour rate itself is sourced.',
-  'Own-website courier: ₹17 per extra 500 g (Amazon’s slab rate used as a proxy).',
+  'Own-website courier: ₹17 per extra 500 g (half of Amazon’s ₹34 per extra kg, used as a proxy).',
   'Recycling transport ₹10 per unit (share of a bulk drop).',
 ]
 
@@ -335,25 +488,50 @@ export type RateOverrides = Partial<Omit<RateCard, 'services'>> & { services?: P
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 const okNum = (v: unknown, max = 1_000_000) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max
 
+/** A sale setup from storage or a form, with anything malformed dropped. Null if it has no valid platform. */
+export function sanitizeSale(v: unknown): SaleSetup | null {
+  if (!isObj(v) || !PLATFORMS.includes(v.platform as PlatformKey)) return null
+  const out: SaleSetup = { platform: v.platform as PlatformKey }
+  if (okNum(v.gst_pct, 28)) out.gst_pct = v.gst_pct as number
+  if (okNum(v.commission_pct, 100)) out.commission_pct = v.commission_pct as number
+  if (okNum(v.fixed_fee, 100_000)) out.fixed_fee = v.fixed_fee as number
+  if (typeof v.delivery === 'string' && /^[a-z0-9_]{1,40}$/.test(v.delivery)) out.delivery = v.delivery
+  if (okNum(v.delivery_custom, 100_000)) out.delivery_custom = v.delivery_custom as number
+  return out
+}
+
 /** Merge saved overrides onto the defaults, ignoring anything malformed or out of range. */
 export function resolveRates(overrides: unknown): RateCard {
   const out: RateCard = JSON.parse(JSON.stringify(DEFAULT_RATES))
   if (!isObj(overrides)) return out
   const o = overrides as Record<string, unknown>
-  if (o.channel === 'marketplace' || o.channel === 'own_site') out.channel = o.channel
+  const sale = sanitizeSale(o.default_sale)
+  if (sale) out.default_sale = sale
+  else if (o.channel === 'own_site') out.default_sale = { platform: 'own_site' } // saved before platforms existed
   if (typeof o.gst_registered === 'boolean') out.gst_registered = o.gst_registered
-  const pctKeys = ['payment_gateway_pct', 'gst_on_fees_pct', 'refurb_resale_pct', 'liquidation_commission_pct', 'goods_gst_low_pct', 'goods_gst_high_pct', 'bags_gst_pct'] as const
+  const pctKeys = ['payment_gateway_pct', 'gst_on_fees_pct', 'refurb_resale_pct', 'liquidation_commission_pct', 'goods_gst_low_pct', 'goods_gst_high_pct', 'bags_gst_pct', 'flipkart_commission_pct', 'meesho_commission_pct'] as const
   for (const k of pctKeys) if (okNum(o[k], 100)) out[k] = o[k] as number
-  const numKeys = ['fee_free_up_to', 'labour_per_hour', 'packing_materials', 'ship_extra_500g', 'scrap_per_kg', 'recycle_transport', 'liquidation_freight', 'goods_gst_threshold'] as const
+  const numKeys = ['fee_free_up_to', 'labour_per_hour', 'packing_materials', 'scrap_per_kg', 'recycle_transport', 'liquidation_freight', 'goods_gst_threshold', 'flipkart_fixed_fee', 'courier_first_500g', 'courier_extra_500g'] as const
   for (const k of numKeys) if (okNum(o[k])) out[k] = o[k] as number
-  const mergeMap = <K extends string>(target: Record<K, number>, src: unknown, max?: number) => {
+  // Older saved keys: one shipping table shared by Amazon and the own website.
+  const legacyShip = o.ship_first_500g
+  if (isObj(legacyShip)) {
+    if (okNum(legacyShip.own_site) && !okNum(o.courier_first_500g)) out.courier_first_500g = legacyShip.own_site as number
+    if (okNum(legacyShip.marketplace) && !isObj(o.amazon_weight_handling)) out.amazon_weight_handling.up_to_500g = legacyShip.marketplace as number
+  }
+  if (okNum(o.ship_extra_500g) && !okNum(o.courier_extra_500g)) out.courier_extra_500g = o.ship_extra_500g as number
+  const mergeMap = <T extends object>(target: T, src: unknown, max?: number) => {
     if (!isObj(src)) return
-    for (const k of Object.keys(target) as K[]) if (okNum(src[k], max)) target[k] = src[k] as number
+    const t = target as Record<string, number>
+    for (const k of Object.keys(t)) if (okNum(src[k], max)) t[k] = src[k] as number
   }
   mergeMap(out.referral_pct, o.referral_pct, 100)
   mergeMap(out.weight_kg, o.weight_kg, 50)
   mergeMap(out.liquidation_pct, o.liquidation_pct, 100)
-  mergeMap(out.ship_first_500g, o.ship_first_500g)
+  mergeMap(out.amazon_closing_fee, o.amazon_closing_fee)
+  mergeMap(out.amazon_weight_handling, o.amazon_weight_handling)
+  mergeMap(out.flipkart_shipping, o.flipkart_shipping)
+  mergeMap(out.meesho_shipping, o.meesho_shipping)
   if (isObj(o.services)) {
     const s = o.services
     for (const k of Object.keys(out.services) as (keyof ServicePrices)[]) {
@@ -364,11 +542,17 @@ export function resolveRates(overrides: unknown): RateCard {
   return out
 }
 
+const sameSale = (a: SaleSetup, b: SaleSetup) => JSON.stringify(sanitizeSale(a)) === JSON.stringify(sanitizeSale(b))
+
 /** Only the values that differ from the defaults — what gets stored. */
 export function diffRates(r: RateCard): RateOverrides {
   const d = DEFAULT_RATES
   const out: Record<string, unknown> = {}
   for (const k of Object.keys(d) as (keyof RateCard)[]) {
+    if (k === 'default_sale') {
+      if (!sameSale(d.default_sale, r.default_sale)) out.default_sale = sanitizeSale(r.default_sale)
+      continue
+    }
     const a = d[k] as unknown
     const b = r[k] as unknown
     if (isObj(a) && isObj(b)) {
@@ -484,6 +668,8 @@ export interface EstimateLine {
   amount: number
   kind: InputKind
   source?: SourceKey
+  /** Context only (e.g. a market check): not part of the figure, and shown without an amount. */
+  info?: boolean
 }
 
 export type EstimateField =
@@ -509,6 +695,8 @@ export interface EstimateInput {
   original_price: number
   grade: Grade | null
   defects: Pick<Defect, 'type' | 'severity'>[]
+  /** Where it will be resold; null uses the rate card's default. */
+  sale?: SaleSetup | null
 }
 
 /** A line built from several inputs is only as firm as its weakest: any assumption makes it an assumption. */
@@ -533,18 +721,164 @@ function dedupe(defects: EstimateInput['defects']) {
   return [...m.entries()].map(([type, severity]) => ({ type, severity }))
 }
 
-function closingFee(price: number) {
-  // Easy Ship bands + Amazon's 7 Sep 2026 increase (₹1 up to ₹500, ₹3 above).
-  if (price <= 250) return 6
-  if (price <= 500) return 10
-  if (price <= 1000) return 33
-  return 59
-}
-
 /** GST rate on the goods themselves, by category and price. */
 export function goodsGstPct(category: Category, price: number, rates: RateCard = DEFAULT_RATES) {
   if (category === 'Bags & accessories') return rates.bags_gst_pct
   return price > rates.goods_gst_threshold ? rates.goods_gst_high_pct : rates.goods_gst_low_pct
+}
+
+const extraSlabs = (w: number) => Math.max(0, Math.ceil(w / 0.5 - 1e-9) - 1)
+const g = (w: number) => `${w.toLocaleString('en-IN', { maximumFractionDigits: 2 })} kg`
+
+export interface DeliveryPreset {
+  id: string
+  label: string
+  /** ₹ per order, before GST. */
+  amount: number
+  kind: InputKind
+  source?: SourceKey
+}
+
+/** Delivery options for a platform and packed weight, and the one picked automatically. */
+export function deliveryPresets(platform: PlatformKey, weightKg: number, rates: RateCard = DEFAULT_RATES): { presets: DeliveryPreset[]; auto: string } {
+  const w = Math.max(0, weightKg)
+  const m = (path: string[]) => metaIn(rates, path)
+  const courier = (wt: number): DeliveryPreset => {
+    const n = extraSlabs(wt)
+    const amount = rates.courier_first_500g + n * rates.courier_extra_500g
+    const meta = n ? combine(m(['courier_first_500g']), m(['courier_extra_500g'])) : m(['courier_first_500g'])
+    return { id: 'courier', label: n ? `Courier, ${g(wt)} (₹${rates.courier_first_500g} + ${n} × ₹${rates.courier_extra_500g})` : 'Courier, up to 500 g (Shiprocket free-plan average)', amount, ...meta }
+  }
+  if (platform === 'amazon') {
+    const wh = rates.amazon_weight_handling
+    const presets: DeliveryPreset[] = [
+      { id: 'amz_500g', label: 'Up to 500 g', amount: wh.up_to_500g, ...m(['amazon_weight_handling', 'up_to_500g']) },
+      { id: 'amz_1kg', label: '500 g – 1 kg', amount: wh.up_to_1kg, ...m(['amazon_weight_handling', 'up_to_1kg']) },
+      { id: 'amz_2kg', label: '1 – 2 kg', amount: wh.up_to_2kg, ...m(['amazon_weight_handling', 'up_to_2kg']) },
+    ]
+    if (w > 2) {
+      const extra = Math.ceil(w - 2 - 1e-9)
+      presets.push({ id: 'amz_heavy', label: `${g(w)} (₹${wh.up_to_2kg} + ${extra} × ₹${wh.per_extra_kg})`, amount: wh.up_to_2kg + extra * wh.per_extra_kg, ...combine(m(['amazon_weight_handling', 'up_to_2kg']), m(['amazon_weight_handling', 'per_extra_kg'])) })
+    }
+    return { presets, auto: w <= 0.5 ? 'amz_500g' : w <= 1 ? 'amz_1kg' : w <= 2 ? 'amz_2kg' : 'amz_heavy' }
+  }
+  if (platform === 'flipkart') {
+    if (w > 0.5) return { presets: [{ ...courier(w), id: 'fk_heavier', label: `Over 500 g — not published by Flipkart, courier estimate for ${g(w)}`, kind: 'assumption' }], auto: 'fk_heavier' }
+    const fs = rates.flipkart_shipping
+    return {
+      presets: [
+        { id: 'fk_local', label: 'Local or zonal, under 500 g', amount: fs.local_zonal_500g, ...m(['flipkart_shipping', 'local_zonal_500g']) },
+        { id: 'fk_national', label: 'National, under 500 g', amount: fs.national_500g, ...m(['flipkart_shipping', 'national_500g']) },
+      ],
+      auto: 'fk_national',
+    }
+  }
+  if (platform === 'meesho') {
+    const band = w <= 0.5 ? '500g' : w <= 1 ? '1kg' : '2kg'
+    const bandLabel = band === '500g' ? 'under 500 g' : band === '1kg' ? '500 g – 1 kg' : w <= 2 ? '1 – 2 kg' : '1 – 2 kg rate (heavier parcels cost more)'
+    const ms = rates.meesho_shipping as Record<string, number>
+    const zone = (z: 'local' | 'regional' | 'national', label: string): DeliveryPreset => ({ id: `ms_${z}`, label: `${label}, ${bandLabel}`, amount: ms[`${z}_${band}`], ...m(['meesho_shipping', `${z}_${band}`]) })
+    return { presets: [zone('local', 'Local'), zone('regional', 'Regional'), zone('national', 'National')], auto: 'ms_national' }
+  }
+  const presets: DeliveryPreset[] = [courier(w)]
+  if (w <= 0.5) {
+    presets.push(
+      { id: 'sp_local', label: 'Speed Post, local, up to 500 g', amount: 28, kind: 'published', source: 'speedpost' },
+      { id: 'sp_200', label: 'Speed Post, up to 200 km, up to 500 g', amount: 70, kind: 'published', source: 'speedpost' },
+      { id: 'sp_far', label: 'Speed Post, above 2,000 km, up to 500 g', amount: 93, kind: 'published', source: 'speedpost' },
+    )
+  }
+  return { presets, auto: 'courier' }
+}
+
+export interface PlatformFees {
+  platform: PlatformKey
+  gst: { pct: number; auto: number; set: boolean; meta: Meta }
+  commission: { label: string; pct: number; auto: number; set: boolean; meta: Meta }
+  /** Null when the platform has no fixed fee and none was set. */
+  fixed: { label: string; amount: number; auto: number; set: boolean; meta: Meta } | null
+  delivery: { label: string; amount: number; chosen: string; presets: DeliveryPreset[]; auto: string; meta: Meta }
+}
+
+const CUSTOM = 'custom'
+
+/** Every fee for selling one item on a platform: automatic values, and what the seller set by hand. */
+export function platformFees(category: Category, price: number, sale: SaleSetup, rates: RateCard = DEFAULT_RATES): PlatformFees {
+  const p = sale.platform
+  const op = Math.max(0, price)
+  const m = (path: string[]) => metaIn(rates, path)
+  const BIZ: Meta = { kind: 'business' }
+
+  const gstAuto = rates.gst_registered ? goodsGstPct(category, op, rates) : 0
+  const gstMeta = !rates.gst_registered ? BIZ : category === 'Bags & accessories' ? m(['bags_gst_pct']) : m([op > rates.goods_gst_threshold ? 'goods_gst_high_pct' : 'goods_gst_low_pct'])
+  const gst = sale.gst_pct !== undefined ? { pct: sale.gst_pct, auto: gstAuto, set: true, meta: BIZ } : { pct: gstAuto, auto: gstAuto, set: false, meta: gstMeta }
+
+  let cLabel: string
+  let cAuto: number
+  let cMeta: Meta
+  if (p === 'amazon') {
+    const charged = op > rates.fee_free_up_to
+    cLabel = charged ? `Amazon referral fee for ${category.toLowerCase()}` : `Amazon referral fee (none at or below ₹${rates.fee_free_up_to.toLocaleString('en-IN')})`
+    cAuto = charged ? rates.referral_pct[category] : 0
+    cMeta = charged ? m(['referral_pct', category]) : m(['fee_free_up_to'])
+  } else if (p === 'flipkart') {
+    cLabel = 'Flipkart commission (fashion)'
+    cAuto = rates.flipkart_commission_pct
+    cMeta = m(['flipkart_commission_pct'])
+  } else if (p === 'meesho') {
+    cLabel = 'Meesho commission'
+    cAuto = rates.meesho_commission_pct
+    cMeta = m(['meesho_commission_pct'])
+  } else {
+    cLabel = 'Payment gateway fee'
+    cAuto = rates.payment_gateway_pct
+    cMeta = m(['payment_gateway_pct'])
+  }
+  const commission = sale.commission_pct !== undefined ? { label: cLabel.replace(/ \(none.*\)$/, ''), pct: sale.commission_pct, auto: cAuto, set: true, meta: BIZ } : { label: cLabel, pct: cAuto, auto: cAuto, set: false, meta: cMeta }
+
+  let fixed: PlatformFees['fixed'] = null
+  let fAuto: { label: string; amount: number; meta: Meta } | null = null
+  if (p === 'amazon') {
+    const cf = rates.amazon_closing_fee
+    const band = op <= 300 ? 'up_to_300' : op <= 500 ? 'up_to_500' : op <= 1000 ? 'up_to_1000' : 'above_1000'
+    fAuto = { label: `Amazon closing fee for a ₹${op.toLocaleString('en-IN')} item`, amount: cf[band], meta: m(['amazon_closing_fee', band]) }
+  } else if (p === 'flipkart') {
+    fAuto = { label: 'Flipkart fixed fee', amount: rates.flipkart_fixed_fee, meta: m(['flipkart_fixed_fee']) }
+  } else if (p === 'meesho') {
+    fAuto = { label: 'Meesho has no fixed or closing fee', amount: 0, meta: { kind: 'published', source: 'meesho' } }
+  }
+  if (sale.fixed_fee !== undefined) fixed = { label: p === 'amazon' ? 'Closing fee' : 'Fixed fee per order', amount: sale.fixed_fee, auto: fAuto?.amount ?? 0, set: true, meta: BIZ }
+  else if (fAuto) fixed = { ...fAuto, auto: fAuto.amount, set: false }
+
+  const w = rates.weight_kg[category]
+  const { presets, auto } = deliveryPresets(p, w, rates)
+  const dLabel = p === 'amazon' ? 'Easy Ship weight handling' : p === 'flipkart' ? 'Flipkart shipping' : p === 'meesho' ? 'Meesho shipping, deducted from your payout' : 'Delivery'
+  let delivery: PlatformFees['delivery']
+  if (sale.delivery_custom !== undefined) {
+    delivery = { label: `${dLabel}: your amount`, amount: sale.delivery_custom, chosen: CUSTOM, presets, auto, meta: BIZ }
+  } else {
+    const chosen = presets.find((x) => x.id === sale.delivery) ?? presets.find((x) => x.id === auto)!
+    const picked = chosen.id !== auto || sale.delivery === chosen.id
+    // Picked automatically from the assumed packed weight, so it's only as firm as that assumption.
+    const meta: Meta = picked ? { kind: chosen.kind, source: chosen.source } : combine(m(['weight_kg', category]), { kind: chosen.kind, source: chosen.source })
+    delivery = { label: `${dLabel}: ${chosen.label}${picked ? '' : ` (packed weight ${g(w)})`}`, amount: chosen.amount, chosen: chosen.id, presets, auto, meta }
+  }
+  return { platform: p, gst, commission, fixed, delivery }
+}
+
+/** The sale setup that applies to a return: its own, else the rate card's default. */
+export function saleOf(sale: unknown, rates: RateCard = DEFAULT_RATES): SaleSetup {
+  return sanitizeSale(sale) ?? rates.default_sale
+}
+
+/** Approximate fees on one item for a platform, in ₹ — for the platform picker. */
+export function feeSummary(category: Category, price: number, sale: SaleSetup, rates: RateCard = DEFAULT_RATES): { fees: number; delivery: number } {
+  const f = platformFees(category, price, sale, rates)
+  const feeGst = rates.gst_registered ? 1 : 1 + rates.gst_on_fees_pct / 100
+  return {
+    fees: Math.round(((price * f.commission.pct) / 100 + (f.fixed?.amount ?? 0)) * feeGst),
+    delivery: Math.round(f.delivery.amount * feeGst),
+  }
 }
 
 export function estimateFromRates(input: EstimateInput, rates: RateCard = DEFAULT_RATES): RateEstimate {
@@ -555,40 +889,33 @@ export function estimateFromRates(input: EstimateInput, rates: RateCard = DEFAUL
   const feeGst = rates.gst_on_fees_pct / 100
   const notes: RateEstimate['notes'] = {}
   const unfixable: string[] = []
+  const sale = saleOf(input.sale, rates)
 
   /** Kind of a scalar rate: 'business' once the business changed it from the default. */
-  const k = (key: keyof RateCard, sub?: string): { kind: InputKind; source?: SourceKey } => {
-    const cur = sub ? (rates[key] as Record<string, number>)[sub] : rates[key]
-    const def = sub ? (D[key] as Record<string, number>)[sub] : D[key]
-    const meta = rateMeta(sub ? [key, sub] : [key])
-    return cur === def ? meta : { kind: 'business' }
-  }
-  const svcKind = (s: SvcKey | 'dry_clean'): { kind: InputKind; source?: SourceKey } => {
+  const k = (key: keyof RateCard, sub?: string): Meta => metaIn(rates, sub ? [key, sub] : [key])
+  const svcKind = (s: SvcKey | 'dry_clean'): Meta => {
     const changed = s === 'dry_clean' ? rates.services.dry_clean[cat] !== D.services.dry_clean[cat] : rates.services[s] !== D.services[s]
     return changed ? { kind: 'business' } : SERVICE_META[s]
   }
   const labourKind = k('labour_per_hour')
   const labourText = (min: number) => `${min} min at ₹${rates.labour_per_hour}/h`
+  const w = rates.weight_kg[cat]
+  const wKind = k('weight_kg', cat)
+  const pf = platformFees(cat, op, sale, rates)
+  const platform = PLATFORM_LABEL[sale.platform]
 
   // ── Selling deductions (% of the price the customer pays) ──
-  // GST on the sale goes to the government; marketplace or gateway fees go to the channel.
+  // GST on the sale goes to the government; commission or gateway fees go to the channel.
   // A GST-registered seller claims GST on those fees back as input tax credit, so it isn't a cost.
   const feeLines: EstimateLine[] = []
-  if (rates.gst_registered) {
-    const g = goodsGstPct(cat, op, rates)
-    const share = r2((g / (100 + g)) * 100)
-    feeLines.push({ text: `GST on the sale: ${g}% is included in the price, so ${share}% of it goes to GST`, amount: share, ...(cat === 'Bags & accessories' ? k('bags_gst_pct') : k(op > rates.goods_gst_threshold ? 'goods_gst_high_pct' : 'goods_gst_low_pct')) })
+  if (pf.gst.pct > 0) {
+    const share = r2((pf.gst.pct / (100 + pf.gst.pct)) * 100)
+    feeLines.push({ text: `GST on the sale: ${pf.gst.pct}% is included in the price, so ${share}% of it goes to GST${pf.gst.set ? ' (rate you set)' : ''}`, amount: share, ...pf.gst.meta })
+  } else if (pf.gst.set) {
+    feeLines.push({ text: 'GST on the sale: 0% (rate you set)', amount: 0, ...pf.gst.meta })
   }
-  const channelPct = rates.channel === 'marketplace' ? (op > rates.fee_free_up_to ? rates.referral_pct[cat] : 0) : rates.payment_gateway_pct
-  if (rates.channel === 'marketplace') {
-    feeLines.push(
-      op > rates.fee_free_up_to
-        ? { text: `Marketplace referral fee for ${cat.toLowerCase()}`, amount: channelPct, ...k('referral_pct', cat) }
-        : { text: `No marketplace referral fee at or below ₹${rates.fee_free_up_to.toLocaleString('en-IN')}`, amount: 0, ...k('fee_free_up_to') },
-    )
-  } else {
-    feeLines.push({ text: 'Payment gateway fee', amount: channelPct, ...k('payment_gateway_pct') })
-  }
+  feeLines.push({ text: `${pf.commission.label}${pf.commission.set ? ' (rate you set)' : ''}`, amount: pf.commission.pct, ...pf.commission.meta })
+  const channelPct = pf.commission.pct
   if (channelPct) {
     feeLines.push(
       rates.gst_registered
@@ -600,32 +927,18 @@ export function estimateFromRates(input: EstimateInput, rates: RateCard = DEFAUL
   const feePct = r2(feeLines.reduce((s, l) => s + l.amount, 0))
 
   // ── Handling & shipping (per order; restock and refurbish) ──
-  const w = rates.weight_kg[cat]
-  const extraSlabs = Math.max(0, Math.ceil(w / 0.5) - 1)
-  const first = rates.ship_first_500g[rates.channel]
-  const shipBase = first + extraSlabs * rates.ship_extra_500g
   const gstMult = rates.gst_registered ? 1 : 1 + feeGst
   const gstNote = rates.gst_registered ? '' : ' + GST'
   const handlingLines: EstimateLine[] = []
-  const wKind = k('weight_kg', cat)
-  const shipKind = k('ship_first_500g', rates.channel)
-  // Extra 500 g slabs depend on the assumed weight; for your own site the slab rate is Amazon's, used as a proxy.
-  const slabKind = extraSlabs ? combine(wKind, rates.channel === 'own_site' ? { kind: 'assumption' } : k('ship_extra_500g')) : null
-  const slabText = extraSlabs ? ` (₹${first} + ${extraSlabs} × ₹${rates.ship_extra_500g})` : ` (₹${first})`
-  if (rates.channel === 'marketplace') {
-    handlingLines.push({ text: `Easy Ship weight handling, ${w} kg packed${slabText}${gstNote}`, amount: r0(shipBase * gstMult), ...(slabKind ? combine(shipKind, slabKind) : shipKind) })
-    handlingLines.push({ text: `Closing fee for a ₹${op.toLocaleString('en-IN')} item${gstNote}`, amount: r0(closingFee(op) * gstMult), kind: 'published', source: 'closing_fees' })
-  } else {
-    handlingLines.push({ text: `Courier, ${w} kg packed${slabText}`, amount: r0(shipBase), ...(slabKind ? combine(shipKind, slabKind) : shipKind) })
-  }
+  if (pf.fixed) handlingLines.push({ text: `${pf.fixed.label}${pf.fixed.set ? ' (amount you set)' : ''}${pf.fixed.amount ? gstNote : ''}`, amount: r0(pf.fixed.amount * gstMult), ...pf.fixed.meta })
+  handlingLines.push({ text: `${pf.delivery.label}${pf.delivery.amount ? gstNote : ''}`, amount: r0(pf.delivery.amount * gstMult), ...pf.delivery.meta })
   handlingLines.push({ text: `Pick & pack, ${labourText(3)}`, amount: r0(3 * perMin), ...combine(TIME, labourKind) })
   handlingLines.push({ text: 'Packing materials', amount: rates.packing_materials, ...k('packing_materials') })
   notes.handling_cost = handlingLines
   const handling = handlingLines.reduce((s, l) => s + l.amount, 0)
-
   // ── Restock: sold as new at your own price ──
   const resale = r0(op)
-  notes.resale_price = [{ text: 'Your original selling price, sold as new', amount: resale, kind: 'business' }]
+  notes.resale_price = [{ text: `Your original selling price, sold as new on ${platform}`, amount: resale, kind: 'business' }]
 
   // ── Refurbish: repair each defect once, resell at a markdown ──
   const lab = combine(TIME, labourKind)
@@ -681,6 +994,9 @@ export function estimateFromRates(input: EstimateInput, rates: RateCard = DEFAUL
       ...k('liquidation_pct', liqKey),
     },
   ]
+  if (groupOf(cat) === 'apparel') {
+    notes.liquidation_price.push({ text: 'Market check: Delhi surplus-clothing listings ask ₹50–490 a piece (median ₹109); traders pay you less than they ask', amount: 0, kind: 'published', source: 'surplus_delhi', info: true })
+  }
   const liqLines: EstimateLine[] = [
     { text: `Pack into a bulk lot, ${labourText(3)}`, amount: r0(3 * perMin), ...lab },
     { text: 'Share of bulk freight', amount: rates.liquidation_freight, ...k('liquidation_freight') },
@@ -737,10 +1053,13 @@ export const FIELD_ROUTE: Partial<Record<EstimateField, RouteKey>> = {
 type Basisable = Pick<ReturnItem, 'value_basis' | EstimateField> & Partial<Pick<ReturnItem, 'decision_route' | 'status'>>
 
 /** The rate-card inputs for an item: its confirmed grade/defects, else the AI's proposal. */
-export function estimateInputFor(item: Pick<ReturnItem, 'category' | 'original_price' | 'grade' | 'defects' | 'ai_inspection'>, override?: { grade?: Grade | null; defects?: Defect[] }): EstimateInput {
+export function estimateInputFor(
+  item: Pick<ReturnItem, 'category' | 'original_price' | 'grade' | 'defects' | 'ai_inspection'> & { sale_setup?: SaleSetup | null },
+  override?: { grade?: Grade | null; defects?: Defect[] },
+): EstimateInput {
   const grade = override?.grade !== undefined ? override.grade : item.grade ?? item.ai_inspection?.proposed_grade ?? null
   const defects = override?.defects ?? (item.grade ? item.defects : item.ai_inspection?.defects ?? item.defects)
-  return { category: item.category, original_price: item.original_price, grade, defects }
+  return { category: item.category, original_price: item.original_price, grade, defects, sale: item.sale_setup ?? null }
 }
 
 /** True once a decision is saved: its values are the record of what was decided, so they're never repriced. */

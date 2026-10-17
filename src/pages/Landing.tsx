@@ -160,7 +160,7 @@ function ContactForm() {
 
 const faqs: [string, ReactNode][] = [
   ['What does the AI do?', 'It looks at your photos and notes, lists each visible defect with how severe it is, and proposes a grade. It never sets a price. Fixed rules check the grade matches the defects, and you confirm or correct it.'],
-  ['Where do the rupee values come from?', 'A published rate card: Amazon.in fees, courier rates, Delhi minimum wage for in-house work, real cleaner, cobbler and tailor price lists, and surplus-stock and scrap rates. Every line links to its source, assumptions are labelled, and you can change any rate to your own.'],
+  ['Where do the rupee values come from?', 'A published rate card: Amazon.in, Flipkart and Meesho fees, courier rates, Delhi minimum wage for in-house work, real cleaner, cobbler and tailor price lists, and surplus-stock and scrap rates. Every line links to its source, assumptions are labelled, and you can change any rate to your own.'],
   ['How is GST handled?', 'If you’re GST-registered, the GST included in the selling price is deducted (it goes to the government), and GST on marketplace or gateway fees is treated as claimable input tax credit, not a cost. If you’re not registered, GST on fees counts as a cost. You set this on the Rates page.'],
   ['What happens to past decisions if I change my rates?', 'Nothing. Saved decisions and completed returns keep the values they were decided with. Returns without a decision can be updated in one step.'],
   ['How is the best option chosen?', 'By plain arithmetic, not AI: expected proceeds minus fees and costs for each route the grade allows. The highest net wins, and every line of the maths is visible.'],

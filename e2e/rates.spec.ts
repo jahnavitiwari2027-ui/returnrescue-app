@@ -10,14 +10,14 @@ test('every rupee on a sample return traces to the rate card, and editing rates 
   await page.getByText('All options and the maths').click()
   const maths = page.locator('details', { hasText: 'All options and the maths' })
   await expect(maths.getByText('Zip pull', { exact: false }).or(maths.getByText(/Zip \/ button \/ buckle damage \(moderate\): Zip replacement/))).toBeVisible()
-  await expect(maths.getByText('70% of your price, sold as “minor flaw”')).toBeVisible()
+  await expect(maths.getByText('50% of your price, sold as “minor flaw”')).toBeVisible()
   await expect(maths.getByRole('link', { name: /source/ }).first()).toHaveAttribute('href', /^https:\/\//)
   if (shots) await page.screenshot({ path: `${shots}/maths-${test.info().project.name}.png`, fullPage: true })
 
   // A return with a saved decision, before the rate change
   await page.goto('/demo/returns/sample-02')
   const decidedBefore = (await page.getByText('Decision saved').locator('xpath=..').textContent()) ?? ''
-  expect(decidedBefore).toContain('₹1,373')
+  expect(decidedBefore).toContain('₹886')
 
   // Change a rate and update open returns
   await page.goto('/demo/rates')

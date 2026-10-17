@@ -28,6 +28,7 @@ function normalize(row: Record<string, unknown>): ReturnItem {
   r.photos = r.photos ?? []
   r.defects = r.defects ?? []
   r.value_basis = r.value_basis ?? {}
+  r.sale_setup = r.sale_setup ?? null
   return r as unknown as ReturnItem
 }
 
@@ -51,6 +52,20 @@ function fail(error: { message: string; code?: string } | null): never {
   throw new RepoError('DB', msg)
 }
 
+// The sale_setup column was added after launch (supabase/update-2026-10-18-platforms.sql).
+// If a project hasn't run that update yet, save without it rather than failing.
+type Res = { data: unknown; error: { message: string; code?: string } | null }
+export const missingSaleColumn = (e: Res['error']) => !!e && e.message.includes('sale_setup') && (e.code === 'PGRST204' || e.code === '42703' || /column/i.test(e.message))
+export async function writeRow(body: Record<string, unknown>, run: (b: Record<string, unknown>) => PromiseLike<Res>): Promise<Res> {
+  const res = await run(body)
+  if (res.error && 'sale_setup' in body && missingSaleColumn(res.error)) {
+    const { sale_setup: _drop, ...rest } = body
+    void _drop
+    return run(rest)
+  }
+  return res
+}
+
 const urlCache = new Map<string, { url: string; exp: number }>()
 
 function client() {
@@ -71,14 +86,14 @@ export const supabaseRepo: ReturnsRepo = {
     return data ? normalize(data) : null
   },
   async create(input) {
-    const { data, error } = await client().from('returns').insert(clean(input)).select('*').single()
+    const { data, error } = await writeRow(clean(input), (b) => client().from('returns').insert(b).select('*').single())
     if (error) fail(error)
-    return normalize(data)
+    return normalize(data as Record<string, unknown>)
   },
   async update(id, patch) {
-    const { data, error } = await client().from('returns').update(clean(patch)).eq('id', id).select('*').single()
+    const { data, error } = await writeRow(clean(patch), (b) => client().from('returns').update(b).eq('id', id).select('*').single())
     if (error) fail(error)
-    return normalize(data)
+    return normalize(data as Record<string, unknown>)
   },
   async remove(id) {
     const item = await this.get(id)

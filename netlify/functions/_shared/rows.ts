@@ -12,5 +12,6 @@ export function normalizeRow(row: Record<string, unknown>): ReturnItem {
   r.photos = r.photos ?? []
   r.defects = r.defects ?? []
   r.value_basis = r.value_basis ?? {}
+  r.sale_setup = r.sale_setup ?? null
   return r as unknown as ReturnItem
 }

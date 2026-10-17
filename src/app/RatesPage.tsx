@@ -12,12 +12,22 @@ import {
   RANGE_POLICY,
   RATE_SOURCES,
   RATES_CHECKED_ON,
+  PLATFORM_LABEL,
+  PLATFORMS,
   ratesPatch,
-  type Channel,
+  type PlatformKey,
   type RateCard,
   type SourceKey,
 } from '../lib/rates'
+import { learnFromResults, MIN_RESULTS } from '../lib/learn'
 import { CATEGORIES, type Category } from '../lib/types'
+
+const PLATFORM_HINT: Record<PlatformKey, string> = {
+  amazon: 'Referral + closing fee, Easy Ship',
+  flipkart: '0% fashion commission + fixed fee',
+  meesho: '0% commission, shipping deducted',
+  own_site: 'Payment gateway + courier',
+}
 
 type Unit = '₹' | '%' | 'kg'
 
@@ -51,6 +61,15 @@ export default function RatesPage() {
       }),
     [items, rates],
   )
+
+  const learned = useMemo(() => learnFromResults(items, draft), [items, draft])
+  const ds = draft.default_sale
+  const savedChoices = [
+    ds.gst_pct !== undefined && `GST ${ds.gst_pct}%`,
+    ds.commission_pct !== undefined && `fee ${ds.commission_pct}%`,
+    ds.fixed_fee !== undefined && `fixed fee ₹${ds.fixed_fee}`,
+    ds.delivery_custom !== undefined ? `delivery ₹${ds.delivery_custom}` : ds.delivery && 'a delivery option',
+  ].filter(Boolean) as string[]
 
   const row = (label: string, path: string[], unit: Unit, source?: SourceKey, hint?: string) => (
     <NumRow
@@ -106,39 +125,71 @@ export default function RatesPage() {
         </Card>
       )}
 
-      <Group title="Where you sell" open>
-        <div className="flex gap-2 py-2" role="radiogroup" aria-label="Sales channel">
-          {(
-            [
-              ['marketplace', 'Marketplace', 'Amazon.in fees'],
-              ['own_site', 'Own website', 'Payment gateway + courier'],
-            ] as [Channel, string, string][]
-          ).map(([v, l, d]) => (
+      <Group title="Where you usually sell" open>
+        <p className="pt-2 text-xs text-muted">New returns start with this platform. You can pick a different one on each return.</p>
+        <div className="grid grid-cols-2 gap-2 py-2" role="radiogroup" aria-label="Default platform">
+          {PLATFORMS.map((v) => (
             <button
               key={v}
               type="button"
               role="radio"
-              aria-checked={draft.channel === v}
-              onClick={() => setDraft((x) => ({ ...x, channel: v }))}
-              className={clsx('flex-1 rounded-xl border px-3 py-2.5 text-left', draft.channel === v ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-line')}
+              aria-checked={ds.platform === v}
+              onClick={() => setDraft((x) => ({ ...x, default_sale: x.default_sale.platform === v ? x.default_sale : { platform: v } }))}
+              className={clsx('rounded-xl border px-3 py-2.5 text-left', ds.platform === v ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-line')}
             >
-              <span className="block text-sm font-medium">{l}</span>
-              <span className="block text-xs text-muted">{d}</span>
+              <span className="block text-sm font-medium">{PLATFORM_LABEL[v]}</span>
+              <span className="block text-xs text-muted">{PLATFORM_HINT[v]}</span>
             </button>
           ))}
         </div>
-        {draft.channel === 'marketplace' ? (
-          <>
-            {row('No referral fee up to', ['fee_free_up_to'], '₹', 'amazon_fees')}
-            {CATEGORIES.map((c) => row(`${c} referral fee`, ['referral_pct', c], '%', 'amazon_fees'))}
-            {row('GST on fees', ['gst_on_fees_pct'], '%', 'amazon_fees')}
-          </>
-        ) : (
-          <>
-            {row('Payment gateway fee', ['payment_gateway_pct'], '%', 'gateway')}
-            {row('GST on fees', ['gst_on_fees_pct'], '%', 'gateway')}
-          </>
+        {savedChoices.length > 0 && (
+          <div className="flex items-center justify-between gap-3 py-2.5 text-xs">
+            <span className="text-ink-2">Saved with it: {savedChoices.join(', ')}.</span>
+            <button type="button" className="shrink-0 font-medium text-brand-700 hover:underline" onClick={() => setDraft((x) => ({ ...x, default_sale: { platform: x.default_sale.platform } }))}>
+              Clear
+            </button>
+          </div>
         )}
+        {row('GST on fees', ['gst_on_fees_pct'], '%', 'amazon_fees', 'Charged by every platform and courier')}
+      </Group>
+
+      <Group title="Amazon.in fees">
+        {row('No referral fee up to', ['fee_free_up_to'], '₹', 'amazon_fees')}
+        {CATEGORIES.map((c) => row(`${c} referral fee`, ['referral_pct', c], '%', 'amazon_fees'))}
+        <p className="pb-1 pt-3 text-xs font-medium text-muted">Easy Ship closing fee, by price</p>
+        {row('Up to ₹300', ['amazon_closing_fee', 'up_to_300'], '₹', 'amazon_2026')}
+        {row('₹301 – 500', ['amazon_closing_fee', 'up_to_500'], '₹', 'amazon_2026')}
+        {row('₹501 – 1,000', ['amazon_closing_fee', 'up_to_1000'], '₹', 'amazon_2026')}
+        {row('Above ₹1,000', ['amazon_closing_fee', 'above_1000'], '₹', 'amazon_2026')}
+        <p className="pb-1 pt-3 text-xs font-medium text-muted">Easy Ship weight handling</p>
+        {row('Up to 500 g', ['amazon_weight_handling', 'up_to_500g'], '₹', 'amazon_2026')}
+        {row('500 g – 1 kg', ['amazon_weight_handling', 'up_to_1kg'], '₹', 'amazon_2026')}
+        {row('1 – 2 kg', ['amazon_weight_handling', 'up_to_2kg'], '₹', 'amazon_2026')}
+        {row('Each extra kg', ['amazon_weight_handling', 'per_extra_kg'], '₹', 'amazon_2026')}
+      </Group>
+
+      <Group title="Flipkart fees">
+        {row('Commission on fashion', ['flipkart_commission_pct'], '%', 'flipkart')}
+        {row('Fixed fee per order', ['flipkart_fixed_fee'], '₹', 'flipkart_fixed', 'Midpoint of ₹8–35 · assumption')}
+        {row('Shipping, local or zonal, under 500 g', ['flipkart_shipping', 'local_zonal_500g'], '₹', 'flipkart')}
+        {row('Shipping, national, under 500 g', ['flipkart_shipping', 'national_500g'], '₹', 'flipkart_ship')}
+        <p className="py-2.5 text-xs text-muted">Flipkart shows your exact fixed and shipping fees in Seller Hub; copy them here. Parcels over 500 g use the courier rate below.</p>
+      </Group>
+
+      <Group title="Meesho fees">
+        {row('Commission', ['meesho_commission_pct'], '%', 'meesho')}
+        <p className="pb-1 pt-3 text-xs font-medium text-muted">Shipping deducted from your payout (midpoints of seller-reported ranges)</p>
+        {(['500g', '1kg', '2kg'] as const).flatMap((b) =>
+          (['local', 'regional', 'national'] as const).map((z) =>
+            row(`${z[0].toUpperCase()}${z.slice(1)}, ${b === '500g' ? 'under 500 g' : b === '1kg' ? '500 g – 1 kg' : '1 – 2 kg'}`, ['meesho_shipping', `${z}_${b}`], '₹', 'meesho'),
+          ),
+        )}
+      </Group>
+
+      <Group title="Your own website">
+        {row('Payment gateway fee', ['payment_gateway_pct'], '%', 'gateway')}
+        {row('Courier, first 500 g', ['courier_first_500g'], '₹', 'courier', 'Shiprocket free-plan average')}
+        {row('Courier, each extra 500 g', ['courier_extra_500g'], '₹', undefined, 'Assumption')}
       </Group>
 
       <Group title="GST">
@@ -164,21 +215,49 @@ export default function RatesPage() {
         {row('Bags & accessories GST', ['bags_gst_pct'], '%', undefined, 'Assumption: check your HSN code')}
       </Group>
 
-      <Group title="Shipping, packing & labour">
-        {row(draft.channel === 'marketplace' ? 'Weight handling, first 500 g' : 'Courier, first 500 g', ['ship_first_500g', draft.channel], '₹', draft.channel === 'marketplace' ? 'amazon_fees' : 'courier')}
-        {row('Each extra 500 g', ['ship_extra_500g'], '₹', 'amazon_fees', draft.channel === 'own_site' ? 'Amazon’s slab rate used as a proxy · assumption' : undefined)}
+      <Group title="Packing & labour">
         {row('Packing materials per unit', ['packing_materials'], '₹', undefined, 'Assumption')}
         {row('Labour per hour', ['labour_per_hour'], '₹', 'wage', '₹710/day ÷ 8 h + 16.25% employer PF & ESI')}
       </Group>
 
       <Group title="Resale & liquidation">
-        {row('Repaired items resell at', ['refurb_resale_pct'], '%', undefined, '% of the original price · assumption')}
+        {row('Repaired items resell at', ['refurb_resale_pct'], '%', 'bgrade', '% of the original price')}
         {row('Liquidation, Grade A', ['liquidation_pct', 'A'], '%', 'surplus', '% of the original price, before GST')}
         {row('Liquidation, Grade B', ['liquidation_pct', 'B'], '%', undefined, 'Assumption')}
         {row('Liquidation, Grade C', ['liquidation_pct', 'C'], '%', undefined, 'Assumption: damaged stock')}
         {row('Liquidation, not graded yet', ['liquidation_pct', 'ungraded'], '%', undefined, 'Assumption')}
         {row('Liquidation commission', ['liquidation_commission_pct'], '%', undefined, 'Assumption')}
         {row('Bulk freight per unit', ['liquidation_freight'], '₹', undefined, 'Assumption')}
+        <p className="py-2.5 text-xs text-muted">
+          Market check: Delhi surplus-clothing listings ask ₹50–490 a piece (median ₹109).{' '}
+          <a href={RATE_SOURCES.surplus_delhi.url} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">IndiaMART</a>
+        </p>
+      </Group>
+
+      <Group title="From your own results" open={learned.some((l) => l.suggested != null)}>
+        {learned.length === 0 ? (
+          <p className="py-2.5 text-xs text-muted">
+            Once {MIN_RESULTS} returns on a route are marked sold with the amount received, the median of what you actually got appears here as a suggested rate. Sample returns don’t count.
+          </p>
+        ) : (
+          learned.map((l) => (
+            <div key={l.path.join('.')} className="flex items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-sm">{l.label}</p>
+                <p className="text-xs text-muted">
+                  {l.suggested != null
+                    ? `Median of your ${l.n} completed sales: ${l.suggested}% of the original price (now ${l.current}%).`
+                    : `${l.n} of ${MIN_RESULTS} completed sales needed before suggesting a rate.`}
+                </p>
+              </div>
+              {l.suggested != null && l.suggested !== l.current && (
+                <Button size="sm" variant="secondary" onClick={() => setDraft((d) => setAt(d, l.path, l.suggested!))}>
+                  Use {l.suggested}%
+                </Button>
+              )}
+            </div>
+          ))
+        )}
       </Group>
 
       <Group title="Cleaning & repair prices">
@@ -196,8 +275,8 @@ export default function RatesPage() {
         {row('Leather / upper replacement', ['services', 'shoe_leather_replace'], '₹', 'shoe')}
         {row('Replacement shoebox', ['services', 'shoe_box'], '₹', undefined, 'Assumption')}
         <p className="pb-1 pt-3 text-xs font-medium text-muted">Tailor</p>
-        {row('Small darn or patch', ['services', 'tailor_small_repair'], '₹', undefined, 'Assumption')}
-        {row('Larger darn, patch or stitch repair', ['services', 'tailor_repair'], '₹', undefined, 'Assumption')}
+        {row('Small tear or damage repair', ['services', 'tailor_small_repair'], '₹', 'tailor_delhi', 'Starting price in Delhi')}
+        {row('Larger darn or re-stitch', ['services', 'tailor_repair'], '₹', 'tailor_delhi', 'Starting price in Delhi')}
         {row('Seam repair', ['services', 'seam_repair'], '₹', 'tailor')}
         {row('Zip replacement', ['services', 'zip_replace'], '₹', 'tailor')}
         {row('Zip & hardware replacement (major)', ['services', 'zip_replace_major'], '₹', 'tailor')}

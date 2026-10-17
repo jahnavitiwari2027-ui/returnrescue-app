@@ -30,6 +30,7 @@ create table if not exists public.returns (
   recycling_cost numeric(12,2) not null default 0 check (recycling_cost >= 0),
   return_shipping_cost numeric(12,2) not null default 0 check (return_shipping_cost >= 0),
   value_basis jsonb not null default '{}'::jsonb,
+  sale_setup jsonb check (sale_setup is null or jsonb_typeof(sale_setup) = 'object'),
 
   status text not null default 'awaiting_inspection'
     check (status in ('awaiting_inspection','inspected','decided','completed')),
@@ -49,6 +50,9 @@ create table if not exists public.returns (
 );
 
 create index if not exists returns_user_created_idx on public.returns (user_id, created_at desc);
+
+-- Added after launch; harmless when the column already exists.
+alter table public.returns add column if not exists sale_setup jsonb check (sale_setup is null or jsonb_typeof(sale_setup) = 'object');
 
 -- ───────────────────────── entitlements ─────────────────────────
 -- Written ONLY by the verified Dodo webhook (service role). Users can read their own row.

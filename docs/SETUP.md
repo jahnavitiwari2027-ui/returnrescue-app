@@ -32,6 +32,8 @@ Keep a private note open while you work; you will collect these values:
 ### 2b. Database update (17 Oct 2026 — free trial)
 If you ran `schema.sql` before 17 Oct 2026 02:30 IST, also run `supabase/update-2026-10-17-trial.sql` once in the SQL Editor (it removes the 15-return limit during the 14-day trial). New projects don’t need it — `schema.sql` already includes it.
 
+If you ran `schema.sql` before 18 Oct 2026, also run `supabase/update-2026-10-18-platforms.sql` once (it adds the optional `sale_setup` column that remembers which platform each return sells on). Until you do, the app still saves returns — just without the platform.
+
 ## 3. Google Gemini API key (AI inspection) — free
 
 1. Go to aistudio.google.com and sign in with a Google account (a personal one is fine; no card needed).

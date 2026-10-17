@@ -10,8 +10,12 @@ import {
   ratesPatch,
   repriceable,
   resolveRates,
+  estimateInputFor,
+  PLATFORMS,
+  sanitizeSale,
   type EstimateField,
 } from '../src/lib/rates'
+import { learnFromResults } from '../src/lib/learn'
 import { calculateRecovery } from '../src/lib/recovery'
 import { emptyReturnInput, type ReturnItem } from '../src/lib/types'
 
@@ -34,8 +38,8 @@ describe('every input is traceable and correctly classified', () => {
   ]
   for (const c of cases) {
     it(`${c.category} ₹${c.original_price}: lines add up, each has a kind, published ones cite a source`, () => {
-      for (const own of [false, true]) {
-        const e = estimateFromRates(c, own ? resolveRates({ channel: 'own_site', gst_registered: false }) : DEFAULT_RATES)
+      for (const [platform, registered] of PLATFORMS.flatMap((p) => [[p, true], [p, false]] as const)) {
+        const e = estimateFromRates({ ...c, sale: { platform } }, registered ? DEFAULT_RATES : resolveRates({ gst_registered: false }))
         for (const [field, value] of Object.entries(e.values) as [EstimateField, number][]) {
           const lines = e.notes[field] ?? []
           expect(Math.round(lines.reduce((s, l) => s + l.amount, 0) * 100) / 100).toBe(value)
@@ -81,7 +85,7 @@ describe('tax treatment', () => {
   it('unregistered seller: no GST deducted on the sale, GST on fees is a cost', () => {
     const r = resolveRates({ gst_registered: false })
     expect(estimateFromRates({ category: 'Topwear', original_price: 1999, grade: 'A', defects: [] }, r).values.selling_fee_pct).toBe(24.78)
-    const own = resolveRates({ gst_registered: false, channel: 'own_site' })
+    const own = resolveRates({ gst_registered: false, default_sale: { platform: 'own_site' } })
     expect(estimateFromRates({ category: 'Topwear', original_price: 1999, grade: 'A', defects: [] }, own).values.selling_fee_pct).toBe(2.36)
     // Amazon's own charges carry GST too when it can't be claimed back
     expect(estimateFromRates({ category: 'Topwear', original_price: 1999, grade: 'A', defects: [] }, r).values.handling_cost).toBeGreaterThan(
@@ -163,7 +167,7 @@ describe('applying the rate card to returns', () => {
   it('never reprices a return with a saved decision unless the decision is being cleared', () => {
     const decided = mkItem({ ...ratesPatch(mkItem(), est), decision_route: 'refurbish', decision_net: 1500, status: 'decided' })
     expect(isLocked(decided)).toBe(true)
-    expect(ratesPatch(decided, estimateFromRates({ ...shoe, grade: 'B', defects: [] }, resolveRates({ refurb_resale_pct: 50 })))).toEqual({})
+    expect(ratesPatch(decided, estimateFromRates({ ...shoe, grade: 'B', defects: [] }, resolveRates({ refurb_resale_pct: 40 })))).toEqual({})
     expect(ratesPatch(decided, est, { allowDecided: true }).value_basis).toBeDefined()
   })
   it('a rate change updates undecided returns only', () => {
@@ -171,10 +175,10 @@ describe('applying the rate card to returns', () => {
     const decided = mkItem({ ...ratesPatch(mkItem(), est), grade: 'B', decision_route: 'refurbish', decision_net: 1500, status: 'decided' })
     const done = mkItem({ ...ratesPatch(mkItem(), est), grade: 'B', decision_route: 'refurbish', status: 'completed', realized_amount: 1400 })
     const own = mkItem({ grade: 'B', resale_price: 2000, value_basis: { restock: 'estimate' }, status: 'inspected' })
-    const cheaper = resolveRates({ refurb_resale_pct: 50 })
+    const cheaper = resolveRates({ refurb_resale_pct: 40 })
     const out = repriceable([open, decided, done, own], cheaper)
     expect(out.map((o) => o.item.id)).toEqual([open.id])
-    expect(out[0].patch.refurb_resale_price).toBe(1500)
+    expect(out[0].patch.refurb_resale_price).toBe(1200)
     expect(repriceable([open], DEFAULT_RATES)).toHaveLength(0) // nothing to change
   })
 })
@@ -186,7 +190,7 @@ describe('rate overrides', () => {
     expect(r.refurb_resale_pct).toBe(DEFAULT_RATES.refurb_resale_pct)
     expect(r.referral_pct.Topwear).toBe(DEFAULT_RATES.referral_pct.Topwear)
     expect(r.referral_pct.Footwear).toBe(12)
-    expect(r.channel).toBe('marketplace')
+    expect(r.default_sale).toEqual({ platform: 'amazon' })
     expect(r.gst_registered).toBe(true)
   })
   it('stores only what differs from the defaults', () => {
@@ -223,5 +227,109 @@ describe('grade guardrails', () => {
   it('keeps a consistent AI grade unchanged', () => {
     expect(applyGuardrails({ ...base, proposed: 'A', defects: [] })).toEqual({ grade: 'A', notes: [], changed: false })
     expect(minimumGrade('Footwear', [{ type: 'sole_wear', severity: 'moderate' }]).grade).toBe('B')
+  })
+})
+
+const tee = (price: number) => ({ category: 'Topwear' as const, original_price: price, grade: 'A' as const, defects: [] })
+
+describe('platforms', () => {
+  it('Amazon.in: Easy Ship closing fee by price band and weight handling by packed weight', () => {
+    expect(estimateFromRates(tee(250)).values.handling_cost).toBe(2 + 55 + 5 + 15)
+    expect(estimateFromRates(tee(499)).values.handling_cost).toBe(23 + 55 + 5 + 15)
+    expect(estimateFromRates(tee(799)).values.handling_cost).toBe(48 + 55 + 5 + 15)
+    expect(estimateFromRates(tee(1999)).values.handling_cost).toBe(79 + 55 + 5 + 15)
+    expect(estimateFromRates({ ...shoe, grade: 'A', defects: [] }).values.handling_cost).toBe(79 + 75 + 5 + 15) // 1 kg packed
+  })
+
+  it('Flipkart: 0% fashion commission, fixed fee, national shipping under 500 g', () => {
+    const e = estimateFromRates({ ...tee(1999), sale: { platform: 'flipkart' } })
+    expect(e.values.selling_fee_pct).toBe(4.76) // GST share only
+    expect(e.values.handling_cost).toBe(22 + 16 + 5 + 15)
+    expect(e.notes.handling_cost!.find((l) => /fixed fee/i.test(l.text))!.kind).toBe('assumption')
+    // Heavier than 500 g: Flipkart doesn't publish the rate, so a courier estimate, marked as an assumption
+    const s2 = estimateFromRates({ ...shoe, grade: 'A', defects: [], sale: { platform: 'flipkart' } })
+    const ship = s2.notes.handling_cost!.find((l) => /Flipkart shipping/.test(l.text))!
+    expect(ship.amount).toBe(45 + 17)
+    expect(ship.kind).toBe('assumption')
+  })
+
+  it('Meesho: no commission or fixed fee; shipping deducted at the national midpoint', () => {
+    const e = estimateFromRates({ ...tee(499), sale: { platform: 'meesho' } })
+    expect(e.values.selling_fee_pct).toBe(4.76)
+    expect(e.values.handling_cost).toBe(0 + 73 + 5 + 15)
+    expect(estimateFromRates({ ...shoe, grade: 'A', defects: [], sale: { platform: 'meesho' } }).values.handling_cost).toBe(100 + 5 + 15)
+  })
+
+  it('own website: payment gateway and courier', () => {
+    const e = estimateFromRates({ ...tee(1999), sale: { platform: 'own_site' } })
+    expect(e.values.selling_fee_pct).toBe(6.76)
+    expect(e.values.handling_cost).toBe(45 + 5 + 15)
+  })
+
+  it('a preset the seller picks replaces the weight-based one', () => {
+    expect(estimateFromRates({ ...tee(1999), sale: { platform: 'amazon', delivery: 'amz_2kg' } }).values.handling_cost).toBe(79 + 112 + 5 + 15)
+    expect(estimateFromRates({ ...tee(1999), sale: { platform: 'meesho', delivery: 'ms_local' } }).values.handling_cost).toBe(40 + 5 + 15)
+    // A preset that doesn't exist for this platform falls back to the automatic one
+    expect(estimateFromRates({ ...tee(1999), sale: { platform: 'meesho', delivery: 'amz_2kg' } }).values.handling_cost).toBe(73 + 5 + 15)
+  })
+
+  it('values the seller sets by hand are used and labelled as theirs', () => {
+    const e = estimateFromRates({ ...tee(1999), sale: { platform: 'amazon', gst_pct: 0, commission_pct: 10, fixed_fee: 30, delivery_custom: 60 } })
+    expect(e.values.selling_fee_pct).toBe(10)
+    expect(e.values.handling_cost).toBe(30 + 60 + 5 + 15)
+    for (const l of [...e.notes.selling_fee_pct!.slice(0, 2), ...e.notes.handling_cost!.slice(0, 2)]) expect(l.kind).toBe('business')
+    // GST set to 18% on a ₹1,999 shirt
+    expect(estimateFromRates({ ...tee(1999), sale: { platform: 'own_site', gst_pct: 18 } }).values.selling_fee_pct).toBe(15.25 + 2)
+  })
+
+  it('unregistered sellers pay GST on fixed fees and delivery too', () => {
+    const r = resolveRates({ gst_registered: false })
+    const e = estimateFromRates({ ...tee(1999), sale: { platform: 'flipkart' } }, r)
+    expect(e.values.handling_cost).toBe(Math.round(22 * 1.18) + Math.round(16 * 1.18) + 5 + 15)
+  })
+
+  it('a return uses its own platform, else the rate card default', () => {
+    const item = mkItem({ category: 'Topwear', original_price: 1999, sale_setup: { platform: 'meesho' } })
+    expect(estimateFromRates(estimateInputFor(item)).values.selling_fee_pct).toBe(4.76)
+    const legacy = mkItem({ category: 'Topwear', original_price: 1999, sale_setup: null })
+    expect(estimateFromRates(estimateInputFor(legacy), resolveRates({ default_sale: { platform: 'own_site' } })).values.selling_fee_pct).toBe(6.76)
+  })
+
+  it('reads older saved rate cards', () => {
+    const r = resolveRates({ channel: 'own_site', ship_first_500g: { marketplace: 60, own_site: 50 }, ship_extra_500g: 20 })
+    expect(r.default_sale).toEqual({ platform: 'own_site' })
+    expect(r.courier_first_500g).toBe(50)
+    expect(r.courier_extra_500g).toBe(20)
+    expect(r.amazon_weight_handling.up_to_500g).toBe(60)
+  })
+
+  it('stores and restores a saved default setup, dropping anything malformed', () => {
+    const r = resolveRates({})
+    r.default_sale = { platform: 'flipkart', fixed_fee: 18, delivery: 'fk_local' }
+    expect(diffRates(r)).toEqual({ default_sale: { platform: 'flipkart', fixed_fee: 18, delivery: 'fk_local' } })
+    expect(resolveRates(diffRates(r)).default_sale).toEqual(r.default_sale)
+    expect(sanitizeSale({ platform: 'ebay' })).toBeNull()
+    expect(sanitizeSale({ platform: 'meesho', gst_pct: 40, commission_pct: -1, fixed_fee: 'x', delivery: 'DROP TABLE', delivery_custom: 55 })).toEqual({ platform: 'meesho', delivery_custom: 55 })
+  })
+})
+
+describe('learning from your own results', () => {
+  const sold = (over: Partial<ReturnItem>) =>
+    mkItem({ category: 'Topwear', original_price: 1000, status: 'completed', grade: 'B', decision_route: 'liquidate', liquidation_fee: 20, ...over })
+
+  it('needs five completed sales, ignores samples, and suggests the median', () => {
+    const four = [100, 120, 130, 140].map((r) => sold({ realized_amount: r }))
+    expect(learnFromResults(four, DEFAULT_RATES)).toEqual([{ path: ['liquidation_pct', 'B'], label: 'Liquidation, Grade B', n: 4, suggested: null, current: 15 }])
+    const five = [...four, sold({ realized_amount: 500, is_sample: true }), sold({ realized_amount: 160 })]
+    // (realized + ₹20 fee) / ₹1,000 → 12, 14, 15, 16, 18 → median 15
+    expect(learnFromResults(five, DEFAULT_RATES)[0]).toMatchObject({ n: 5, suggested: 15 })
+  })
+
+  it('works back the resale price for refurbished items', () => {
+    const items = Array.from({ length: 5 }, () =>
+      sold({ decision_route: 'refurbish', realized_amount: 300, refurb_cost: 100, handling_cost: 100, selling_fee_pct: 20 }),
+    )
+    // (300 + 100 + 100) / 0.8 = 625 → 62.5% of ₹1,000
+    expect(learnFromResults(items, DEFAULT_RATES)).toEqual([{ path: ['refurb_resale_pct'], label: 'Repaired items resell at', n: 5, suggested: 62.5, current: 50 }])
   })
 })

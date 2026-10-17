@@ -8,7 +8,8 @@ import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
 import { RepoError } from '../data/repo'
 import { useRates } from '../data/rates'
 import { validateImageFile } from '../lib/image'
-import { estimateFromRates, estimateInputFor, ratesPatch } from '../lib/rates'
+import { estimateFromRates, estimateInputFor, isLocked, ratesPatch, saleOf, type SaleSetup } from '../lib/rates'
+import { SaleSetupCard } from './SaleSetupCard'
 import {
   CATEGORIES,
   HYGIENE_SENSITIVE,
@@ -88,7 +89,10 @@ export default function ReturnFormPage() {
   const cameraInput = useRef<HTMLInputElement>(null)
   const [cameraOpen, setCameraOpen] = useState(false)
   const existingUrls = usePhotoUrls(form.photos)
-  const { rates } = useRates()
+  const { rates, save: saveRates } = useRates()
+  // The platform card: null until the seller changes something, so the saved or default setup shows.
+  const [sale, setSale] = useState<SaleSetup | null>(null)
+  const [saveDefault, setSaveDefault] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -114,6 +118,8 @@ export default function ReturnFormPage() {
   }
   const setBasis = (route: RouteKey | 'costs', b: ValueBasis) => setForm((f) => ({ ...f, value_basis: { ...f.value_basis, [route]: b } }))
 
+  const locked = isLocked(form)
+  const shownSale = sale ?? saleOf(form.sale_setup, rates)
   const photoCount = form.photos.length + pending.length
   const hygiene = HYGIENE_SENSITIVE.includes(form.category as Category)
 
@@ -177,6 +183,7 @@ export default function ReturnFormPage() {
     }
     setSaving(true)
     try {
+      if (saveDefault && !locked) await saveRates({ ...rates, default_sale: shownSale })
       const uploaded: string[] = []
       for (const p of pending) uploaded.push(await repo.uploadPhoto(p.file))
       const payload: ReturnInput = {
@@ -185,6 +192,8 @@ export default function ReturnFormPage() {
         sku: (form.sku.trim() || autoSku()).toUpperCase(),
         seal_intact: hygiene ? form.seal_intact : false,
         photos: [...form.photos, ...uploaded],
+        // New returns always record their platform; edits only when the seller changed it.
+        sale_setup: locked ? form.sale_setup : editing && !sale ? form.sale_setup : shownSale,
       }
       for (const k of NUM_KEYS) payload[k] = form[k] === '' ? 0 : Math.round(Number(form[k]) * 100) / 100
       // Routes on the rate card (and blank ones) are priced from the rates, using the
@@ -196,7 +205,7 @@ export default function ReturnFormPage() {
         const patch: Partial<ReturnInput> = { photos }
         for (const k of [
           'name', 'sku', 'category', 'original_price', 'return_reason', 'condition_notes', 'seal_intact',
-          ...NUM_KEYS, 'value_basis',
+          ...NUM_KEYS, 'value_basis', ...(sale && !locked ? (['sale_setup'] as const) : []),
         ] as const) {
           ;(patch as Record<string, unknown>)[k] = (rest as Record<string, unknown>)[k]
         }
@@ -282,6 +291,19 @@ export default function ReturnFormPage() {
               {num('original_price', 'Original selling price', 'What the customer paid (per unit).')}
             </div>
           </Card>
+
+          {!locked && (
+            <SaleSetupCard
+              category={form.category}
+              price={Number(form.original_price) || 0}
+              sale={shownSale}
+              rates={rates}
+              onChange={setSale}
+              saveDefault={saveDefault}
+              onSaveDefault={setSaveDefault}
+              ownCosts={form.value_basis.costs === 'estimate'}
+            />
+          )}
 
           <Card>
             <details open={editing} className="group">

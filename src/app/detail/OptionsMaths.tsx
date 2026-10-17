@@ -12,8 +12,10 @@ import {
   estimateInputFor,
   isLocked,
   matchesRates,
+  PLATFORM_LABEL,
   ratesPatch,
   RATE_SOURCES,
+  saleOf,
   type EstimateField,
   type EstimateLine,
 } from '../../lib/rates'
@@ -110,7 +112,8 @@ export default function OptionsMaths({ item }: { item: ReturnItem }) {
       })}
       {calc.warnings.length > 0 && <p className="text-xs text-muted">{calc.warnings[0]}</p>}
       <p className="pt-1 text-xs text-muted">
-        Rate-card values use published prices and stated assumptions.{' '}
+        Priced for selling on {PLATFORM_LABEL[saleOf(item.sale_setup, rates).platform]}
+        {!locked && <> (<Link to={`${base}/returns/${item.id}/edit`} className="font-medium text-brand-700 hover:underline">change</Link>)</>}. Rate-card values use published prices and stated assumptions.{' '}
         <Link to={`${base}/rates`} className="font-medium text-brand-700 hover:underline">See or edit your rates</Link>
       </p>
     </div>
@@ -129,6 +132,7 @@ const fieldRoute: Partial<Record<EstimateField, RouteKey>> = {
 
 function Line({ line, notes, basis }: { line: BreakdownLine; notes?: EstimateLine[]; basis?: ValueBasis }) {
   const pct = line.field === 'selling_fee_pct'
+  const parts = notes?.filter((n) => !n.info).length ?? 0
   return (
     <div>
       <div className="flex justify-between gap-3">
@@ -140,7 +144,7 @@ function Line({ line, notes, basis }: { line: BreakdownLine; notes?: EstimateLin
       {notes && notes.length > 0 ? (
         <ul className="mt-0.5 space-y-0.5 border-l-2 border-line pl-2 text-muted">
           {notes.map((n, i) => (
-            <li key={i} className="flex justify-between gap-3">
+            <li key={i} className={clsx('flex justify-between gap-3', n.info && 'italic')}>
               <span>
                 {n.text}
                 {n.source && (
@@ -151,7 +155,7 @@ function Line({ line, notes, basis }: { line: BreakdownLine; notes?: EstimateLin
                 {n.kind === 'assumption' && <span className="ml-1 rounded bg-paper-2 px-1 text-[10px]">assumption</span>}
                 {n.kind === 'business' && <span className="ml-1 rounded bg-brand-50 px-1 text-[10px] text-brand-800">your value</span>}
               </span>
-              {notes.length > 1 && <span className="whitespace-nowrap tabular">{pct ? `${n.amount}%` : inr(n.amount)}</span>}
+              {parts > 1 && !n.info && <span className="whitespace-nowrap tabular">{pct ? `${n.amount}%` : inr(n.amount)}</span>}
             </li>
           ))}
         </ul>

@@ -1,0 +1,29 @@
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../src/lib/supabase', () => ({ supabase: null, PHOTO_BUCKET: 'return-photos' }))
+const { writeRow, missingSaleColumn } = await import('../src/data/supabaseRepo')
+
+describe('saving before the sale_setup column exists', () => {
+  it('recognises PostgREST’s missing-column error, and only that', () => {
+    expect(missingSaleColumn({ code: 'PGRST204', message: "Could not find the 'sale_setup' column of 'returns' in the schema cache" })).toBe(true)
+    expect(missingSaleColumn({ code: '42703', message: 'column "sale_setup" of relation "returns" does not exist' })).toBe(true)
+    expect(missingSaleColumn({ code: 'P0001', message: 'FREE_PLAN_LIMIT: …' })).toBe(false)
+    expect(missingSaleColumn({ code: 'PGRST204', message: "Could not find the 'other' column" })).toBe(false)
+  })
+
+  it('retries once without the column, keeping everything else', async () => {
+    const run = vi.fn(async (b: Record<string, unknown>) =>
+      'sale_setup' in b ? { data: null, error: { code: 'PGRST204', message: "Could not find the 'sale_setup' column of 'returns' in the schema cache" } } : { data: b, error: null },
+    )
+    const res = await writeRow({ name: 'x', sale_setup: { platform: 'meesho' } }, run)
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(res).toEqual({ data: { name: 'x' }, error: null })
+  })
+
+  it('does not retry other errors', async () => {
+    const run = vi.fn(async () => ({ data: null, error: { code: 'P0001', message: 'FREE_PLAN_LIMIT: limit' } }))
+    const res = await writeRow({ name: 'x', sale_setup: { platform: 'meesho' } }, run)
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(res.error?.code).toBe('P0001')
+  })
+})

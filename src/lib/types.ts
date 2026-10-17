@@ -1,6 +1,8 @@
 // Shared domain types. Also imported by Netlify Functions, so keep this file
 // free of browser-only APIs.
 
+import type { SaleSetup } from './rates'
+
 export const CATEGORIES = [
   'Topwear',
   'Bottomwear',
@@ -132,6 +134,8 @@ export interface ReturnItem {
   return_shipping_cost: number
   /** Per route, plus 'costs' for the shared selling fee and handling. */
   value_basis: Partial<Record<RouteKey | 'costs', ValueBasis>>
+  /** Where it will be resold and any fees set by hand. Null = the rate card's default platform. */
+  sale_setup: SaleSetup | null
 
   // Inspection
   status: ReturnStatus
@@ -227,6 +231,7 @@ export function emptyReturnInput(): ReturnInput {
     recycling_cost: 0,
     return_shipping_cost: 0,
     value_basis: {},
+    sale_setup: null,
     status: 'awaiting_inspection',
     ai_inspection: null,
     grade: null,

@@ -4,7 +4,7 @@ import { GRADE_GUIDE, GRADE_LABEL, GRADES } from '../lib/types'
 
 const formulas = [
   ['Restock', 'your price − fees & GST − handling & shipping'],
-  ['Refurbish', 'resale after repair (default 70% of your price) − fees & GST − repairs − handling & shipping'],
+  ['Refurbish', 'resale after repair (default 50% of your price) − fees & GST − repairs − handling & shipping'],
   ['Liquidate', 'liquidation price − commission & bulk freight'],
   ['Recycle', 'scrap value − sorting & transport'],
 ]
@@ -60,7 +60,8 @@ export default function Methodology() {
               <ul className="mt-1 space-y-2 text-sm text-muted">
                 <li>The AI never sets a price. It only reports each defect and how severe it is.</li>
                 <li>Each defect maps to a fix with a cost: in-house work at Delhi minimum wage plus employer PF and ESI, or a cleaner, cobbler or tailor at published prices. Unrepairable damage rules out refurbishing.</li>
-                <li>Fees and shipping follow Amazon.in’s fee schedule (or your own website’s). Resale and liquidation are stated percentages of your price.</li>
+                <li>Fees and delivery follow the platform each return will sell on — Amazon.in, Flipkart, Meesho or your own website — and you can set GST, fees or delivery by hand on any return.</li>
+                <li>Repaired items resell at a published B-grade discount. Grade A liquidation uses a published surplus rate; other grades are stated assumptions, checked against Delhi surplus listings. After five completed sales on a route, your own results suggest replacements.</li>
                 <li>GST: if you’re registered, the GST inside the selling price is deducted and GST on fees is claimable input tax credit, not a cost. If you’re not, GST on fees is a cost.</li>
                 <li>Every default links to its source or is labelled an assumption. Change any rate to your own; enter a quote and it’s kept as one.</li>
               </ul>
