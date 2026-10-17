@@ -380,7 +380,7 @@ export default function ReturnFormPage() {
 
         <div className="space-y-4">
           <Card className="lg:sticky lg:top-6">
-            <CardHeader title="Photos" subtitle={`Up to ${LIMITS.maxPhotos}. Clear, well-lit shots of each side, labels and any damage.`} />
+            <CardHeader title="Photos" subtitle={`Up to ${LIMITS.maxPhotos}. Good light, each side, labels and any damage. For shoes, show the pair and the soles.`} />
             <div className="p-5">
               <div className="grid grid-cols-2 gap-2">
                 {form.photos.map((ref) => (

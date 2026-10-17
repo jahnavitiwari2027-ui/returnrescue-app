@@ -250,7 +250,12 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
         {grade !== 'MANUAL_REVIEW' && (
           <button className="font-medium text-brand-700 hover:underline" onClick={() => setChoosing(true)}>Choose another option</button>
         )}
+        {suggestedByAI && canRun && (
+          <button className="font-medium text-brand-700 hover:underline" onClick={run}>Run inspection again</button>
+        )}
       </div>
+      {suggestedByAI && canRun && <p className="mt-2 text-center text-xs text-muted">Added clearer photos? Re-running uses one AI inspection.</p>}
+      {error && <Alert tone="error" className="mt-3">{error.text}</Alert>}
       {gradeModal}
     </Card>
   )
