@@ -5,7 +5,7 @@
 No setup is needed. Two ways in:
 
 - **Demo workspace — no sign-up.** Click **Try the live demo** (or **Launch app**). Ten fictional sample returns, stored only in your browser. **Reset demo data** in the sidebar restores them.
-- **Your own workspace — free account (needed for AI).** Click **Start 14-day free trial**, sign up with any email and a password (8+ characters). No card. The trial includes everything in Pro (up to 100 AI inspections).
+- **Your own workspace — free account (needed for AI).** Click **Start 14-day free trial**, sign up with **Continue with Google** or any email and a password (8+ characters). No card. The trial includes everything in Pro (up to 100 AI inspections).
 
 All sample products and brands are fictional. The homepage section **“No black boxes”** explains the grading rubric, how values are estimated, the exact formulas and why the product can be trusted. Sample grades in the demo were entered by hand and are labelled “graded by you”; their values come from the default rate card; only results shown under **AI inspection result** come from the AI model.
 
