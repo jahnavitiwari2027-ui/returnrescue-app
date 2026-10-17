@@ -22,18 +22,8 @@ export interface Partner {
 export const MAX_PARTNERS = 30
 const DEMO_KEY = 'returnrescue.demo.partners.v1'
 
-const DEMO_PARTNERS: Partner[] = [
-  {
-    id: 'sample-p1',
-    name: 'Sample: City Shoe Care',
-    kind: 'refurbish',
-    city: 'New Delhi',
-    phone: '',
-    email: '',
-    website: '',
-    note: 'Fictional sample partner — replace with your own.',
-  },
-]
+// The demo starts empty: real businesses are in the Delhi NCR directory (data/directory.ts).
+const DEMO_PARTNERS: Partner[] = []
 
 function readDemo(): Partner[] {
   try {

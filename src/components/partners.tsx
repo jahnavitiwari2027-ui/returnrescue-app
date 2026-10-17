@@ -5,9 +5,12 @@ import { ROUTES, type RouteKey } from '../lib/types'
 import { Button, Field, Input, Modal, Select, Textarea } from './ui'
 
 const digits = (p: string) => p.replace(/\D/g, '')
-const waNumber = (p: string) => {
-  const d = digits(p)
-  return d.length === 10 ? `91${d}` : d
+/** WhatsApp only works for Indian mobile numbers (10 digits starting 6–9), not landlines. */
+const waNumber = (p: string): string | null => {
+  let d = digits(p)
+  if (d.length === 12 && d.startsWith('91')) d = d.slice(2)
+  else if (d.length === 11 && d.startsWith('0')) d = d.slice(1)
+  return /^[6-9]\d{9}$/.test(d) ? `91${d}` : null
 }
 const withProtocol = (u: string) => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
 
@@ -18,7 +21,9 @@ export function PartnerActions({ partner }: { partner: Partner }) {
       {partner.phone && (
         <>
           <a className={btn} href={`tel:${digits(partner.phone)}`}><Phone className="size-3.5" /> Call</a>
-          <a className={btn} href={`https://wa.me/${waNumber(partner.phone)}`} target="_blank" rel="noreferrer"><MessageCircle className="size-3.5" /> WhatsApp</a>
+          {waNumber(partner.phone) && (
+            <a className={btn} href={`https://wa.me/${waNumber(partner.phone)}`} target="_blank" rel="noreferrer"><MessageCircle className="size-3.5" /> WhatsApp</a>
+          )}
         </>
       )}
       {partner.email && <a className={btn} href={`mailto:${partner.email}`}><Mail className="size-3.5" /> Email</a>}

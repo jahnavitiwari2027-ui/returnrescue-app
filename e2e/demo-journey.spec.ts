@@ -90,7 +90,8 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
 
   // Next-steps pathway for the chosen route
   await expect(page.getByText('Next steps · Liquidate')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Excess2Sell/ })).toBeVisible()
+  await expect(page.getByText('In Delhi NCR')).toBeVisible()
+  await expect(page.getByText('IndiaLot')).toBeVisible()
   await page.getByRole('button', { name: 'Group similar items into a lot (same category or grade).' }).click()
   await expect(page.getByText('1/4')).toBeVisible()
   // Save a partner from the pathway
@@ -98,7 +99,7 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.getByLabel('Name').fill('Test Liquidation Buyer')
   await page.getByLabel('Phone / WhatsApp').fill('9876543210')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/919876543210')
+  await expect(page.locator('a[href="https://wa.me/919876543210"]')).toBeVisible()
 
   // Persists after a full reload
   await page.reload()

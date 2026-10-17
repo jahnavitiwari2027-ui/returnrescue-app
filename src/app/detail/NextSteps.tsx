@@ -2,9 +2,11 @@ import clsx from 'clsx'
 import { Check, ExternalLink, MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { DirectoryCard, DirectoryDisclaimer, entryToPartner } from '../../components/directory'
 import { PartnerActions, PartnerModal } from '../../components/partners'
 import { Card } from '../../components/ui'
 import { useWorkspace } from '../../context/WorkspaceContext'
+import { DIRECTORY_REGION, directoryFor } from '../../data/directory'
 import { newPartner, PARTNER_KIND_LABEL, usePartners } from '../../data/partners'
 import { mapsUrl, pathwayFor } from '../../lib/pathways'
 import type { ReturnItem, RouteKey } from '../../lib/types'
@@ -39,6 +41,10 @@ export default function NextSteps({ item, route }: { item: ReturnItem; route: Ro
   const [adding, setAdding] = useState(false)
   const mine = partners.filter((p) => p.kind === route)
   const completed = done.filter(Boolean).length
+  const savedNames = new Set(partners.map((p) => p.name.toLowerCase()))
+  const local = directoryFor(route, item.category)
+  const localNames = new Set(local.map((d) => d.name.toLowerCase()))
+  const channels = path.channels.filter((c) => !localNames.has(c.name.toLowerCase()))
 
   return (
     <Card className="mt-4 p-5">
@@ -82,6 +88,23 @@ export default function NextSteps({ item, route }: { item: ReturnItem; route: Ro
         )}
       </div>
 
+      {local.length > 0 && (
+        <div className="mt-5 border-t border-line pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-medium">In {DIRECTORY_REGION}</h3>
+            <Link to={`${base}/partners`} className="text-xs font-medium text-brand-700 hover:underline">Full directory</Link>
+          </div>
+          <ul className="mt-2 divide-y divide-line">
+            {local.slice(0, 4).map((e) => (
+              <li key={e.id} className="py-3 first:pt-1">
+                <DirectoryCard compact entry={e} saved={savedNames.has(e.name.toLowerCase())} onSave={async (x) => { await upsert(entryToPartner(x)) }} />
+              </li>
+            ))}
+          </ul>
+          <DirectoryDisclaimer />
+        </div>
+      )}
+
       {path.nearby.length > 0 && (
         <div className="mt-5 border-t border-line pt-4">
           <h3 className="text-sm font-medium">Find nearby</h3>
@@ -95,11 +118,11 @@ export default function NextSteps({ item, route }: { item: ReturnItem; route: Ro
         </div>
       )}
 
-      {path.channels.length > 0 && (
+      {channels.length > 0 && (
         <div className="mt-5 border-t border-line pt-4">
           <h3 className="text-sm font-medium">Options in India</h3>
           <ul className="mt-2 space-y-2">
-            {path.channels.map((c) => (
+            {channels.map((c) => (
               <li key={c.name}>
                 <a href={c.url} target="_blank" rel="noreferrer" className="group flex items-start justify-between gap-3 rounded-lg px-1 py-1 hover:bg-paper">
                   <span>
