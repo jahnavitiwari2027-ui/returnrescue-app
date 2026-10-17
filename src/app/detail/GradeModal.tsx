@@ -3,7 +3,7 @@ import { Button, Field, Modal, Textarea } from '../../components/ui'
 import {
   DEFECT_LABEL,
   DEFECT_TYPES,
-  GRADE_DESCRIPTION,
+  GRADE_GUIDE,
   GRADE_LABEL,
   GRADES,
   type Defect,
@@ -74,7 +74,8 @@ export default function GradeModal({
               className={`rounded-xl border px-3 py-2.5 text-left transition ${grade === g ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-line hover:border-ink/25'}`}
             >
               <p className="text-sm font-semibold">{GRADE_LABEL[g]}</p>
-              <p className="mt-0.5 text-xs text-muted">{GRADE_DESCRIPTION[g]}</p>
+              <p className="mt-0.5 text-xs font-medium text-ink-2">{GRADE_GUIDE[g].short}</p>
+              <p className="mt-0.5 text-xs text-muted">{GRADE_GUIDE[g].allows}</p>
             </button>
           ))}
         </div>

@@ -2,13 +2,13 @@ import clsx from 'clsx'
 import { Camera, Check, CheckCircle2, Loader2, ScanSearch, Sparkles, UserCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Alert, Button, Card, GradeBadge, LinkButton, MoneyInput, Textarea } from '../../components/ui'
+import { Alert, Button, Card, GradeBadge, GradeGuide, LinkButton, MoneyInput, Textarea } from '../../components/ui'
 import { LIMITS } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { useWorkspace } from '../../context/WorkspaceContext'
 import { inr, shortDate } from '../../lib/format'
 import { calculateRecovery } from '../../lib/recovery'
-import { GRADE_DESCRIPTION, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
+import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
 import GradeModal from './GradeModal'
 import { useInspection } from './useInspection'
 
@@ -192,10 +192,12 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
     <Card className="p-5">
       <div className="flex flex-wrap items-center gap-2">
         <GradeBadge grade={grade} className="px-2.5 py-1 text-sm" />
-        {suggestedByAI && <span className="text-xs text-muted">suggested by AI · {ai!.confidence} confidence</span>}
-        {item.grade_source === 'manual' && <span className="text-xs text-muted">graded by you</span>}
+        <span className="text-sm font-medium">{GRADE_GUIDE[grade].short}</span>
+        {suggestedByAI && <span className="text-xs text-muted">· suggested by AI, {ai!.confidence} confidence</span>}
+        {item.grade_source === 'manual' && <span className="text-xs text-muted">· graded by you</span>}
       </div>
-      <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{ai?.summary && suggestedByAI ? ai.summary : GRADE_DESCRIPTION[grade]}</p>
+      <p className="mt-1 text-xs text-muted">{GRADE_GUIDE[grade].allows}</p>
+      <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{ai?.summary && suggestedByAI ? ai.summary : GRADE_GUIDE[grade].meaning}</p>
 
       {grade === 'MANUAL_REVIEW' ? (
         <div className="mt-5 rounded-xl bg-amber-50 p-4">
@@ -230,6 +232,10 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           <LinkButton to={`${base}/returns/${item.id}/edit`} size="sm" variant="secondary" className="mt-3">Add values</LinkButton>
         </div>
       )}
+
+      <div className="mt-5 border-t border-line pt-4">
+        <GradeGuide current={grade} />
+      </div>
 
       <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm">
         <button className="font-medium text-brand-700 hover:underline" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Change grade</button>

@@ -168,6 +168,14 @@ export const GRADE_DESCRIPTION: Record<Grade, string> = {
   MANUAL_REVIEW: 'Photos are insufficient or something needs a person to check before grading.',
 }
 
+/** Plain-language meaning of each grade and what it allows. */
+export const GRADE_GUIDE: Record<Grade, { short: string; meaning: string; allows: string }> = {
+  A: { short: 'Like new', meaning: 'No visible damage and looks unused.', allows: 'Can go straight back to stock (after a quick hand check).' },
+  B: { short: 'Minor, fixable issues', meaning: 'Small cosmetic problems — a scuff, crease, missing tag or damaged box.', allows: 'Clean, repair or repackage, then resell. Not sold as new.' },
+  C: { short: 'Significant damage', meaning: 'Tears, permanent stains, heavy wear or broken parts — not worth fixing for full price.', allows: 'Liquidate or recycle.' },
+  MANUAL_REVIEW: { short: 'Needs a person', meaning: 'The photos can’t settle it — unclear images, a possible mismatch, or hygiene, odour or authenticity questions.', allows: 'No option is recommended until someone checks it and sets a grade.' },
+}
+
 export const STATUS_LABEL: Record<ReturnStatus, string> = {
   awaiting_inspection: 'Awaiting inspection',
   inspected: 'Inspected',

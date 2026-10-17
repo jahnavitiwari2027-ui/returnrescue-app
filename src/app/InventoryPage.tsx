@@ -7,6 +7,7 @@ import {
   Card,
   EmptyState,
   GradeBadge,
+  GradeGuide,
   Input,
   LinkButton,
   Modal,
@@ -298,6 +299,12 @@ export default function InventoryPage() {
             </>
           )}
         </Card>
+      )}
+
+      {items.length > 0 && (
+        <div className="mt-4 px-1">
+          <GradeGuide />
+        </div>
       )}
 
       <Modal

@@ -1,5 +1,5 @@
 import { ChevronDown, Eye, FileClock, Lock, Scale, UserCheck, ClipboardCheck } from 'lucide-react'
-import { GRADE_DESCRIPTION, GRADE_LABEL, GRADES } from '../lib/types'
+import { GRADE_GUIDE, GRADE_LABEL, GRADES } from '../lib/types'
 
 const formulas = [
   ['Restock', 'resale price − channel fee − handling'],
@@ -48,8 +48,8 @@ export default function Methodology() {
               <dl className="mt-3 space-y-2 text-sm">
                 {GRADES.map((g) => (
                   <div key={g}>
-                    <dt className="font-medium">{GRADE_LABEL[g]}</dt>
-                    <dd className="text-muted">{GRADE_DESCRIPTION[g]}</dd>
+                    <dt className="font-medium">{GRADE_LABEL[g]} · {GRADE_GUIDE[g].short}</dt>
+                    <dd className="text-muted">{GRADE_GUIDE[g].meaning} {GRADE_GUIDE[g].allows}</dd>
                   </div>
                 ))}
               </dl>

@@ -11,7 +11,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
-import { GRADE_LABEL, STATUS_LABEL, type Grade, type ReturnStatus } from '../lib/types'
+import { GRADE_GUIDE, GRADE_LABEL, STATUS_LABEL, type Grade, type ReturnStatus } from '../lib/types'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dark'
 type Size = 'sm' | 'md' | 'lg'
@@ -140,9 +140,11 @@ export function GradeBadge({ grade, className }: { grade: Grade | null; classNam
   if (!grade) return <Badge className={className}>Ungraded</Badge>
   const tone = grade === 'A' ? 'brand' : grade === 'B' ? 'blue' : grade === 'C' ? 'amber' : 'red'
   return (
-    <Badge tone={tone} className={className}>
-      {GRADE_LABEL[grade]}
-    </Badge>
+    <span title={`${GRADE_LABEL[grade]}: ${GRADE_GUIDE[grade].short}. ${GRADE_GUIDE[grade].allows}`}>
+      <Badge tone={tone} className={className}>
+        {GRADE_LABEL[grade]}
+      </Badge>
+    </span>
   )
 }
 
@@ -338,5 +340,28 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
+  )
+}
+
+/** Expandable explanation of all grades, highlighting the current one. */
+export function GradeGuide({ current }: { current?: Grade | null }) {
+  return (
+    <details className="group text-sm">
+      <summary className="cursor-pointer list-none font-medium text-brand-700 hover:underline [&::-webkit-details-marker]:hidden">
+        What do the grades mean?
+      </summary>
+      <dl className="mt-3 space-y-2.5">
+        {(['A', 'B', 'C', 'MANUAL_REVIEW'] as Grade[]).map((g) => (
+          <div key={g} className={g === current ? 'rounded-lg bg-paper p-2.5 ring-1 ring-line' : 'px-2.5'}>
+            <dt className="font-medium">
+              {GRADE_LABEL[g]} · {GRADE_GUIDE[g].short}
+            </dt>
+            <dd className="text-muted">
+              {GRADE_GUIDE[g].meaning} {GRADE_GUIDE[g].allows}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   )
 }
