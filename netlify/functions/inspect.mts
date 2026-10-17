@@ -4,12 +4,13 @@
 // Never fabricates a result: if the model is unavailable the request fails.
 
 import type { Config } from '@netlify/functions'
-import { applyGuardrails } from '../../src/lib/grading'
+import { applyGuardrails, scopeCheck } from '../../src/lib/grading'
 import { eligibleRoutes } from '../../src/lib/recovery'
 import {
   CATEGORIES,
   DEFECT_TYPES,
   GRADES,
+  ITEM_KINDS,
   type AIInspection,
   type Category,
   type Grade,
@@ -32,6 +33,11 @@ const clip = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) :
 const SYSTEM = `You are a returns-inspection assistant for an Indian D2C apparel, footwear and accessories business.
 You examine photos of a returned product together with the seller's notes and report what is visibly wrong with it.
 You do NOT estimate prices, costs or values — the business's rate card does that from the defects you report.
+
+First, say what the photos actually show, judging from the photos alone (not the product name, category or notes):
+- item_kind "apparel" (clothing of any kind), "footwear" (shoes, sandals, slippers), "bag_or_accessory" (bags, wallets, belts, caps, scarves and similar fashion accessories), "other" (anything else — e.g. medicine, food, cosmetics, electronics, a document, furniture, a screenshot, a person or pet with no product in focus), or "unclear" (you can't tell).
+- item_seen: what it is in a few plain words, e.g. "a white canvas sneaker", "a strip of tablets".
+- If item_kind is "other", report no defects and propose MANUAL_REVIEW. Do not grade it.
 
 Severity — judge each defect by what it would take to fix:
 - minor: small, only noticeable up close; staff could fix it in-house in minutes (steam, spot clean, re-tag, repack).
@@ -61,6 +67,8 @@ Rules:
 const schema: JSchema = {
   type: 'object',
   properties: {
+    item_kind: { type: 'string', enum: ITEM_KINDS, description: 'What kind of item the photos show, judged from the photos alone.' },
+    item_seen: { type: 'string', description: 'What the photos show, in a few plain words.' },
     image_quality: { type: 'string', enum: ['good', 'limited', 'unusable'], description: 'How usable the photos are for inspection.' },
     product_match: { type: 'string', enum: ['matches', 'unclear', 'mismatch'], description: 'Whether the photos appear to show the described product type.' },
     summary: { type: 'string', description: 'Two or three sentences summarising what is visible.' },
@@ -84,7 +92,7 @@ const schema: JSchema = {
     limitations: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6, description: 'What could not be determined from the photos.' },
     recommended_physical_checks: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6 },
   },
-  required: ['image_quality', 'product_match', 'summary', 'defects', 'proposed_grade', 'grade_rationale', 'confidence', 'limitations', 'recommended_physical_checks'],
+  required: ['item_kind', 'item_seen', 'image_quality', 'product_match', 'summary', 'defects', 'proposed_grade', 'grade_rationale', 'confidence', 'limitations', 'recommended_physical_checks'],
 }
 
 export default async (req: Request) => {
@@ -181,16 +189,49 @@ export default async (req: Request) => {
   }
   const defects = [...byType.values()]
   const image_quality = pick(raw.image_quality, ['good', 'limited', 'unusable'] as const, 'limited')
-  const product_match = pick(raw.product_match, ['matches', 'unclear', 'mismatch'] as const, 'unclear')
   const confidence = pick(raw.confidence, ['low', 'medium', 'high'] as const, 'low')
+  const item_kind = pick(raw.item_kind, ITEM_KINDS, 'unclear')
+  const item_seen = clip(raw.item_seen, 120)
+  const cat = (CATEGORIES.includes(category as never) ? category : 'Topwear') as Category
+  const scope = scopeCheck(cat, item_kind, item_seen)
+
+  // Outside apparel, footwear and accessories: refuse to grade or price it at all.
+  if (scope.outOfScope) {
+    const refused: AIInspection = {
+      model,
+      created_at: new Date().toISOString(),
+      image_count: images.length,
+      image_quality,
+      product_match: 'mismatch',
+      summary: scope.note!,
+      defects: [],
+      proposed_grade: 'MANUAL_REVIEW',
+      grade_rationale: 'Not an item ReturnRescue inspects, so no grade was given.',
+      confidence,
+      limitations: ['ReturnRescue only inspects clothing, footwear, bags and fashion accessories.'],
+      recommended_physical_checks: ['Check the photos are of the returned product, then replace them and run the inspection again.'],
+      eligible_routes: [],
+      item_kind,
+      item_seen,
+      out_of_scope: true,
+      ...(modelGrade !== 'MANUAL_REVIEW' ? { ai_proposed_grade: modelGrade } : {}),
+      guardrail_notes: [],
+    }
+    await recordUsage(userId, 'inspection').catch((e) => console.error('usage record failed', e))
+    return json(200, { inspection: refused, usage })
+  }
+
+  // The right kind of item, but not the category chosen: a person should check before grading.
+  const product_match = scope.categoryMismatch ? 'mismatch' : pick(raw.product_match, ['matches', 'unclear', 'mismatch'] as const, 'unclear')
   const guard = applyGuardrails({
     proposed: modelGrade,
-    category: (CATEGORIES.includes(category as never) ? category : 'Topwear') as Category,
+    category: cat,
     defects,
     image_quality,
     product_match,
     confidence,
   })
+  if (scope.note) guard.notes.unshift(scope.note)
   const grade = guard.grade
 
   const limitations = strs(raw.limitations, 6)
@@ -216,6 +257,8 @@ export default async (req: Request) => {
     limitations,
     recommended_physical_checks: checks,
     eligible_routes: eligible,
+    item_kind,
+    item_seen,
     ...(guard.changed ? { ai_proposed_grade: modelGrade } : {}),
     guardrail_notes: guard.notes,
   }

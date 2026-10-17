@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyGuardrails, minimumGrade } from '../src/lib/grading'
+import { applyGuardrails, minimumGrade, scopeCheck } from '../src/lib/grading'
 import {
   DEFAULT_RATES,
   diffRates,
@@ -331,5 +331,26 @@ describe('learning from your own results', () => {
     )
     // (300 + 100 + 100) / 0.8 = 625 → 62.5% of ₹1,000
     expect(learnFromResults(items, DEFAULT_RATES)).toEqual([{ path: ['refurb_resale_pct'], label: 'Repaired items resell at', n: 5, suggested: 62.5, current: 50 }])
+  })
+})
+
+describe('items outside what ReturnRescue inspects', () => {
+  it('refuses anything that isn’t apparel, footwear or an accessory', () => {
+    const r = scopeCheck('Footwear', 'other', 'a strip of tablets')
+    expect(r.outOfScope).toBe(true)
+    expect(r.note).toMatch(/look like a strip of tablets/)
+  })
+  it('flags the right kind of item under the wrong category', () => {
+    const r = scopeCheck('Footwear', 'apparel', 'a blue cotton shirt')
+    expect(r).toMatchObject({ outOfScope: false, categoryMismatch: true })
+    expect(r.note).toMatch(/category is Footwear/)
+    expect(scopeCheck('Bags & accessories', 'bag_or_accessory', 'a leather belt').categoryMismatch).toBe(false)
+    expect(scopeCheck('Ethnic wear', 'apparel', 'a kurta').note).toBeNull()
+  })
+  it('leaves unclear photos to the usual photo-quality rules', () => {
+    expect(scopeCheck('Topwear', 'unclear', '')).toEqual({ outOfScope: false, categoryMismatch: false, note: null })
+  })
+  it('a category mismatch always goes to a person', () => {
+    expect(applyGuardrails({ proposed: 'A', category: 'Footwear', defects: [], image_quality: 'good', product_match: 'mismatch', confidence: 'high' }).grade).toBe('MANUAL_REVIEW')
   })
 })

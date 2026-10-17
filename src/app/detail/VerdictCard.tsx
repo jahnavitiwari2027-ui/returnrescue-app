@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Camera, Check, CheckCircle2, Loader2, ScanSearch, Sparkles, UserCheck } from 'lucide-react'
+import { Ban, Camera, Check, CheckCircle2, Loader2, ScanSearch, Sparkles, UserCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Button, Card, GradeBadge, GradeGuide, LinkButton, MoneyInput, Textarea } from '../../components/ui'
@@ -12,6 +12,7 @@ import { estimateFromRates, estimateInputFor, ratesPatch } from '../../lib/rates
 import { calculateRecovery } from '../../lib/recovery'
 import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
 import { BASIS_SHORT } from '../../lib/basis'
+import { supportHref } from '../../lib/support'
 import GradeModal from './GradeModal'
 import { useInspection } from './useInspection'
 
@@ -196,22 +197,35 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
 
   // ── Verdict ──
   const suggestedByAI = !item.grade && !!ai
+  const refused = suggestedByAI && !!ai?.out_of_scope
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center gap-2">
         <GradeBadge grade={grade} className="px-2.5 py-1 text-sm" />
-        <span className="text-sm font-medium">{GRADE_GUIDE[grade].short}</span>
-        {suggestedByAI && <span className="text-xs text-muted">· suggested by AI, {ai!.confidence} confidence</span>}
+        <span className="text-sm font-medium">{refused ? 'Not graded' : GRADE_GUIDE[grade].short}</span>
+        {suggestedByAI && !refused && <span className="text-xs text-muted">· suggested by AI, {ai!.confidence} confidence</span>}
         {item.grade_source === 'manual' && <span className="text-xs text-muted">· {item.is_sample ? 'sample, graded by hand' : 'graded by you'}</span>}
       </div>
-      <p className="mt-1 text-xs text-muted">{GRADE_GUIDE[grade].allows}</p>
+      {!refused && <p className="mt-1 text-xs text-muted">{GRADE_GUIDE[grade].allows}</p>}
       <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{ai?.summary && suggestedByAI ? ai.summary : GRADE_GUIDE[grade].meaning}</p>
 
-      {grade === 'MANUAL_REVIEW' ? (
+      {refused ? (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="flex items-center gap-2 font-medium text-red-900"><Ban className="size-4" /> Not something ReturnRescue can inspect</p>
+          <p className="mt-1 text-sm text-red-900/80">No grade or value was given. If these are the wrong photos, replace them and run the inspection again.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <LinkButton to={`${base}/returns/${item.id}/edit`} size="sm" variant="dark">Replace photos</LinkButton>
+            <Button size="sm" variant="secondary" onClick={() => setModal('correct')}>Grade it myself</Button>
+          </div>
+          <SupportNote id={item.id} />
+        </div>
+      ) : grade === 'MANUAL_REVIEW' ? (
         <div className="mt-5 rounded-xl bg-amber-50 p-4">
           <p className="flex items-center gap-2 font-medium text-amber-900"><UserCheck className="size-4" /> A person needs to check this one</p>
           {ai?.grade_rationale && <p className="mt-1 text-sm text-amber-900/80">{ai.grade_rationale}</p>}
+          {suggestedByAI && ai?.guardrail_notes?.[0] && <p className="mt-1 text-sm text-amber-900/80">{ai.guardrail_notes[0]}</p>}
           <Button className="mt-3" variant="dark" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Set grade after checking</Button>
+          {suggestedByAI && <SupportNote id={item.id} />}
         </div>
       ) : best ? (
         <>
@@ -369,5 +383,15 @@ function Outcome({ item, compact }: { item: ReturnItem; compact?: boolean }) {
       </div>
       {err && <p className="mt-1 text-xs font-medium text-red-700">{err}</p>}
     </div>
+  )
+}
+
+/** Shown with AI results a seller might disagree with. */
+export function SupportNote({ id }: { id: string }) {
+  return (
+    <p className="mt-3 text-xs text-ink-2">
+      Think the AI got this wrong?{' '}
+      <a href={supportHref('ai_result', id)} className="font-medium text-brand-700 underline">Contact support</a> and tell us what the item is.
+    </p>
   )
 }

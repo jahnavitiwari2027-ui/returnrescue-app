@@ -4,8 +4,8 @@
 //
 // Shared by the browser app and Netlify Functions.
 
-import { isUnfixable } from './rates'
-import { DEFECT_LABEL, GRADE_LABEL, type AIInspection, type Category, type Defect, type Grade } from './types'
+import { groupOf, isUnfixable } from './rates'
+import { DEFECT_LABEL, GRADE_LABEL, type AIInspection, type Category, type Defect, type Grade, type ItemKind } from './types'
 
 const RANK: Record<Exclude<Grade, 'MANUAL_REVIEW'>, number> = { A: 0, B: 1, C: 2 }
 
@@ -60,4 +60,28 @@ export function applyGuardrails(i: GuardrailInput): GuardrailResult {
   if (i.confidence === 'low') notes.push('The AI’s confidence is low — check the item by hand before acting.')
   if (i.image_quality === 'limited') notes.push('Photo quality is limited, so smaller defects may have been missed.')
   return { grade, notes, changed: grade !== i.proposed }
+}
+
+const KIND_GROUP: Partial<Record<ItemKind, ReturnType<typeof groupOf>>> = { apparel: 'apparel', footwear: 'footwear', bag_or_accessory: 'bags' }
+const KIND_LABEL: Record<ItemKind, string> = { apparel: 'clothing', footwear: 'footwear', bag_or_accessory: 'a bag or accessory', other: 'something else', unclear: 'unclear' }
+
+export interface ScopeResult {
+  /** The photos show something outside apparel, footwear and accessories. Refuse to grade or price it. */
+  outOfScope: boolean
+  /** The photos show an item we do inspect, but not the category the seller chose. */
+  categoryMismatch: boolean
+  note: string | null
+}
+
+/** Is the photographed item one ReturnRescue inspects, and does it match the category chosen? */
+export function scopeCheck(category: Category, kind: ItemKind, seen: string): ScopeResult {
+  const what = seen.trim() || 'something other than clothing, footwear or a bag'
+  if (kind === 'other') {
+    return { outOfScope: true, categoryMismatch: false, note: `These photos don’t look like clothing, footwear or a bag — they look like ${what}. ReturnRescue only inspects apparel, footwear and accessories, so this item wasn’t graded or priced.` }
+  }
+  const group = KIND_GROUP[kind]
+  if (group && group !== groupOf(category)) {
+    return { outOfScope: false, categoryMismatch: true, note: `The photos look like ${KIND_LABEL[kind]} (${what}), but the category is ${category}. If the category is wrong, edit the return and run the inspection again.` }
+  }
+  return { outOfScope: false, categoryMismatch: false, note: null }
 }

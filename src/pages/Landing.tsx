@@ -17,13 +17,14 @@ import {
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '../components/SiteChrome'
-import { Alert, Badge, Button, buttonClass, Field, GradeBadge, Input, Textarea } from '../components/ui'
+import { Alert, Badge, Button, buttonClass, Field, GradeBadge, Input, Select, Textarea } from '../components/ui'
 import { accountsEnabled, AFTER_TRIAL, config, LIMITS, PLANS } from '../config'
 import Methodology from './Methodology'
 import { buildDemoItems } from '../data/demoSeed'
 import { inr, pct } from '../lib/format'
 import { calculateRecovery, GRADE_ELIGIBILITY } from '../lib/recovery'
 import { GRADE_GUIDE, GRADES, ROUTE_LABEL, type Grade } from '../lib/types'
+import { SUPPORT_TOPICS, type SupportTopic } from '../lib/support'
 
 function Reveal({ children, className, delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -114,16 +115,35 @@ function InspectionPreview() {
   )
 }
 
+const AI_TEMPLATE = 'The AI result for this return looks wrong. The item is actually: '
+
 function ContactForm() {
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
-  const [form, setForm] = useState({ name: '', email: '', company: '', message: '', 'bot-field': '' })
+  // Links from the app (e.g. "Think the AI got this wrong?") prefill the topic and the return it's about.
+  const [form, setForm] = useState(() => {
+    const q = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search)
+    const t = q.get('topic')
+    const topic: SupportTopic = t && t in SUPPORT_TOPICS ? (t as SupportTopic) : 'general'
+    return {
+      name: '',
+      email: '',
+      company: '',
+      topic: SUPPORT_TOPICS[topic] as string,
+      return_ref: (q.get('ref') ?? '').slice(0, 120),
+      message: topic === 'ai_result' ? AI_TEMPLATE : '',
+      'bot-field': '',
+    }
+  })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  useEffect(() => {
+    if (window.location.hash === '#contact') document.getElementById('contact')?.scrollIntoView()
+  }, [])
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const errs: Record<string, string> = {}
     if (!form.name.trim()) errs.name = 'Please add your name.'
     if (!/^\S+@\S+\.\S+$/.test(form.email)) errs.email = 'Enter a valid email.'
-    if (form.message.trim().length < 10) errs.message = 'Tell us a little more (10+ characters).'
+    if (form.message.trim().length < 10 || form.message.trim() === AI_TEMPLATE.trim()) errs.message = 'Tell us a little more (10+ characters).'
     setErrors(errs)
     if (Object.keys(errs).length) return
     setState('sending')
@@ -146,7 +166,19 @@ function ContactForm() {
       <p className="hidden"><label>Leave empty <input name="bot-field" value={form['bot-field']} onChange={(e) => setForm({ ...form, 'bot-field': e.target.value })} /></label></p>
       <Field label="Name" error={errors.name}>{(id) => <Input id={id} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} invalid={!!errors.name} autoComplete="name" />}</Field>
       <Field label="Work email" error={errors.email}>{(id) => <Input id={id} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} invalid={!!errors.email} autoComplete="email" />}</Field>
-      <Field label="Company (optional)" className="sm:col-span-2">{(id) => <Input id={id} value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} autoComplete="organization" />}</Field>
+      <Field label="Company (optional)">{(id) => <Input id={id} value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} autoComplete="organization" />}</Field>
+      <Field label="Topic">
+        {(id) => (
+          <Select id={id} value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}>
+            {Object.values(SUPPORT_TOPICS).map((t) => <option key={t}>{t}</option>)}
+          </Select>
+        )}
+      </Field>
+      {form.return_ref && (
+        <Field label="Return reference" className="sm:col-span-2" hint="Filled in from the return you came from.">
+          {(id) => <Input id={id} value={form.return_ref} onChange={(e) => setForm({ ...form, return_ref: e.target.value.slice(0, 120) })} className="font-mono text-xs" />}
+        </Field>
+      )}
       <Field label="How can we help?" error={errors.message} className="sm:col-span-2">{(id) => <Textarea id={id} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} invalid={!!errors.message} placeholder="Monthly return volume, categories, what you’d like to see…" />}</Field>
       {state === 'error' && (
         <Alert tone="error" className="sm:col-span-2">
@@ -164,6 +196,7 @@ const faqs: [string, ReactNode][] = [
   ['How is GST handled?', 'If you’re GST-registered, the GST included in the selling price is deducted (it goes to the government), and GST on marketplace or gateway fees is treated as claimable input tax credit, not a cost. If you’re not registered, GST on fees counts as a cost. You set this on the Rates page.'],
   ['What happens to past decisions if I change my rates?', 'Nothing. Saved decisions and completed returns keep the values they were decided with. Returns without a decision can be updated in one step.'],
   ['How is the best option chosen?', 'By plain arithmetic, not AI: expected proceeds minus fees and costs for each route the grade allows. The highest net wins, and every line of the maths is visible.'],
+  ['What if the photo isn’t clothing, shoes or a bag?', 'The AI says what it sees and refuses to grade or price it. If the photo shows a shirt but the category says footwear, it goes to a person instead. Think it got it wrong? Every AI result has a link to contact support.'],
   ['Can photos prove an item is fine to resell?', 'No. Hidden damage, hygiene, odour and authenticity need a person. Every AI result says what to check by hand.'],
   ['Do I need to sign up?', `Not to look around — the demo is open. To inspect your own products, start the ${LIMITS.trialDays}-day free trial. No card needed.`],
   ['What happens after the trial?', AFTER_TRIAL + ' Nothing is charged unless you upgrade.'],

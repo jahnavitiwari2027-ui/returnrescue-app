@@ -66,6 +66,9 @@ export interface Defect {
   source: 'ai' | 'manual'
 }
 
+export const ITEM_KINDS = ['apparel', 'footwear', 'bag_or_accessory', 'other', 'unclear'] as const
+export type ItemKind = (typeof ITEM_KINDS)[number]
+
 /** Raw output of one AI inspection run. Stored verbatim for auditability. */
 export interface AIInspection {
   model: string
@@ -81,6 +84,12 @@ export interface AIInspection {
   limitations: string[]
   recommended_physical_checks: string[]
   eligible_routes: RouteKey[]
+  /** What the photos actually show, in the AI's words (e.g. "a strip of tablets"). */
+  item_seen?: string
+  /** What kind of item the photos show, judged from the photos alone. */
+  item_kind?: ItemKind
+  /** The photos show something ReturnRescue doesn't inspect: no grade or value was given. */
+  out_of_scope?: boolean
   /** The model's own grade before rule checks, when the rules changed it. */
   ai_proposed_grade?: Grade
   /** Why the rules changed the grade, plus cautions (low confidence, limited photos). */

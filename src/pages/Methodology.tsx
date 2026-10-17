@@ -45,7 +45,7 @@ export default function Methodology() {
           <div className="grid gap-8 border-t border-line px-6 py-6 lg:grid-cols-3">
             <div>
               <h3 className="font-semibold">Grading</h3>
-              <p className="mt-1 text-sm text-muted">A vision AI model (Google Gemini) follows a fixed rubric and may only report damage it can see. Fixed rules then check its grade: any visible defect rules out A, a major or unrepairable one means C, and odour, unclear photos or a possible mismatch go to a person.</p>
+              <p className="mt-1 text-sm text-muted">A vision AI model (Google Gemini) follows a fixed rubric and may only report damage it can see. Fixed rules then check its grade: any visible defect rules out A, a major or unrepairable one means C, and odour, unclear photos or a possible mismatch go to a person. Photos of anything other than clothing, footwear or a bag are refused — no grade, no value.</p>
               <dl className="mt-3 space-y-2 text-sm">
                 {GRADES.map((g) => (
                   <div key={g}>

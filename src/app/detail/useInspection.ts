@@ -44,8 +44,13 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
         },
       })
       // Price the defects the AI found with the rate card. Values the user entered or quoted are left alone.
-      const est = estimateFromRates(estimateInputFor({ ...item, ai_inspection: inspection }), rates)
-      await update(item.id, { ai_inspection: inspection, ...ratesPatch(item, est) })
+      // Items outside apparel, footwear and accessories aren't priced at all.
+      if (inspection.out_of_scope) {
+        await update(item.id, { ai_inspection: inspection })
+      } else {
+        const est = estimateFromRates(estimateInputFor({ ...item, ai_inspection: inspection }), rates)
+        await update(item.id, { ai_inspection: inspection, ...ratesPatch(item, est) })
+      }
       refresh()
     } catch (e) {
       if (e instanceof ApiError) setError({ text: e.message, upgrade: ['TRIAL_ENDED', 'TRIAL_LIMIT', 'PRO_REQUIRED'].includes(e.code) })

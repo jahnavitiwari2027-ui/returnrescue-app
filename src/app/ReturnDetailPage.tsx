@@ -8,7 +8,7 @@ import { inr, shortDate } from '../lib/format'
 import { DEFECT_LABEL, GRADE_LABEL, type ReturnItem } from '../lib/types'
 import NextSteps from './detail/NextSteps'
 import OptionsMaths from './detail/OptionsMaths'
-import VerdictCard from './detail/VerdictCard'
+import VerdictCard, { SupportNote } from './detail/VerdictCard'
 
 export default function ReturnDetailPage() {
   const { id } = useParams()
@@ -200,6 +200,7 @@ function AIFindings({ item }: { item: ReturnItem }) {
         </ul>
       </div>
       <p className="text-xs text-muted">{ai.model} · {shortDate(ai.created_at)} · AI results are provisional — a person confirms the grade.</p>
+      <SupportNote id={item.id} />
     </div>
   )
 }
