@@ -22,7 +22,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
           <li><strong>Account data:</strong> your email address, an optional business name and a securely hashed password.</li>
           <li><strong>Workspace data:</strong> the return records you create — product names, SKUs, prices, notes, cost estimates, grades, decisions — and the product photos you upload.</li>
           <li><strong>Billing data:</strong> subscription status and identifiers sent to us by our payment provider. We never see or store your full card details.</li>
-          <li><strong>Usage data:</strong> counts of AI inspections and summaries you run, used to apply plan limits. Our hosting provider keeps standard request logs.</li>
+          <li><strong>Usage data:</strong> counts of AI inspections and summaries you run, used to apply plan limits. Our hosting provider keeps standard request logs. We use Microsoft Clarity to see how visitors use the site (pages visited, clicks and scrolling); it masks text you type and uses cookies.</li>
           <li><strong>Demo workspace:</strong> anything you enter in the demo stays in your browser’s local storage. Photos you submit for an AI inspection in the demo are sent to our AI provider for that single request and not stored by us.</li>
         </ul>
         <h2>How we use it</h2>
@@ -33,6 +33,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
           <li><strong>Google (Gemini API)</strong> — the AI model that analyses photos and notes when you run an inspection or a summary. Data is sent only when you click to run it. While we use Google’s free API tier, Google may use submitted content to improve its products, so don’t upload photos showing people or personal information.</li>
           <li><strong>Dodo Payments</strong> — checkout, subscription billing, invoices and payment security, acting as merchant of record.</li>
           <li><strong>Netlify</strong> — website hosting and server functions.</li>
+          <li><strong>Microsoft Clarity</strong> — site analytics (how pages are used). We don’t use it for advertising.</li>
         </ul>
         <h2>Retention and deletion</h2>
         <p>Your records stay until you delete them. Deleting a return removes its record and photos. To delete your account and all workspace data, contact us at {contact}; we act on requests within 30 days, except where billing records must be kept by law.</p>
