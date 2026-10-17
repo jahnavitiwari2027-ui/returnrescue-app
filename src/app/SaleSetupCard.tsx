@@ -41,16 +41,26 @@ export function SaleSetupCard({
   saveDefault,
   onSaveDefault,
   ownCosts,
+  locked,
+  bare,
+  extra,
 }: {
   category: Category
   price: number
   sale: SaleSetup
   rates: RateCard
   onChange: (s: SaleSetup) => void
-  saveDefault: boolean
-  onSaveDefault: (v: boolean) => void
+  saveDefault?: boolean
+  /** Shows "Save as my default" when given. */
+  onSaveDefault?: (v: boolean) => void
   /** The seller typed their own selling costs, which take priority over these fees. */
-  ownCosts: boolean
+  ownCosts?: boolean
+  /** Warehouse staff: pick the platform only; GST, fees and delivery are set by ops. */
+  locked?: boolean
+  /** Without the card frame (inside a dialog). */
+  bare?: boolean
+  /** Extra controls shown before "Save as my default". */
+  extra?: ReactNode
 }) {
   const op = price > 0 ? price : 0
   const f = platformFees(category, op, sale, rates)
@@ -61,10 +71,8 @@ export function SaleSetupCard({
     onChange(next)
   }
 
-  return (
-    <Card>
-      <CardHeader title="Where it will sell" subtitle="Fees, GST and delivery are worked out for this platform. Tick a box to set any of them yourself." />
-      <div className="space-y-5 p-5">
+  const body = (
+      <div className={bare ? 'space-y-5' : 'space-y-5 p-5'}>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Platform">
           {PLATFORMS.map((p) => {
             const on = sale.platform === p
@@ -100,9 +108,9 @@ export function SaleSetupCard({
                   : `Clothing & footwear: ${rates.goods_gst_low_pct}% up to ₹${rates.goods_gst_threshold.toLocaleString('en-IN')}, ${rates.goods_gst_high_pct}% above`
           }
           meta={f.gst.set ? undefined : f.gst.meta}
-          check={{ label: 'Set GST myself', checked: f.gst.set, onChange: (v) => (v ? set({ gst_pct: f.gst.auto }) : set({}, ['gst_pct'])) }}
+          check={locked ? undefined : { label: 'Set GST myself', checked: f.gst.set, onChange: (v) => (v ? set({ gst_pct: f.gst.auto }) : set({}, ['gst_pct'])) }}
         >
-          {f.gst.set && (
+          {f.gst.set && !locked && (
             <div className="flex gap-1.5" role="radiogroup" aria-label="GST rate">
               {GST_CHOICES.map((g) => (
                 <Chip key={g} on={sale.gst_pct === g} onClick={() => set({ gst_pct: g })}>{g}%</Chip>
@@ -116,13 +124,17 @@ export function SaleSetupCard({
           value={`${f.commission.pct}%${f.fixed ? ` + ${inr(f.fixed.amount)}` : ''}`}
           detail={op ? `${f.commission.label}${f.fixed ? ` · ${f.fixed.label}` : ''}` : 'Enter the price to work these out'}
           meta={feesSet ? undefined : f.fixed && f.fixed.meta.kind === 'assumption' ? f.fixed.meta : f.commission.meta}
-          check={{
-            label: 'Enter fees myself',
-            checked: feesSet,
-            onChange: (v) => (v ? set({ commission_pct: f.commission.auto, fixed_fee: f.fixed?.auto ?? 0 }) : set({}, ['commission_pct', 'fixed_fee'])),
-          }}
+          check={
+            locked
+              ? undefined
+              : {
+                  label: 'Enter fees myself',
+                  checked: feesSet,
+                  onChange: (v) => (v ? set({ commission_pct: f.commission.auto, fixed_fee: f.fixed?.auto ?? 0 }) : set({}, ['commission_pct', 'fixed_fee'])),
+                }
+          }
         >
-          {feesSet && (
+          {feesSet && !locked && (
             <div className="grid grid-cols-2 gap-3">
               <NumBox label={sale.platform === 'own_site' ? 'Gateway fee' : 'Commission'} unit="%" max={100} value={sale.commission_pct ?? 0} onChange={(n) => set({ commission_pct: n })} />
               <NumBox label={sale.platform === 'amazon' ? 'Closing fee' : 'Fixed fee per order'} unit="₹" max={100_000} value={sale.fixed_fee ?? 0} onChange={(n) => set({ fixed_fee: n })} />
@@ -135,6 +147,9 @@ export function SaleSetupCard({
             <p className="text-sm font-medium">Delivery</p>
             <p className="whitespace-nowrap text-sm font-semibold tabular">{inr(f.delivery.amount)}</p>
           </div>
+          {locked ? (
+            <p className="mt-0.5 text-xs text-muted">{f.delivery.label}</p>
+          ) : (
           <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Delivery charge">
             {f.delivery.presets.map((d) => (
               <Chip key={d.id} on={f.delivery.chosen === d.id} onClick={() => set({ delivery: d.id }, ['delivery_custom'])}>
@@ -146,7 +161,8 @@ export function SaleSetupCard({
               Custom
             </Chip>
           </div>
-          {f.delivery.chosen === CUSTOM && (
+          )}
+          {f.delivery.chosen === CUSTOM && !locked && (
             <div className="mt-2 w-40">
               <NumBox label="Your delivery charge" unit="₹" max={100_000} value={sale.delivery_custom ?? 0} onChange={(n) => set({ delivery_custom: n })} />
             </div>
@@ -160,19 +176,32 @@ export function SaleSetupCard({
           </p>
         )}
 
-        <label className="flex items-start gap-2.5 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={saveDefault} onChange={(e) => onSaveDefault(e.target.checked)} />
-          <span>
-            Save as my default for new returns
-            <span className="block text-xs text-muted">Keeps this platform and anything you set above. Change it any time on your rate card.</span>
-          </span>
-        </label>
+        {extra}
+
+        {onSaveDefault && !locked && (
+          <label className="flex items-start gap-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={!!saveDefault} onChange={(e) => onSaveDefault(e.target.checked)} />
+            <span>
+              Save as my default for new returns
+              <span className="block text-xs text-muted">Keeps this platform and anything you set above. Change it any time on your rate card.</span>
+            </span>
+          </label>
+        )}
       </div>
+  )
+  if (bare) return body
+  return (
+    <Card>
+      <CardHeader
+        title="Where it will sell"
+        subtitle={locked ? 'Pick the platform this order came from. GST, fees and delivery are set by your ops team.' : 'Fees, GST and delivery are worked out for this platform. Tick a box to set any of them yourself.'}
+      />
+      {body}
     </Card>
   )
 }
 
-function Row({ title, value, detail, meta, check, children }: { title: string; value: string; detail: string; meta?: { kind: InputKind; source?: SourceKey }; check: { label: string; checked: boolean; onChange: (v: boolean) => void }; children?: ReactNode }) {
+function Row({ title, value, detail, meta, check, children }: { title: string; value: string; detail: string; meta?: { kind: InputKind; source?: SourceKey }; check?: { label: string; checked: boolean; onChange: (v: boolean) => void }; children?: ReactNode }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
@@ -181,10 +210,12 @@ function Row({ title, value, detail, meta, check, children }: { title: string; v
       </div>
       <p className="mt-0.5 text-xs text-muted">{detail}</p>
       <Meta meta={meta} />
-      <label className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-ink-2">
-        <input type="checkbox" className="size-3.5 accent-brand-700" checked={check.checked} onChange={(e) => check.onChange(e.target.checked)} />
-        {check.label}
-      </label>
+      {check && (
+        <label className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-ink-2">
+          <input type="checkbox" className="size-3.5 accent-brand-700" checked={check.checked} onChange={(e) => check.onChange(e.target.checked)} />
+          {check.label}
+        </label>
+      )}
       {children && <div className="mt-2">{children}</div>}
     </div>
   )

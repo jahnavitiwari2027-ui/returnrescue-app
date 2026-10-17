@@ -5,7 +5,7 @@
 
 import { DEFAULT_RATES, estimateFromRates, estimateInputFor, ratesPatch } from '../lib/rates'
 import { calculateRecovery } from '../lib/recovery'
-import { emptyReturnInput, type ReturnItem, type ReturnInput } from '../lib/types'
+import { emptyReturnInput, type Product, type ReturnItem, type ReturnInput } from '../lib/types'
 
 type Seed = Partial<ReturnInput> & { name: string; sku: string; daysAgo: number }
 
@@ -175,10 +175,42 @@ const seeds: Seed[] = [
     grade: 'MANUAL_REVIEW',
     grade_source: 'manual',
     grade_note: 'Sample record: odour cannot be verified from photos.',
+    flag_note: 'Customer says it smells of smoke. Please check before grading.',
+    flagged_at: new Date(Date.now() - 20 * 86_400_000).toISOString(),
     defects: [{ type: 'odor_reported', description: 'Customer reports odour', severity: 'moderate', source: 'manual' }],
     daysAgo: 21,
   },
 ]
+
+/** Fictional warehouse staff in the demo team. */
+export const DEMO_TEAM = [
+  { id: 'sample-staff-1', name: 'Ravi (sample)', status: 'active' as const },
+  { id: 'sample-staff-2', name: 'Pooja (sample)', status: 'active' as const },
+  { id: 'sample-staff-3', name: 'Arjun (sample)', status: 'pending' as const },
+]
+export const DEMO_JOIN_CODE = 'RR-DEMO0000'
+export const demoProductId = (sku: string) => `sample-prod-${sku.toLowerCase()}`
+
+/** The demo brand's product list: the sample returns' products plus two with no returns yet. */
+export function buildDemoProducts(now = new Date()): Product[] {
+  const created = new Date(now.getTime() - 60 * 86_400_000).toISOString()
+  const fromSeeds = seeds.map((s) => ({ sku: s.sku, name: s.name, category: s.category!, selling_price: s.original_price ?? 0 }))
+  const extra = [
+    { sku: 'SAMPLE-TOP-0602', name: 'Harbor Linen Overshirt — Sand', category: 'Topwear' as const, selling_price: 1899 },
+    { sku: 'SAMPLE-FTW-0330', name: 'Nimbus Canvas High-top Sneakers', category: 'Footwear' as const, selling_price: 3299 },
+  ]
+  return [...fromSeeds, ...extra].map((p) => ({
+    ...p,
+    id: demoProductId(p.sku),
+    created_at: created,
+    updated_at: created,
+    // MRP printed on the tag, shown for reference; fees and values use the selling price.
+    mrp: Math.ceil((p.selling_price * 1.25) / 100) * 100 - 1,
+    sale_setup: null,
+    notes: '',
+    is_sample: true,
+  }))
+}
 
 export function buildDemoItems(now = new Date()): ReturnItem[] {
   return seeds.map((s, idx) => {
@@ -191,6 +223,10 @@ export function buildDemoItems(now = new Date()): ReturnItem[] {
       created_at: created,
       updated_at: created,
       is_sample: true,
+      product_id: demoProductId(s.sku),
+      order_id: `SAMPLE-ORD-${4100 + idx * 7}`,
+      logged_by: DEMO_TEAM[idx % 2].id,
+      logged_by_name: DEMO_TEAM[idx % 2].name,
     }
     // Recovery values come from the published default rate card, like a new account's.
     Object.assign(item, ratesPatch(item, estimateFromRates(estimateInputFor(item), DEFAULT_RATES), { allowDecided: true }))

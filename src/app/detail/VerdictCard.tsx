@@ -14,10 +14,11 @@ import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type Route
 import { BASIS_SHORT } from '../../lib/basis'
 import { supportHref } from '../../lib/support'
 import GradeModal from './GradeModal'
+import { FlagButton } from './TeamActions'
 import { useInspection } from './useInspection'
 
 export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoRun: boolean }) {
-  const { update, base, mode } = useWorkspace()
+  const { update, base, mode, isOwner } = useWorkspace()
   const { hasAccess } = useAuth()
   const { rates } = useRates()
   const { run, running, error, canRun } = useInspection(item, autoRun)
@@ -117,9 +118,13 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
         </div>
         <p className="text-sm text-muted">Estimated net · {shortDate(item.decided_at)}</p>
         <Outcome item={item} />
-        <button className="mt-3 text-sm font-medium text-brand-700 hover:underline" onClick={() => setChoosing(true)}>
-          Change decision
-        </button>
+        {isOwner ? (
+          <button className="mt-3 text-sm font-medium text-brand-700 hover:underline" onClick={() => setChoosing(true)}>
+            Change decision
+          </button>
+        ) : (
+          <p className="mt-3 text-sm"><FlagButton item={item} /></p>
+        )}
         {gradeModal}
       </Card>
     )
@@ -171,9 +176,13 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
             {error.text} {error.upgrade && <Link to={`${base}/billing`} className="font-semibold underline">Upgrade</Link>}
           </Alert>
         )}
-        <button className="mt-4 block w-full text-sm text-muted hover:text-ink" onClick={() => setModal('manual')}>
-          or grade it yourself
-        </button>
+        {isOwner ? (
+          <button className="mt-4 block w-full text-sm text-muted hover:text-ink" onClick={() => setModal('manual')}>
+            or grade it yourself
+          </button>
+        ) : (
+          <div className="mt-4 text-sm"><FlagButton item={item} /></div>
+        )}
         {gradeModal}
       </Card>
     )
@@ -215,8 +224,9 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           <p className="mt-1 text-sm text-red-900/80">No grade or value was given. If these are the wrong photos, replace them and run the inspection again.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <LinkButton to={`${base}/returns/${item.id}/edit`} size="sm" variant="dark">Replace photos</LinkButton>
-            <Button size="sm" variant="secondary" onClick={() => setModal('correct')}>Grade it myself</Button>
+            {isOwner && <Button size="sm" variant="secondary" onClick={() => setModal('correct')}>Grade it myself</Button>}
           </div>
+          {!isOwner && <FlagButton item={item} />}
           <SupportNote id={item.id} />
         </div>
       ) : grade === 'MANUAL_REVIEW' ? (
@@ -224,7 +234,13 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           <p className="flex items-center gap-2 font-medium text-amber-900"><UserCheck className="size-4" /> A person needs to check this one</p>
           {ai?.grade_rationale && <p className="mt-1 text-sm text-amber-900/80">{ai.grade_rationale}</p>}
           {suggestedByAI && ai?.guardrail_notes?.[0] && <p className="mt-1 text-sm text-amber-900/80">{ai.guardrail_notes[0]}</p>}
-          <Button className="mt-3" variant="dark" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Set grade after checking</Button>
+          {isOwner ? (
+            <Button className="mt-3" variant="dark" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Set grade after checking</Button>
+          ) : item.flagged_at && item.flag_note ? (
+            <p className="mt-2 text-sm font-medium text-amber-900">Flagged for ops — they’ll check it and set the grade.</p>
+          ) : (
+            <FlagButton item={item} primary />
+          )}
           {suggestedByAI && <SupportNote id={item.id} />}
         </div>
       ) : best ? (
@@ -260,10 +276,11 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
       </div>
 
       <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm">
-        <button className="font-medium text-brand-700 hover:underline" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Change grade</button>
-        {grade !== 'MANUAL_REVIEW' && (
+        {isOwner && <button className="font-medium text-brand-700 hover:underline" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Change grade</button>}
+        {isOwner && grade !== 'MANUAL_REVIEW' && (
           <button className="font-medium text-brand-700 hover:underline" onClick={() => setChoosing(true)}>Choose another option</button>
         )}
+        {!isOwner && grade !== 'MANUAL_REVIEW' && !refused && <FlagButton item={item} />}
         {suggestedByAI && canRun && (
           <button className="font-medium text-brand-700 hover:underline" onClick={run}>Run inspection again</button>
         )}

@@ -191,6 +191,7 @@ function ContactForm() {
 }
 
 const faqs: [string, ReactNode][] = [
+  ['Who uses ReturnRescue?', 'Two people at a fashion brand. The owner or ops head sets the rate card, products and approved partners, and sees what every return recovers. Warehouse staff join with a team code and log each return on their phone: photo, tap the product, confirm the recommendation or flag it for ops.'],
   ['What does the AI do?', 'It looks at your photos and notes, lists each visible defect with how severe it is, and proposes a grade. It never sets a price. Fixed rules check the grade matches the defects, and you confirm or correct it.'],
   ['Where do the rupee values come from?', 'A published rate card: Amazon.in, Flipkart and Meesho fees, courier rates, Delhi minimum wage for in-house work, real cleaner, cobbler and tailor price lists, and surplus-stock and scrap rates. Every line links to its source, assumptions are labelled, and you can change any rate to your own.'],
   ['How is GST handled?', 'If you’re GST-registered, the GST included in the selling price is deducted (it goes to the government), and GST on marketplace or gateway fees is treated as claimable input tax credit, not a cost. If you’re not registered, GST on fees counts as a cost. You set this on the Rates page.'],
@@ -230,7 +231,7 @@ export default function Landing() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-14 lg:grid-cols-[1.1fr_1fr] lg:pt-20">
           <div className="animate-rise">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-medium text-brand-800">
-              <Sparkles className="size-3.5" /> For apparel & footwear brands
+              <Sparkles className="size-3.5" /> For Indian fashion brands and their warehouse teams
             </span>
             <h1 className="mt-6 font-display text-[52px] leading-[0.98] tracking-tight sm:text-[72px]">
               Every return deserves <em className="text-brand-700">a second chance.</em>
@@ -249,6 +250,53 @@ export default function Landing() {
           <div className="relative animate-rise [animation-delay:150ms]">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 via-paper to-transparent" />
             <RecoveryPreview />
+          </div>
+        </div>
+      </section>
+
+      {/* Who it's for */}
+      <section id="for" className="scroll-mt-20 border-t border-line bg-paper-2/40">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <Reveal>
+            <Eyebrow>Who it’s for</Eyebrow>
+            <h2 className="mt-3 max-w-3xl font-display text-4xl leading-tight tracking-tight sm:text-5xl">Built for the warehouse floor, bought by the brand.</h2>
+            <p className="mt-3 max-w-2xl text-ink-2">
+              For fashion brands that handle their own returns, roughly ten or more a day. The owner or ops head sets the rules once; the warehouse team works through every parcel in about a minute.
+            </p>
+          </Reveal>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <Reveal>
+              <div className="h-full rounded-2xl border border-line bg-white p-6">
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">For brand owners & ops</p>
+                <h3 className="mt-2 text-xl font-semibold">Set it up once. See what every return recovers.</h3>
+                <ul className="mt-3 space-y-1.5 text-sm text-ink-2">
+                  <li>· Your products (SKUs), platform fees, GST and delivery</li>
+                  <li>· Approved partners: cobblers, cleaners, liquidators, recyclers</li>
+                  <li>· Team code for your staff, and a record of who logged what</li>
+                  <li>· Insights, flagged returns and CSV export</li>
+                </ul>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Link to={accountsEnabled ? '/signup' : '/demo?as=owner'} className={buttonClass('primary', 'md')}>{accountsEnabled ? 'Start free trial' : 'Try the demo'}</Link>
+                  <Link to="/demo?as=owner" className={buttonClass('secondary', 'md')}>Owner demo</Link>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal delay={80}>
+              <div className="h-full rounded-2xl border border-line bg-white p-6">
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">For warehouse teams</p>
+                <h3 className="mt-2 text-xl font-semibold">Photo, tap the product, confirm. Next parcel.</h3>
+                <ul className="mt-3 space-y-1.5 text-sm text-ink-2">
+                  <li>· Join with the code from your manager</li>
+                  <li>· Log a return with its order ID; date, time and your name are saved</li>
+                  <li>· The app grades it and shows the best option to confirm</li>
+                  <li>· Not sure? Flag it for ops with a note</li>
+                </ul>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {accountsEnabled && <Link to="/join" className={buttonClass('primary', 'md')}>Join your team</Link>}
+                  <Link to="/demo?as=warehouse" className={buttonClass('secondary', 'md')}>Warehouse demo</Link>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>

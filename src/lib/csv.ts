@@ -16,6 +16,8 @@ export function returnsToCsv(items: ReturnItem[]): string {
     'Created',
     'Product name',
     'SKU',
+    'Order ID',
+    'Logged by',
     'Category',
     'Sold on',
     'Original price (INR)',
@@ -35,6 +37,7 @@ export function returnsToCsv(items: ReturnItem[]): string {
     'Realized amount (INR)',
     'Return shipping (sunk, INR)',
     'Photo count',
+    'Flagged for ops',
   ]
   const rows = items.map((i) => {
     const calc = calculateRecovery(i)
@@ -44,6 +47,8 @@ export function returnsToCsv(items: ReturnItem[]): string {
       i.created_at,
       i.name,
       i.sku,
+      i.order_id ?? '',
+      i.logged_by_name ?? '',
       i.category,
       i.sale_setup?.platform ? PLATFORM_LABEL[i.sale_setup.platform] ?? '' : '',
       i.original_price,
@@ -63,6 +68,7 @@ export function returnsToCsv(items: ReturnItem[]): string {
       i.realized_amount ?? '',
       i.return_shipping_cost,
       i.photos.length,
+      i.flagged_at && i.flag_note ? i.flag_note : '',
     ]
   })
   return [header, ...rows].map((r) => r.map(esc).join(',')).join('\r\n')

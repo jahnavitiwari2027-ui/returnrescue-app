@@ -18,7 +18,7 @@ export function entryToPartner(e: DirectoryEntry): Partner {
 }
 
 /** One directory business: what it does, where, how to reach it, and a way to save it. */
-export function DirectoryCard({ entry, saved, onSave, compact }: { entry: DirectoryEntry; saved: boolean; onSave: (e: DirectoryEntry) => Promise<void>; compact?: boolean }) {
+export function DirectoryCard({ entry, saved, onSave, compact }: { entry: DirectoryEntry; saved: boolean; onSave?: (e: DirectoryEntry) => Promise<void>; compact?: boolean }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   return (
@@ -30,6 +30,7 @@ export function DirectoryCard({ entry, saved, onSave, compact }: { entry: Direct
             <MapPin className="mt-0.5 size-3 shrink-0" /> {entry.location}
           </p>
         </div>
+        {onSave && (
         <button
           type="button"
           disabled={saved || busy}
@@ -38,7 +39,7 @@ export function DirectoryCard({ entry, saved, onSave, compact }: { entry: Direct
             setBusy(true)
             setErr('')
             try {
-              await onSave(entry)
+              await onSave?.(entry)
             } catch (e) {
               setErr((e as Error).message)
             } finally {
@@ -49,6 +50,7 @@ export function DirectoryCard({ entry, saved, onSave, compact }: { entry: Direct
         >
           {saved ? <><Check className="size-3.5" /> Saved</> : <><Plus className="size-3.5" /> Save</>}
         </button>
+        )}
       </div>
       {!compact && <p className="mt-2 text-xs text-ink-2"><span className="font-medium">Covers:</span> {entry.serves}</p>}
       <ul className="mt-2 flex flex-wrap gap-1">

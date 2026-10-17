@@ -12,7 +12,9 @@ export default function AuthPage({ mode }: { mode: Mode }) {
   const { session } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const next = params.get('next')?.startsWith('/app') ? params.get('next')! : '/app'
+  const rawNext = params.get('next') ?? ''
+  const next = rawNext.startsWith('/app') || rawNext === '/join' ? rawNext : '/app'
+  const joining = next === '/join'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [business, setBusiness] = useState('')
@@ -51,7 +53,7 @@ export default function AuthPage({ mode }: { mode: Mode }) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { business_name: business.trim() }, emailRedirectTo: `${window.location.origin}/app` },
+          options: { data: joining ? { full_name: business.trim() } : { business_name: business.trim() }, emailRedirectTo: `${window.location.origin}${next}` },
         })
         if (error) throw error
         if (!data.session) setDone('Check your inbox to confirm your email, then sign in.')
@@ -78,11 +80,20 @@ export default function AuthPage({ mode }: { mode: Mode }) {
     }
   }
 
-  const titles = {
-    login: ['Welcome back', 'Sign in to your ReturnRescue workspace.'],
-    signup: ['Create your workspace', 'Free to start. No card required.'],
-    forgot: ['Reset your password', 'We’ll email you a secure link.'],
-  }[mode]
+  const titles = (joining
+    ? { login: ['Join your team', 'Sign in, then enter the code from your manager.'], signup: ['Join your team', 'Create your login, then enter the code from your manager.'], forgot: ['Reset your password', 'We’ll email you a secure link.'] }
+    : {
+        login: ['Welcome back', 'Sign in to your ReturnRescue workspace.'],
+        signup: ['Create your workspace', 'Free to start. No card required.'],
+        forgot: ['Reset your password', 'We’ll email you a secure link.'],
+      })[mode]
+
+  const google = async () => {
+    if (!supabase) return
+    setFormError('')
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}${next}` } })
+    if (error) setFormError(/provider is not enabled|unsupported provider/i.test(error.message) ? 'Google sign-in isn’t switched on yet — please use email for now.' : error.message)
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -101,8 +112,16 @@ export default function AuthPage({ mode }: { mode: Mode }) {
             <Alert tone="success" icon={<MailCheck className="size-4" />} className="mt-8">{done}</Alert>
           ) : (
             <form onSubmit={submit} noValidate className="mt-8 space-y-4">
+              {mode !== 'forgot' && (
+                <>
+                  <Button variant="secondary" size="lg" className="w-full" onClick={google}>
+                    Continue with Google
+                  </Button>
+                  <div className="flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" /> or with email <span className="h-px flex-1 bg-line" /></div>
+                </>
+              )}
               {mode === 'signup' && (
-                <Field label="Business name" hint="Optional">
+                <Field label={joining ? 'Your name' : 'Business name'} hint={joining ? 'So your manager knows who’s asking.' : 'Optional'}>
                   {(id) => <Input id={id} value={business} onChange={(e) => setBusiness(e.target.value)} autoComplete="organization" />}
                 </Field>
               )}
@@ -135,11 +154,11 @@ export default function AuthPage({ mode }: { mode: Mode }) {
           <div className="mt-6 space-y-2 text-sm text-muted">
             {mode === 'login' && (
               <>
-                <p>New here? <Link to={`/signup${params.toString() ? `?${params}` : ''}`} className="font-medium text-brand-700 hover:underline">Create a free account</Link></p>
+                <p>New here? <Link to={`/signup${params.toString() ? `?${params}` : ''}`} className="font-medium text-brand-700 hover:underline">{joining ? 'Create your login' : 'Create a free account'}</Link></p>
                 <p><Link to="/forgot-password" className="hover:underline">Forgot your password?</Link></p>
               </>
             )}
-            {mode !== 'login' && <p>Already have an account? <Link to="/login" className="font-medium text-brand-700 hover:underline">Sign in</Link></p>}
+            {mode !== 'login' && <p>Already have an account? <Link to={`/login${params.toString() ? `?${params}` : ''}`} className="font-medium text-brand-700 hover:underline">Sign in</Link></p>}
             <p>Just looking? <Link to="/demo" className="font-medium text-brand-700 hover:underline">Try the demo — no sign-up</Link></p>
           </div>
         </div>
@@ -154,3 +173,4 @@ export default function AuthPage({ mode }: { mode: Mode }) {
     </div>
   )
 }
+

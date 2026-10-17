@@ -79,3 +79,22 @@ export async function getAccess(user: User): Promise<Access> {
   const trial = !pro && ends.getTime() > Date.now()
   return { pro, trial, allowed: pro || trial, trialEndsAt: ends.toISOString() }
 }
+
+export interface Workspace {
+  /** Whose returns, products, plan and AI allowance this request uses. */
+  ownerId: string
+  owner: User
+  role: 'owner' | 'staff' | 'pending'
+}
+
+/** The brand workspace a signed-in user works in: their own, or the brand they joined as staff. */
+export async function workspaceFor(user: User): Promise<Workspace> {
+  const { data, error } = await getAdmin().from('team_members').select('owner_id,status').eq('member_id', user.id).maybeSingle()
+  // No row (or the team update not run yet): their own workspace.
+  if (error || !data) return { ownerId: user.id, owner: user, role: 'owner' }
+  const row = data as { owner_id: string; status: string }
+  if (row.status !== 'active') return { ownerId: row.owner_id, owner: user, role: 'pending' }
+  const { data: o } = await getAdmin().auth.admin.getUserById(row.owner_id)
+  if (!o?.user) return { ownerId: user.id, owner: user, role: 'owner' }
+  return { ownerId: row.owner_id, owner: o.user, role: 'staff' }
+}

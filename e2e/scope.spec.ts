@@ -4,10 +4,10 @@ const shots = process.env.SHOT_DIR
 
 test('a photo that isn’t clothing, footwear or a bag is refused, with a way to contact support @mobile', async ({ page }) => {
   await page.goto('/demo/returns')
-  await page.waitForFunction(() => !!localStorage.getItem('returnrescue.demo.v1'))
+  await page.waitForFunction(() => !!localStorage.getItem('returnrescue.demo.v2'))
   // Stand-in for an AI result on a medicine photo filed as footwear (the demo can't call the AI).
   await page.evaluate(() => {
-    const key = 'returnrescue.demo.v1'
+    const key = 'returnrescue.demo.v2'
     const store = JSON.parse(localStorage.getItem(key)!)
     const item = store.items.find((i: { id: string }) => i.id === 'sample-03')
     item.ai_inspection = {

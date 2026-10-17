@@ -90,6 +90,9 @@ export interface AIInspection {
   item_kind?: ItemKind
   /** The photos show something ReturnRescue doesn't inspect: no grade or value was given. */
   out_of_scope?: boolean
+  /** SKU from the brand's product list the item looks like (a suggestion for a person to confirm). */
+  matched_sku?: string | null
+  match_reason?: string
   /** The model's own grade before rule checks, when the rules changed it. */
   ai_proposed_grade?: Grade
   /** Why the rules changed the grade, plus cautions (low confidence, limited photos). */
@@ -145,6 +148,16 @@ export interface ReturnItem {
   value_basis: Partial<Record<RouteKey | 'costs', ValueBasis>>
   /** Where it will be resold and any fees set by hand. Null = the rate card's default platform. */
   sale_setup: SaleSetup | null
+  /** The marketplace or website order this return came from. */
+  order_id: string | null
+  /** The product (SKU) in the brand's product list this return belongs to. */
+  product_id: string | null
+  /** Who logged it — recorded by the database in accounts. */
+  logged_by: string | null
+  logged_by_name: string
+  /** A team member asked ops to look at this return. */
+  flag_note: string
+  flagged_at: string | null
 
   // Inspection
   status: ReturnStatus
@@ -241,6 +254,12 @@ export function emptyReturnInput(): ReturnInput {
     return_shipping_cost: 0,
     value_basis: {},
     sale_setup: null,
+    order_id: null,
+    product_id: null,
+    logged_by: null,
+    logged_by_name: '',
+    flag_note: '',
+    flagged_at: null,
     status: 'awaiting_inspection',
     ai_inspection: null,
     grade: null,
@@ -255,4 +274,33 @@ export function emptyReturnInput(): ReturnInput {
     realized_amount: null,
     completed_at: null,
   }
+}
+
+/** A product (SKU) in the brand's product list. */
+export interface Product {
+  id: string
+  created_at: string
+  updated_at: string
+  sku: string
+  name: string
+  category: Category
+  /** Printed MRP, for reference. */
+  mrp: number | null
+  /** What customers usually pay — used for fees, GST and values. */
+  selling_price: number
+  /** Saved platform, GST, fee and delivery choices for this product. */
+  sale_setup: SaleSetup | null
+  notes: string
+  is_sample?: boolean
+}
+export type ProductInput = Omit<Product, 'id' | 'created_at' | 'updated_at'>
+
+export type TeamRole = 'owner' | 'staff'
+
+/** Fill fields a record saved by an older version may not have. */
+export function withDefaults<T extends Partial<ReturnItem>>(row: T): T & ReturnInput {
+  const d = emptyReturnInput()
+  const out = { ...d, ...row } as T & ReturnInput
+  for (const k of Object.keys(d) as (keyof ReturnInput)[]) if (out[k] === undefined) (out as Record<string, unknown>)[k] = d[k]
+  return out
 }

@@ -1,10 +1,10 @@
-// "My partners": a business's own refurbishers, liquidation buyers, recyclers.
-// Demo: stored in this browser. Account: stored on the signed-in user's
-// profile (Supabase user metadata), so no extra database table is needed.
+// "My partners": a brand's approved refurbishers, liquidation buyers, recyclers.
+// Demo: stored in this browser. Account: on the brand's team row, shared with its
+// staff (older accounts: the owner's profile metadata, used until the first save).
 
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../lib/supabase'
+import { saveTeamSetting } from './rates'
 import type { RouteKey } from '../lib/types'
 import type { WorkspaceMode } from './repo'
 
@@ -36,12 +36,15 @@ function readDemo(): Partner[] {
 }
 
 export function usePartners(mode: WorkspaceMode) {
-  const { user } = useAuth()
+  const { user, team, refresh } = useAuth()
   const [partners, setPartners] = useState<Partner[]>(() => (mode === 'demo' ? readDemo() : []))
 
   useEffect(() => {
-    if (mode === 'account') setPartners(((user?.user_metadata?.partners as Partner[] | undefined) ?? []).slice(0, MAX_PARTNERS))
-  }, [mode, user])
+    if (mode === 'account') {
+      const list = team?.role === 'staff' ? team.partners : team?.partners ?? user?.user_metadata?.partners
+      setPartners((Array.isArray(list) ? (list as Partner[]) : []).slice(0, MAX_PARTNERS))
+    }
+  }, [mode, user, team])
 
   const save = useCallback(
     async (next: Partner[]) => {
@@ -54,12 +57,11 @@ export function usePartners(mode: WorkspaceMode) {
         setPartners(next)
         return
       }
-      if (!supabase) throw new Error('Accounts are not configured.')
-      const { error } = await supabase.auth.updateUser({ data: { partners: next } })
-      if (error) throw new Error(error.message)
+      await saveTeamSetting('partners', next, team)
       setPartners(next)
+      if (team?.available) await refresh()
     },
-    [mode],
+    [mode, team, refresh],
   )
 
   return {

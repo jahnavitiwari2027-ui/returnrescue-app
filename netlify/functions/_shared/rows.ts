@@ -1,4 +1,4 @@
-import type { ReturnItem } from '../../../src/lib/types'
+import { withDefaults, type ReturnItem } from '../../../src/lib/types'
 
 const NUMERIC = [
   'original_price', 'resale_price', 'refurb_resale_price', 'selling_fee_pct', 'refurb_cost', 'handling_cost',
@@ -13,5 +13,5 @@ export function normalizeRow(row: Record<string, unknown>): ReturnItem {
   r.defects = r.defects ?? []
   r.value_basis = r.value_basis ?? {}
   r.sale_setup = r.sale_setup ?? null
-  return r as unknown as ReturnItem
+  return withDefaults(r as unknown as ReturnItem)
 }
