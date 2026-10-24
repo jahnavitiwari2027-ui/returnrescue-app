@@ -16,6 +16,7 @@ describe('Gemini provider', () => {
     delete process.env.ANTHROPIC_API_KEY
     delete process.env.AI_PROVIDER
     delete process.env.GEMINI_MODEL
+    delete process.env.GEMINI_FALLBACK_MODEL
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -52,6 +53,36 @@ describe('Gemini provider', () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).generationConfig.responseSchema).toBeUndefined()
   })
 
+  it('retries a busy model, then tries the backup free model', async () => {
+    const ok = reply(200, { candidates: [{ content: { parts: [{ text: '{"proposed_grade":"B"}' }] } }] })
+    let fetchMock = vi.fn().mockResolvedValueOnce(reply(503, { error: { message: 'overloaded' } })).mockResolvedValueOnce(ok)
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 })).toEqual({ proposed_grade: 'B' })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    const ok2 = reply(200, { candidates: [{ content: { parts: [{ text: '{"proposed_grade":"A"}' }] } }] })
+    fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply(429, { error: { message: 'quota' } }))
+      .mockResolvedValueOnce(reply(429, { error: { message: 'quota' } }))
+      .mockResolvedValueOnce(ok2)
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 })).toEqual({ proposed_grade: 'A' })
+    expect(fetchMock.mock.calls[2][0]).toContain('/models/gemini-3.6-flash:generateContent')
+
+    // A backup model that isn't available still reports the original "busy" error.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(reply(429, {})).mockResolvedValueOnce(reply(429, {})).mockResolvedValueOnce(reply(404, { error: { message: 'not found' } })))
+    const err = await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 }).catch((e) => e)
+    expect(aiErrorResponse(err).code).toBe('AI_BUSY')
+  }, 15_000)
+
+  it('does not retry errors that a retry cannot fix', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply(400, { error: { message: 'API key not valid' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 }).catch(() => null)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('maps auth, quota and safety errors without inventing a result', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(429, { error: { message: 'quota' } })))
     const err = await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 }).catch((e) => e)
@@ -62,5 +93,5 @@ describe('Gemini provider', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply(400, { error: { message: 'API key not valid' } })))
     const bad = await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 }).catch((e) => e)
     expect(aiErrorResponse(bad).code).toBe('AI_AUTH')
-  })
+  }, 15_000)
 })

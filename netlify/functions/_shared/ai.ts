@@ -64,8 +64,40 @@ export interface ImageInput {
   data: string // base64
 }
 
+// Google answers 429 (rate or daily limit) and 500/503 (overloaded) quickly, so these are
+// worth retrying: once more on the same model, then once on a second free model, which has
+// its own quota. Timeouts are not retried — there wouldn't be time.
+const RETRYABLE = new Set([429, 500, 503])
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+export function geminiFallbackModel(): string | null {
+  const f = env('GEMINI_FALLBACK_MODEL') ?? 'gemini-3.6-flash'
+  return f && f !== aiModel('gemini') ? f : null
+}
+
 async function geminiGenerate(body: Record<string, unknown>, timeoutMs: number) {
-  const model = aiModel('gemini')
+  const started = Date.now()
+  const primary = aiModel('gemini')
+  const fallback = geminiFallbackModel()
+  const plan = fallback ? [primary, primary, fallback] : [primary, primary]
+  let firstError: unknown
+  for (let i = 0; i < plan.length; i++) {
+    const left = timeoutMs - (Date.now() - started)
+    if (i > 0 && left < 8_000) break
+    try {
+      return await geminiCall(plan[i], body, left)
+    } catch (e) {
+      const retryable = e instanceof AIError && RETRYABLE.has(e.status)
+      if (i === 0) firstError = e
+      // A problem with the backup model (e.g. not available) shouldn't hide the real one.
+      if (!retryable) throw i > 0 && plan[i] !== primary ? firstError : e
+      if (i === 0) await sleep(1_500)
+    }
+  }
+  throw firstError
+}
+
+async function geminiCall(model: string, body: Record<string, unknown>, timeoutMs: number) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), timeoutMs)
