@@ -138,7 +138,7 @@ export default function GradeModal({
           </p>
         )}
         {item.decision_route && item.status !== 'completed' && (
-          <p className="rounded-lg bg-paper px-3 py-2 text-xs text-ink-2">Saving a new grade clears the saved decision and re-prices this return with your current rates.</p>
+          <p className="rounded-lg bg-paper px-3 py-2 text-xs text-ink-2">Saving a new grade re-prices this return with your current rates and picks the best option again.</p>
         )}
         <Field label={mode === 'correct' ? 'Reason for correction' : 'Note (optional)'} error={err} required={mode === 'correct'}>
           {(id) => <Textarea id={id} value={note} onChange={(e) => { setNote(e.target.value); setErr('') }} placeholder="e.g. Stain lifted after spot cleaning test." className="min-h-20" />}

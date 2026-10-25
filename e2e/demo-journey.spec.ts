@@ -71,8 +71,11 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await page.getByRole('checkbox', { name: 'Stain' }).check()
   await page.getByRole('button', { name: 'Save grade' }).click()
 
-  // Verdict card: Grade B → best option is refurbish at 2400 - 480 - 200 - 100 = 1620
+  // Graded → the best option is saved automatically: refurbish at 2400 - 480 - 200 - 100 = 1620
   await expect(page.getByText('Best option')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Confirm' })).toHaveCount(0)
+  await expect(page.getByText('Next steps')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Refurbish, then resell' })).toBeVisible()
   await expect(page.getByText('Repackage / refurbish').first()).toBeVisible()
   await expect(page.getByText('₹1,620').first()).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/verdict.png`, fullPage: true })
@@ -84,18 +87,17 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await expect(page.getByText(/kept on the record/)).toBeVisible()
   await page.getByLabel('Why this option?').fill('Liquidator collecting a footwear lot this week.')
   await page.getByRole('button', { name: 'Save decision' }).click()
-  await expect(page.getByText('Decision saved')).toBeVisible()
+  await expect(page.getByText('Your choice')).toBeVisible()
+  await expect(page.getByTestId('option')).toContainText('Liquidate')
   await expect(page.getByText('₹850').first()).toBeVisible() // bulk sale: 900 − 50, no per-order handling
   if (shots) await page.screenshot({ path: `${shots}/decision.png`, fullPage: true })
 
   // Next-steps pathway for the chosen route
-  await expect(page.getByText('Next steps · Liquidate')).toBeVisible()
-  await expect(page.getByText('In Delhi NCR')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Liquidate' })).toBeVisible()
+  await expect(page.getByText('Who can help')).toBeVisible()
   await expect(page.getByText('IndiaLot')).toBeVisible()
-  await page.getByRole('button', { name: 'Group similar items into a lot (same category or grade).' }).click()
-  await expect(page.getByText('1/4')).toBeVisible()
   // Save a partner from the pathway
-  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByRole('button', { name: 'Add contact' }).click()
   await page.getByLabel('Name').fill('Test Liquidation Buyer')
   await page.getByLabel('Phone / WhatsApp').fill('9876543210')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
@@ -103,16 +105,24 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
 
   // Persists after a full reload
   await page.reload()
-  await expect(page.getByText('Decision saved')).toBeVisible()
+  await expect(page.getByText('Your choice')).toBeVisible()
+
+  // Change the grade: the best option is picked again automatically
+  await page.getByRole('button', { name: 'Change grade' }).click()
+  await page.getByRole('radio', { name: /Grade C/ }).click()
+  await page.getByRole('button', { name: 'Save grade' }).click()
+  await expect(page.getByText('Best option')).toBeVisible()
+  await expect(page.getByTestId('option')).toContainText('Liquidate')
 
   // Record realized proceeds → done
+  await page.getByRole('button', { name: /Record the amount received/ }).click()
   await page.getByLabel(/Amount received/).fill('880')
   await page.getByRole('button', { name: 'Mark done' }).click()
   await expect(page.getByText(/₹30 above the estimate/)).toBeVisible()
 
   // The maths is one tap away
   await page.getByText('All options and the maths').click()
-  await expect(page.getByText('Not allowed for Grade B.')).toBeVisible()
+  await expect(page.getByText('Not allowed for Grade C.').first()).toBeVisible()
 
   // Inventory search, filter, export
   await page.goto('/demo/returns')

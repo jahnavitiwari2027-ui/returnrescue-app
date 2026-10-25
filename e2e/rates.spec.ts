@@ -16,7 +16,7 @@ test('every rupee on a sample return traces to the rate card, and editing rates 
 
   // A return with a saved decision, before the rate change
   await page.goto('/demo/returns/sample-02')
-  const decidedBefore = (await page.getByText('Decision saved').locator('xpath=..').textContent()) ?? ''
+  const decidedBefore = (await page.getByTestId('option').textContent()) ?? ''
   expect(decidedBefore).toContain('₹886')
 
   // Change a rate and update open returns
@@ -36,7 +36,7 @@ test('every rupee on a sample return traces to the rate card, and editing rates 
 
   // The saved decision is untouched
   await page.goto('/demo/returns/sample-02')
-  await expect(page.getByText('Decision saved').locator('xpath=..')).toHaveText(decidedBefore)
+  await expect(page.getByTestId('option')).toHaveText(decidedBefore)
 
   // Reset restores the published defaults
   await page.goto('/demo/rates')

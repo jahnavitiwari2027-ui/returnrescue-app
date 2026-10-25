@@ -4,8 +4,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useWorkspace } from '../../context/WorkspaceContext'
 import { api, ApiError } from '../../lib/api'
 import { useRates } from '../../data/rates'
-import { estimateFromRates, estimateInputFor, ratesPatch } from '../../lib/rates'
 import { imageForInspection } from '../../lib/image'
+import { inspectionPatch } from '../../lib/decision'
 import type { ReturnItem } from '../../lib/types'
 
 export interface InspectionError {
@@ -20,7 +20,8 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
   const { rates } = useRates()
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<InspectionError | null>(null)
-  const canRun = mode === 'account' && hasAccess
+  // A finished sale is history: it isn't re-inspected.
+  const canRun = mode === 'account' && hasAccess && item.status !== 'completed'
 
   const run = useCallback(async () => {
     setError(null)
@@ -43,14 +44,8 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
           original_price: item.original_price,
         },
       })
-      // Price the defects the AI found with the rate card. Values the user entered or quoted are left alone.
-      // Items outside apparel, footwear and accessories aren't priced at all.
-      if (inspection.out_of_scope) {
-        await update(item.id, { ai_inspection: inspection })
-      } else {
-        const est = estimateFromRates(estimateInputFor({ ...item, ai_inspection: inspection }), rates)
-        await update(item.id, { ai_inspection: inspection, ...ratesPatch(item, est) })
-      }
+      // The AI's grade is saved straight away and the best option chosen from it; the person can still change either.
+      await update(item.id, inspectionPatch(item, inspection, rates))
       refresh()
     } catch (e) {
       if (e instanceof ApiError) setError({ text: e.message, upgrade: ['TRIAL_ENDED', 'TRIAL_LIMIT', 'PRO_REQUIRED'].includes(e.code) })

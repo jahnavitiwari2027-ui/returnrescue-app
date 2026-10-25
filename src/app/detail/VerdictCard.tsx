@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Ban, Camera, Check, CheckCircle2, Loader2, ScanSearch, Sparkles, UserCheck } from 'lucide-react'
+import { Ban, Camera, Check, CheckCircle2, Loader2, RotateCcw, ScanSearch, Sparkles, UserCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Button, Card, GradeBadge, GradeGuide, LinkButton, MoneyInput, Textarea } from '../../components/ui'
@@ -13,6 +13,7 @@ import { calculateRecovery } from '../../lib/recovery'
 import { GRADE_GUIDE, ROUTE_LABEL, type ReturnInput, type ReturnItem, type RouteKey } from '../../lib/types'
 import { BASIS_SHORT } from '../../lib/basis'
 import { supportHref } from '../../lib/support'
+import { autoDecision, gradedByAI } from '../../lib/decision'
 import GradeModal from './GradeModal'
 import { useInspection } from './useInspection'
 
@@ -70,20 +71,18 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
       item={{ ...item, grade }}
       onClose={() => setModal(null)}
       onSave={async (g, note, defects) => {
-        // A new grade or defect list changes the repair and liquidation estimates on the rate card.
-        // Saving a new grade clears an open decision, so its values may be repriced too.
+        // A new grade or defect list changes the repair and liquidation estimates, so the return
+        // is re-priced and the best option is picked again (none for manual review).
         const est = estimateFromRates(estimateInputFor(item, { grade: g, defects }), rates)
+        const open: ReturnItem = { ...item, decision_route: null, decision_net: null, decided_at: null }
+        const prices = ratesPatch(open, est)
         await update(item.id, {
-          ...ratesPatch(item, est, { allowDecided: item.status !== 'completed' }),
+          ...prices,
           grade: g,
-          grade_source: modal === 'correct' ? 'ai_corrected' : 'manual',
+          grade_source: gradedByAI(item) ? 'ai_corrected' : 'manual',
           grade_note: note,
           defects,
-          status: item.status === 'awaiting_inspection' ? 'inspected' : item.status,
-          // a new grade can change the best option, so an earlier decision is cleared
-          ...(item.decision_route && item.status !== 'completed'
-            ? { decision_route: null, decision_net: null, decided_at: null, status: 'inspected' as const }
-            : {}),
+          ...autoDecision({ ...open, ...prices, grade: g, defects }),
         })
         setModal(null)
       }}
@@ -101,26 +100,7 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           Received <span className="font-semibold text-ink tabular">{inr(item.realized_amount)}</span>
           {diff != null && <> · {diff >= 0 ? `${inr(diff)} above` : `${inr(-diff)} below`} the estimate</>}
         </p>
-        <Outcome item={item} compact />
-      </Card>
-    )
-  }
-
-  // ── Decided ──
-  if (item.decision_route && !choosing) {
-    return (
-      <Card className="p-5">
-        <p className="flex items-center gap-2 text-sm font-medium text-brand-700"><Check className="size-4" /> Decision saved</p>
-        <div className="mt-2 flex items-baseline justify-between gap-3">
-          <p className="text-lg font-semibold">{ROUTE_LABEL[item.decision_route]}</p>
-          <p className="font-display text-3xl tabular">{inr(item.decision_net)}</p>
-        </div>
-        <p className="text-sm text-muted">Estimated net · {shortDate(item.decided_at)}</p>
         <Outcome item={item} />
-        <button className="mt-3 text-sm font-medium text-brand-700 hover:underline" onClick={() => setChoosing(true)}>
-          Change decision
-        </button>
-        {gradeModal}
       </Card>
     )
   }
@@ -195,19 +175,30 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
     )
   }
 
-  // ── Verdict ──
+  // ── Verdict: graded automatically; the person can re-run, change the grade or pick another option ──
+  const fromAI = gradedByAI(item)
   const suggestedByAI = !item.grade && !!ai
   const refused = suggestedByAI && !!ai?.out_of_scope
+  const decided = item.decision_route ? calc.routes.find((r) => r.route === item.decision_route) ?? null : null
+  const shownNet = item.decision_route ? item.decision_net : best?.net ?? null
+  const sourceNote =
+    item.grade_source === 'ai_accepted'
+      ? `graded by AI · ${ai?.confidence ?? 'medium'} confidence`
+      : item.grade_source === 'ai_corrected'
+        ? 'AI grade, corrected by you'
+        : item.grade
+          ? item.is_sample ? 'sample, graded by hand' : 'graded by you'
+          : suggestedByAI && !refused
+            ? `AI · ${ai!.confidence} confidence`
+            : ''
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center gap-2">
         <GradeBadge grade={grade} className="px-2.5 py-1 text-sm" />
         <span className="text-sm font-medium">{refused ? 'Not graded' : GRADE_GUIDE[grade].short}</span>
-        {suggestedByAI && !refused && <span className="text-xs text-muted">· suggested by AI, {ai!.confidence} confidence</span>}
-        {item.grade_source === 'manual' && <span className="text-xs text-muted">· {item.is_sample ? 'sample, graded by hand' : 'graded by you'}</span>}
+        {sourceNote && <span className="text-xs text-muted">· {sourceNote}</span>}
       </div>
-      {!refused && <p className="mt-1 text-xs text-muted">{GRADE_GUIDE[grade].allows}</p>}
-      <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{ai?.summary && suggestedByAI ? ai.summary : GRADE_GUIDE[grade].meaning}</p>
+      <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{ai?.summary && fromAI ? ai.summary : GRADE_GUIDE[grade].meaning}</p>
 
       {refused ? (
         <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
@@ -224,26 +215,31 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           <p className="flex items-center gap-2 font-medium text-amber-900"><UserCheck className="size-4" /> A person needs to check this one</p>
           {ai?.grade_rationale && <p className="mt-1 text-sm text-amber-900/80">{ai.grade_rationale}</p>}
           {suggestedByAI && ai?.guardrail_notes?.[0] && <p className="mt-1 text-sm text-amber-900/80">{ai.guardrail_notes[0]}</p>}
-          <Button className="mt-3" variant="dark" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Set grade after checking</Button>
+          <Button className="mt-3" variant="dark" onClick={() => setModal(fromAI ? 'correct' : 'manual')}>Set grade after checking</Button>
           {suggestedByAI && <SupportNote id={item.id} />}
         </div>
-      ) : best ? (
+      ) : decided || best ? (
         <>
-          <div className="mt-5 rounded-xl border border-brand-200 bg-brand-50/60 p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-brand-800">Best option</p>
+          <div className="mt-5 rounded-xl border border-brand-200 bg-brand-50/60 p-4" data-testid="option">
+            <p className="text-xs font-medium uppercase tracking-wider text-brand-800">
+              {item.decision_route && item.decision_route !== calc.recommended ? 'Your choice' : 'Best option'}
+            </p>
             <div className="mt-1 flex items-baseline justify-between gap-3">
-              <p className="text-lg font-semibold">{best.label}</p>
-              <p className={clsx('font-display text-3xl tabular', best.net < 0 && 'text-red-700')}>{inr(best.net)}</p>
+              <p className="text-lg font-semibold">{item.decision_route ? ROUTE_LABEL[item.decision_route] : best?.label}</p>
+              <p className={clsx('font-display text-3xl tabular', (shownNet ?? 0) < 0 && 'text-red-700')}>{inr(shownNet)}</p>
             </div>
             <p className="text-xs text-muted">
-              Estimated net per unit · {BASIS_SHORT[best.basis]}
+              Estimated net per unit · {BASIS_SHORT[(decided ?? best)?.basis ?? 'estimate']}
+              {item.decided_at && <> · saved {shortDate(item.decided_at)}</>}
             </p>
           </div>
-          <Button size="lg" className="mt-4 w-full" loading={saving} onClick={() => decide(best.route, '')} icon={<Check className="size-4" />}>
-            Confirm
-          </Button>
-          {err && <Alert tone="error" className="mt-3">{err}</Alert>}
-          {ai?.recommended_physical_checks?.[0] && suggestedByAI && (
+          {!item.decision_route && (
+            // Older returns graded before decisions were automatic.
+            <Button size="lg" className="mt-4 w-full" loading={saving} onClick={() => decide(best!.route, '')} icon={<Check className="size-4" />}>
+              Confirm
+            </Button>
+          )}
+          {ai?.recommended_physical_checks?.[0] && fromAI && (
             <p className="mt-3 text-xs text-muted">Before you act: {ai.recommended_physical_checks[0]}</p>
           )}
         </>
@@ -254,22 +250,25 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           <LinkButton to={`${base}/returns/${item.id}/edit`} size="sm" variant="secondary" className="mt-3">Add values</LinkButton>
         </div>
       )}
+      {err && <Alert tone="error" className="mt-3">{err}</Alert>}
 
-      <div className="mt-5 border-t border-line pt-4">
+      {!refused && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canRun && item.photos.length > 0 && (
+            <Button size="sm" variant="secondary" icon={<RotateCcw className="size-3.5" />} onClick={run}>Re-run inspection</Button>
+          )}
+          <Button size="sm" variant="secondary" onClick={() => setModal(fromAI ? 'correct' : 'manual')}>Change grade</Button>
+          {grade !== 'MANUAL_REVIEW' && (decided || best) && (
+            <Button size="sm" variant="secondary" onClick={() => setChoosing(true)}>Choose another option</Button>
+          )}
+        </div>
+      )}
+      {error && <Alert tone="error" className="mt-3">{error.text}</Alert>}
+      {item.decision_route && <Outcome item={item} />}
+
+      <div className="mt-4 border-t border-line pt-3">
         <GradeGuide current={grade} />
       </div>
-
-      <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm">
-        <button className="font-medium text-brand-700 hover:underline" onClick={() => setModal(suggestedByAI ? 'correct' : 'manual')}>Change grade</button>
-        {grade !== 'MANUAL_REVIEW' && (
-          <button className="font-medium text-brand-700 hover:underline" onClick={() => setChoosing(true)}>Choose another option</button>
-        )}
-        {suggestedByAI && canRun && (
-          <button className="font-medium text-brand-700 hover:underline" onClick={run}>Run inspection again</button>
-        )}
-      </div>
-      {suggestedByAI && canRun && <p className="mt-2 text-center text-xs text-muted">Added clearer photos? Re-running uses one AI inspection.</p>}
-      {error && <Alert tone="error" className="mt-3">{error.text}</Alert>}
       {gradeModal}
     </Card>
   )
@@ -341,16 +340,16 @@ function OptionPicker({
   )
 }
 
-function Outcome({ item, compact }: { item: ReturnItem; compact?: boolean }) {
+function Outcome({ item }: { item: ReturnItem }) {
   const { update } = useWorkspace()
-  const [open, setOpen] = useState(!compact && item.realized_amount == null)
+  const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState(item.realized_amount != null ? String(item.realized_amount) : '')
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
   if (!open)
     return (
-      <button className="mt-3 text-sm font-medium text-brand-700 hover:underline" onClick={() => setOpen(true)}>
-        Edit amount received
+      <button className="mt-3 block text-sm font-medium text-brand-700 hover:underline" onClick={() => setOpen(true)}>
+        {item.realized_amount == null ? 'Sold it? Record the amount received' : 'Edit amount received'}
       </button>
     )
   return (
