@@ -4,7 +4,7 @@
 
 ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, footwear and accessories brands. A team logs a returned product with photos and cost estimates; an image-capable AI model inspects the photos and proposes a condition grade; a deterministic calculator compares the net value of restocking, refurbishing, liquidating and recycling; the team records a decision and, later, the realized proceeds. Dashboards and insights are computed from the stored records.
 
-> Built for the Masters’ Union *AI in Business* assignment (PGP TBM). Monetized with a ₹999/month Pro subscription through Dodo Payments.
+> Built for the Masters’ Union *AI in Business* assignment (PGP TBM). Monetized with Starter (₹499/month or ₹5,388/year) and Pro (₹999/month or ₹10,788/year) subscriptions through Dodo Payments.
 
 ---
 
@@ -12,28 +12,32 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 
 | Area | What it does |
 |---|---|
-| **Landing page** | Hero, problem, 4-step how-it-works, feature previews driven by the real calculator, benefits & use cases, demo entry, pricing, FAQ, contact form (Netlify Forms), privacy / terms / refund pages, Log in and Launch app buttons. |
+| **Marketing site** | Separate pages — Home, Features, Pricing (monthly/yearly switch with the saving shown), FAQ, Contact (Netlify Forms) and privacy / terms / refunds. Each page is rendered to its own HTML at build time with its own title, description, canonical link, link-preview image and structured data (SoftwareApplication with offers, FAQPage), plus `sitemap.xml` and `robots.txt`, so search engines and AI tools can read it without running JavaScript. |
 | **Demo workspace** (`/demo`) | 10 clearly labelled fictional returns, stored only in the visitor’s browser and fully separate from real accounts. Browse, add, grade manually, calculate and export sample data. AI results require a free account. Resettable. |
 | **Accounts** (`/app`) | Continue with Google, or email + password sign-up / sign-in / reset (Supabase Auth). Each workspace is isolated by Postgres Row Level Security; photos live in a private Storage bucket served via short-lived signed URLs. |
 | **Dashboard** | Totals, awaiting inspection, inspected, estimated recoverable value, realized proceeds, pipeline status, routes selected, weekly intake, next-up list, top findings — all calculated from stored records. |
 | **Add / edit a return** | Name, SKU, category, original price, reason, condition notes, up to 4 photos, sunk return shipping, and per-route estimates (resale, refurb resale & cost, channel fee %, handling, liquidation price & fee, recycling value & cost) with “estimate vs third-party quote” labels. Inline validation. |
 | **AI inspection** | Photos + notes are sent server-side to a vision AI model — Google Gemini (free tier) by default, or Anthropic Claude if configured. Returns observable defects, proposed grade (A / B / C / Manual review), rationale, confidence, limitations, recommended physical checks and potentially eligible routes. The grade and the best option are saved automatically; the user can re-run the inspection, change the grade (a correction requires a reason) or choose another option. If the AI is unavailable the request fails visibly — nothing is fabricated. |
 | **Recovery calculator** | Deterministic per-route net = proceeds − fees − costs; sunk return shipping excluded; grade and hygiene rules decide eligibility; highest eligible net is recommended with a plain-English explanation and an expandable line-by-line breakdown. Manual override with mandatory reason; decision snapshot recorded; realized proceeds recorded separately from estimates. |
-| **Inventory** | Thumbnails, SKU, grade, route, est. net, status; search; filters by status / grade / category / route; sort; edit; delete; CSV export (server-side and Pro-gated for accounts). |
+| **Inventory** | Thumbnails, SKU, grade, route, est. net, status; search; filters by status / grade / category / route; sort; edit; delete; CSV export (server-side; needs a plan or the trial). |
 | **Insights** | Top categories, return reasons, grade mix, most frequent defects, best-value routes, overrides, unprocessed items — plus an optional AI-written briefing grounded only in those computed figures. |
 | **Next steps & partners** | After a decision, a route-specific pathway: checklist, Google Maps “find nearby” links (no API, no scraping), hand-checked Indian channels, and the business’s own saved partners with one-tap Call / WhatsApp / Email. |
-| **Billing** | Dodo Payments hosted checkout created server-side; Standard-Webhooks signature verification; idempotent event log; out-of-order protection; entitlement written only by the webhook; success page waits for the verified entitlement (visiting the return URL never unlocks anything); failure/cancel handling; Dodo customer portal for manage/cancel. |
+| **Billing** | Starter or Pro, monthly or yearly. Dodo Payments hosted checkout created server-side; existing subscribers switch plans on the same subscription (difference charged or credited); Standard-Webhooks signature verification; idempotent event log; out-of-order protection; entitlement written only by the webhook; success page waits for the verified entitlement (visiting the return URL never unlocks anything); failure/cancel handling; Dodo customer portal for manage/cancel. |
 
 ### Plans
 
-| | Demo (no sign-up) | 14-day free trial (no card) | Pro (₹999 / month, configurable) |
-|---|---|---|---|
-| Sample workspace, calculator, manual grading | ✓ | ✓ | ✓ |
-| AI photo inspection (defects + grade) | — (sign in required) | up to 100 | fair use 300 / 30 days |
-| Returns stored | in browser only | unlimited | unlimited |
-| AI insight summary, CSV export | — | ✓ | ✓ |
+Prices and limits live in one file, `src/lib/plans.ts`, shared by the site and the server functions.
 
-After the trial without Pro, records stay; manual grading and the calculator keep working (up to 15 returns); AI and exports need Pro. The trial length is `TRIAL_DAYS` (server) / `VITE_TRIAL_DAYS` (display) — keep the 14-day value in `supabase/schema.sql` in sync if you change it.
+| | Demo (no sign-up) | 14-day free trial (no card) | Starter | Pro |
+|---|---|---|---|---|
+| Price | free | free | ₹499 / month or ₹5,388 / year (save ₹600) | ₹999 / month or ₹10,788 / year (save ₹1,200) |
+| Sample workspace, calculator, manual grading | ✓ | ✓ | ✓ | ✓ |
+| AI photo inspection (defects + grade) | — (sign in required) | up to 100 | 100 / 30 days | fair use 300 / 30 days |
+| Returns stored | in browser only | unlimited | unlimited | unlimited |
+| CSV export | — | ✓ | ✓ | ✓ |
+| AI insight summary | — | ✓ | — | ✓ |
+
+After the trial without a plan, records stay; manual grading and the calculator keep working (up to 15 returns); AI inspection and exports need Starter or Pro, AI summaries need Pro. The trial length is `TRIAL_DAYS` (server) / `VITE_TRIAL_DAYS` (display) — keep the 14-day value in `supabase/schema.sql` in sync if you change it.
 
 ---|---|---|
 | Demo workspace | ✓ | ✓ |

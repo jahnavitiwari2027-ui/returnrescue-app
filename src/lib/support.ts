@@ -1,4 +1,4 @@
-// Links to the contact form on the homepage, prefilled with a topic and an
+// Links to the contact page, prefilled with a topic and an
 // optional reference (e.g. the return the question is about).
 
 export const SUPPORT_TOPICS = {
@@ -12,5 +12,5 @@ export type SupportTopic = keyof typeof SUPPORT_TOPICS
 export function supportHref(topic: SupportTopic, ref?: string) {
   const q = new URLSearchParams({ topic })
   if (ref) q.set('ref', ref.slice(0, 120))
-  return `/?${q.toString()}#contact`
+  return `/contact?${q.toString()}`
 }

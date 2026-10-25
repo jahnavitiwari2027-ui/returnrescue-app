@@ -3,14 +3,37 @@ import fs from 'node:fs'
 
 const shots = process.env.E2E_SCREENSHOTS
 
-test('landing page renders and links into the app', async ({ page }) => {
+test('public pages render, each with its own title, and link into the app', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Every return deserves')
-  for (const id of ['how', 'features', 'pricing', 'faq', 'contact']) await expect(page.locator(`#${id}`)).toBeAttached()
-  await expect(page.locator('#pricing')).toContainText('₹999')
-  await expect(page.locator('#pricing')).toContainText('14 days')
-  await expect(page.locator('#trust')).toContainText('No black boxes')
+  await expect(page).toHaveTitle(/ReturnRescue/)
   await expect(page.getByRole('link', { name: 'Privacy policy' })).toBeVisible()
+
+  await page.goto('/features')
+  await expect(page).toHaveTitle('Features — ReturnRescue')
+  await expect(page.locator('#grades')).toContainText('Every return gets one of four grades')
+  await expect(page.locator('#trust')).toContainText('No black boxes')
+
+  await page.goto('/pricing')
+  await expect(page).toHaveTitle('Pricing — ReturnRescue')
+  await expect(page.getByText('₹499', { exact: false }).first()).toBeVisible()
+  await expect(page.getByText('₹999', { exact: false }).first()).toBeVisible()
+  await page.getByRole('radio', { name: /Yearly/ }).click()
+  await expect(page.getByText('₹5,388').first()).toBeVisible()
+  await expect(page.getByText('₹10,788').first()).toBeVisible()
+  await expect(page.getByText('Save ₹600 a year')).toBeVisible()
+  await expect(page.getByText('Save ₹1,200 a year')).toBeVisible()
+  await expect(page.getByText(/for 14 days/).first()).toBeVisible()
+
+  await page.goto('/faq')
+  await expect(page.getByRole('heading', { name: 'How does yearly billing work?' })).toBeAttached()
+  await page.goto('/contact')
+  await expect(page.getByRole('button', { name: 'Send message' })).toBeVisible()
+  // Old one-page links still work
+  await page.goto('/#pricing')
+  await expect(page).toHaveURL(/\/pricing$/)
+
+  await page.goto('/')
   if (shots) {
     for (let y = 0; y < 9000; y += 600) await page.mouse.wheel(0, 600).then(() => page.waitForTimeout(120))
     await page.waitForTimeout(800)

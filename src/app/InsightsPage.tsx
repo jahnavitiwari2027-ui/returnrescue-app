@@ -15,7 +15,7 @@ const tooltipStyle = { borderRadius: 12, border: '1px solid #e3e1d9', fontSize: 
 
 export default function InsightsPage() {
   const { items, loading, error, base, mode } = useWorkspace()
-  const { hasAccess } = useAuth()
+  const { proFeatures, plan } = useAuth()
   const stats = useMemo(() => computeStats(items), [items])
   const findings = useMemo(() => deriveInsights(stats), [stats])
   const [summary, setSummary] = useState<{ summary: string; model: string; generated_at: string } | null>(null)
@@ -88,13 +88,15 @@ export default function InsightsPage() {
                 <p className="text-sm text-muted">
                   {mode === 'demo'
                     ? `AI summaries need a free account — ${LIMITS.trialDays}-day free trial, no card.`
-                    : !hasAccess
-                      ? 'Your free trial has ended. AI summaries are included with Pro.'
+                    : !proFeatures
+                      ? plan === 'starter'
+                        ? 'AI summaries are part of Pro. Upgrade from Starter to turn them on.'
+                        : 'Your free trial has ended. AI summaries are included with Pro.'
                       : 'Turn these numbers into a short briefing with priorities for your team.'}
                 </p>
                 {mode === 'demo' ? (
                   <LinkButton to="/signup" className="mt-4">Start free trial</LinkButton>
-                ) : !hasAccess ? (
+                ) : !proFeatures ? (
                   <LinkButton to={`${base}/billing`} className="mt-4">See Pro</LinkButton>
                 ) : (
                   <Button className="mt-4" icon={<Sparkles className="size-4" />} onClick={generate} loading={busy}>Generate summary</Button>

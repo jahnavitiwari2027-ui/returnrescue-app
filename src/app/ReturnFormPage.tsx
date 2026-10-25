@@ -485,7 +485,7 @@ export default function ReturnFormPage() {
               {submitError && (
                 <Alert tone="error">
                   {submitError.text}{' '}
-                  {submitError.limit && <Link to={`${base}/billing`} className="font-semibold underline">Upgrade to Pro</Link>}
+                  {submitError.limit && <Link to={`${base}/billing`} className="font-semibold underline">Choose a plan</Link>}
                 </Alert>
               )}
               <Button type="submit" size="lg" className="w-full" loading={saving}>

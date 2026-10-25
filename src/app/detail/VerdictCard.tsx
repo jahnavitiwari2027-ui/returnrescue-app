@@ -133,7 +133,7 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
           <>
             <p className="mt-3 font-medium">Your free trial has ended</p>
             <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Upgrade to keep using AI inspection.</p>
-            <LinkButton to={`${base}/billing`} className="mt-4">Upgrade to Pro</LinkButton>
+            <LinkButton to={`${base}/billing`} className="mt-4">Choose a plan</LinkButton>
           </>
         ) : !item.photos.length ? (
           <>

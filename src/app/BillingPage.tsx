@@ -1,20 +1,27 @@
-import { Check, CreditCard, ExternalLink, Loader2, ShieldCheck, Sparkles, XCircle } from 'lucide-react'
+import { Check, CreditCard, ExternalLink, Loader2, ShieldCheck, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, CardHeader, PageHeader } from '../components/ui'
-import { AFTER_TRIAL, config, LIMITS, PLANS } from '../config'
-import { useAuth } from '../context/AuthContext'
+import { IntervalToggle, PlanCard } from '../components/pricing'
+import { AFTER_TRIAL, config, LIMITS } from '../config'
+import { useAuth, type Entitlement } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { api } from '../lib/api'
-import { inr, shortDate } from '../lib/format'
+import { shortDate } from '../lib/format'
+import { activePlan, AI_INSPECTIONS, PLAN_NAME, type Interval, type PaidPlan } from '../lib/plans'
 
 type ReturnState = 'idle' | 'confirming' | 'confirmed' | 'pending' | 'failed'
 
+const planSignature = (e: Entitlement | null) => [e?.plan, e?.billing_interval, e?.dodo_product_id, e?.updated_at].join('|')
+
 export default function BillingPage() {
-  const { entitlement, isPro, inTrial, trialDaysLeft, trialEndsAt, refresh, aiInspectionsUsed } = useAuth()
+  const { entitlement, plan, inTrial, trialDaysLeft, trialEndsAt, refresh, aiInspectionsUsed, aiInspections30d } = useAuth()
   const { items } = useWorkspace()
   const [params, setParams] = useSearchParams()
-  const [busy, setBusy] = useState<'checkout' | 'portal' | null>(null)
+  const [busy, setBusy] = useState<PaidPlan | 'portal' | null>(null)
+  // Older subscriptions (before yearly billing) have no interval saved: they're monthly.
+  const current = plan ? { plan, interval: entitlement?.billing_interval ?? ('month' as Interval) } : null
+  const [interval, setInterval] = useState<Interval>(current?.interval ?? 'month')
   const [error, setError] = useState('')
   const [ret, setRet] = useState<ReturnState>('idle')
   const polling = useRef(false)
@@ -31,10 +38,12 @@ export default function BillingPage() {
     polling.current = true
     setRet('confirming')
     let tries = 0
+    // A plan change passes what the subscription looked like before; a new checkout doesn't.
+    const before = params.get('from')
     const tick = async () => {
       tries++
       const e = await refresh()
-      if (e?.plan === 'pro' && e.status === 'active') {
+      if (activePlan(e) && (before === null || planSignature(e) !== before)) {
         setRet('confirmed')
         return
       }
@@ -47,12 +56,19 @@ export default function BillingPage() {
     tick()
   }, [params, refresh])
 
-  const startCheckout = async () => {
+  const choose = async (p: PaidPlan) => {
     setError('')
-    setBusy('checkout')
+    setBusy(p)
     try {
-      const { checkout_url } = await api.createCheckout()
-      window.location.assign(checkout_url)
+      const res = await api.createCheckout(p, interval)
+      if (res.checkout_url) {
+        window.location.assign(res.checkout_url)
+        return
+      }
+      // Plan changed on the existing subscription: wait for Dodo's confirmation.
+      polling.current = false
+      setParams({ checkout: 'return', from: planSignature(entitlement), t: String(Date.now()) })
+      setBusy(null)
     } catch (e) {
       setError((e as Error).message)
       setBusy(null)
@@ -71,20 +87,18 @@ export default function BillingPage() {
     }
   }
 
-  const pro = PLANS.find((p) => p.id === 'pro')!
-
   return (
     <>
       <PageHeader title="Plan & billing" subtitle="Subscriptions are processed securely by Dodo Payments." />
 
       {ret === 'confirming' && (
         <Alert tone="info" icon={<Loader2 className="size-4 animate-spin" />} title="Confirming your payment…" className="mb-4">
-          Waiting for Dodo Payments to confirm the subscription. Pro unlocks as soon as the confirmation arrives.
+          Waiting for Dodo Payments to confirm the subscription. Your plan unlocks as soon as the confirmation arrives.
         </Alert>
       )}
       {ret === 'confirmed' && (
-        <Alert tone="success" icon={<Check className="size-4" />} title="You’re on Pro" className="mb-4">
-          Payment confirmed. All Pro features are unlocked.
+        <Alert tone="success" icon={<Check className="size-4" />} title={`You’re on ${plan ? PLAN_NAME[plan] : 'your new plan'}`} className="mb-4">
+          Payment confirmed. Everything in your plan is unlocked.
         </Alert>
       )}
       {ret === 'pending' && (
@@ -100,74 +114,88 @@ export default function BillingPage() {
       )}
       {error && <Alert tone="error" className="mb-4">{error}</Alert>}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader title="Current plan" action={<Badge tone={isPro ? 'brand' : 'neutral'}>{isPro ? 'Pro' : 'Free'}</Badge>} />
-          <div className="space-y-4 p-5">
-            {isPro ? (
-              <>
-                <p className="text-sm text-ink-2">
-                  ReturnRescue Pro is active.
-                  {entitlement?.current_period_end && (
-                    <> {entitlement.cancel_at_period_end ? 'Access ends' : 'Next renewal'} on <strong>{shortDate(entitlement.current_period_end)}</strong>.</>
-                  )}
-                </p>
-                <Button variant="secondary" icon={<ExternalLink className="size-4" />} onClick={openPortal} loading={busy === 'portal'}>
-                  Manage or cancel subscription
-                </Button>
-              </>
-            ) : (
-              <>
-                {inTrial ? (
-                  <p className="text-sm text-ink-2">
-                    You’re on the <strong>free trial</strong> with full Pro features — <strong>{trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left</strong>
-                    {trialEndsAt && <> (ends {shortDate(trialEndsAt.toISOString())})</>}. No card needed until you choose to upgrade.
-                  </p>
-                ) : (
-                  <p className="text-sm text-ink-2">
-                    Your free trial has ended{entitlement && entitlement.status !== 'none' ? ` (last subscription status: ${entitlement.status.replace('_', ' ')})` : ''}. {AFTER_TRIAL}
-                  </p>
+      <Card>
+        <CardHeader title="Current plan" action={<Badge tone={plan ? 'brand' : 'neutral'}>{plan ? PLAN_NAME[plan] : inTrial ? 'Free trial' : 'Free'}</Badge>} />
+        <div className="space-y-4 p-5">
+          {plan ? (
+            <>
+              <p className="text-sm text-ink-2">
+                Your <strong>{PLAN_NAME[plan]}</strong> plan is active{current ? (current.interval === 'year' ? ', billed yearly' : ', billed monthly') : ''}.
+                {entitlement?.current_period_end && (
+                  <> {entitlement.cancel_at_period_end ? 'Access ends' : 'Next renewal'} on <strong>{shortDate(entitlement.current_period_end)}</strong>.</>
                 )}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {inTrial ? (
-                    <Usage label="Trial AI inspections" used={aiInspectionsUsed} limit={LIMITS.trialAiInspections} />
-                  ) : (
-                    <Usage label="Stored returns (free plan)" used={items.length} limit={LIMITS.freeItems} />
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-
-        <Card className={isPro ? '' : 'border-brand-700 ring-1 ring-brand-700'}>
-          <div className="p-5">
-            <p className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-brand-700" /> ReturnRescue Pro</p>
-            <p className="mt-3 font-display text-5xl leading-none tabular">
-              {inr(pro.price)}
-              <span className="font-sans text-base text-muted"> / month</span>
-            </p>
-            <ul className="mt-4 space-y-2 text-sm">
-              {pro.features.map((f) => (
-                <li key={f} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-brand-600" />{f}</li>
-              ))}
-            </ul>
-            {!isPro && (
-              <Button size="lg" className="mt-5 w-full" icon={<CreditCard className="size-4" />} onClick={startCheckout} loading={busy === 'checkout'} disabled={ret === 'confirming'}>
-                Upgrade with Dodo Payments
-              </Button>
-            )}
-            <p className="mt-3 flex items-start gap-1.5 text-xs text-muted">
-              <ShieldCheck className="mt-0.5 size-3.5 shrink-0" /> Hosted, secure checkout. Cancel anytime from the subscription portal. Prices include applicable taxes as shown at checkout.
-            </p>
-            {config.paymentsMode === 'test' && (
-              <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                <strong>Test mode:</strong> no real money moves. Use a Dodo Payments test card at checkout: 4242 4242 4242 4242, expiry 06/32, CVV 123. Decline test: 4000 0000 0000 0002.
               </p>
-            )}
-          </div>
-        </Card>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Usage label="AI inspections, last 30 days" used={aiInspections30d} limit={AI_INSPECTIONS[plan]} />
+              </div>
+              <Button variant="secondary" icon={<ExternalLink className="size-4" />} onClick={openPortal} loading={busy === 'portal'}>
+                Manage or cancel subscription
+              </Button>
+            </>
+          ) : (
+            <>
+              {inTrial ? (
+                <p className="text-sm text-ink-2">
+                  You’re on the <strong>free trial</strong> with every Pro feature — <strong>{trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left</strong>
+                  {trialEndsAt && <> (ends {shortDate(trialEndsAt.toISOString())})</>}. No card needed until you choose a plan.
+                </p>
+              ) : (
+                <p className="text-sm text-ink-2">
+                  Your free trial has ended{entitlement && entitlement.status !== 'none' ? ` (last subscription status: ${entitlement.status.replace('_', ' ')})` : ''}. {AFTER_TRIAL}
+                </p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {inTrial ? (
+                  <Usage label="Trial AI inspections" used={aiInspectionsUsed} limit={LIMITS.trialAiInspections} />
+                ) : (
+                  <Usage label="Stored returns (free plan)" used={items.length} limit={LIMITS.freeItems} />
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold">{plan ? 'Change plan' : 'Choose a plan'}</h2>
+        <IntervalToggle value={interval} onChange={setInterval} />
       </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {(['starter', 'pro'] as const).map((p) => {
+          const isCurrent = !!plan && current?.plan === p && current.interval === interval
+          return (
+            <PlanCard
+              key={p}
+              plan={p}
+              interval={interval}
+              highlight={p === 'pro'}
+              badge={isCurrent ? <Badge tone="brand">Current plan</Badge> : p === 'pro' ? <Badge tone="dark">Recommended</Badge> : undefined}
+              action={
+                <Button
+                  size="lg"
+                  variant={p === 'pro' ? 'primary' : 'secondary'}
+                  className="w-full"
+                  icon={<CreditCard className="size-4" />}
+                  onClick={() => choose(p)}
+                  loading={busy === p}
+                  disabled={isCurrent || !!busy || ret === 'confirming'}
+                >
+                  {isCurrent ? 'Your current plan' : plan ? `Switch to ${PLAN_NAME[p]}` : `Choose ${PLAN_NAME[p]}`}
+                </Button>
+              }
+            />
+          )
+        })}
+      </div>
+      <p className="mt-4 flex items-start gap-1.5 text-xs text-muted">
+        <ShieldCheck className="mt-0.5 size-3.5 shrink-0" /> Hosted, secure checkout by Dodo Payments. Cancel anytime from the subscription portal. Prices in INR include applicable taxes as shown at checkout.
+        {plan && ' Switching plans charges or credits the difference straight away.'}
+      </p>
+      {config.paymentsMode === 'test' && (
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <strong>Test mode:</strong> no real money moves. Use a Dodo Payments test card at checkout: 4242 4242 4242 4242, expiry 06/32, CVV 123. Decline test: 4000 0000 0000 0002.
+        </p>
+      )}
     </>
   )
 }

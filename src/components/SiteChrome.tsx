@@ -1,6 +1,6 @@
 import { Menu, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { accountsEnabled, config } from '../config'
 import { useAuth } from '../context/AuthContext'
 import { buttonClass, Logo } from './ui'
@@ -16,19 +16,20 @@ export function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   const links = [
-    ['How it works', '/#how'],
-    ['Grades', '/#grades'],
-    ['Features', '/#features'],
-    ['Pricing', '/#pricing'],
-    ['Why trust it', '/#trust'],
-    ['FAQ', '/#faq'],
+    ['Features', '/features'],
+    ['Pricing', '/pricing'],
+    ['FAQ', '/faq'],
+    ['Contact', '/contact'],
+    ['Demo', '/demo'],
   ]
   return (
     <header className={`sticky top-0 z-40 transition-all ${scrolled || open ? 'border-b border-line bg-paper/85 backdrop-blur-md' : 'border-b border-transparent'}`}>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link to="/" aria-label="ReturnRescue home"><Logo /></Link>
         <nav className="hidden items-center gap-7 text-sm text-ink-2 md:flex" aria-label="Main">
-          {links.map(([l, h]) => <Link key={h} to={h} className="transition-colors hover:text-ink">{l}</Link>)}
+          {links.map(([l, h]) => (
+            <NavLink key={h} to={h} className={({ isActive }) => `transition-colors hover:text-ink ${isActive ? 'font-medium text-ink' : ''}`}>{l}</NavLink>
+          ))}
         </nav>
         <div className="hidden items-center gap-2 md:flex">
           {session ? (
@@ -47,7 +48,9 @@ export function SiteHeader() {
       {open && (
         <nav className="border-t border-line px-5 py-4 md:hidden" aria-label="Mobile">
           <div className="flex flex-col gap-3 text-sm">
-            {links.map(([l, h]) => <Link key={h} to={h} onClick={() => setOpen(false)}>{l}</Link>)}
+            {links.map(([l, h]) => (
+              <NavLink key={h} to={h} onClick={() => setOpen(false)} className={({ isActive }) => (isActive ? 'font-medium text-ink' : '')}>{l}</NavLink>
+            ))}
             <div className="mt-2 flex gap-2">
               {accountsEnabled && !session && <Link to="/login" className={buttonClass('secondary', 'md', 'flex-1')}>Log in</Link>}
               <Link to={session ? '/app' : '/demo'} className={buttonClass('primary', 'md', 'flex-1')}>{session ? 'Open workspace' : 'Launch app'}</Link>
@@ -75,10 +78,11 @@ export function SiteFooter() {
         <div>
           <p className="text-sm font-semibold">Product</p>
           <ul className="mt-3 space-y-2 text-sm text-muted">
+            <li><Link to="/features" className="hover:text-ink">Features</Link></li>
+            <li><Link to="/pricing" className="hover:text-ink">Pricing</Link></li>
             <li><Link to="/demo" className="hover:text-ink">Live demo</Link></li>
-            <li><Link to="/#pricing" className="hover:text-ink">Pricing</Link></li>
-            <li><Link to="/#faq" className="hover:text-ink">FAQ</Link></li>
-            <li><Link to="/#contact" className="hover:text-ink">Contact</Link></li>
+            <li><Link to="/faq" className="hover:text-ink">FAQ</Link></li>
+            <li><Link to="/contact" className="hover:text-ink">Contact</Link></li>
           </ul>
         </div>
         <div>

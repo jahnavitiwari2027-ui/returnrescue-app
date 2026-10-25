@@ -345,15 +345,15 @@ export default function InventoryPage() {
       <Modal
         open={upsell}
         onClose={() => setUpsell(false)}
-        title="CSV export is a Pro feature"
+        title="CSV export needs a plan"
         footer={
           <>
             <Button variant="secondary" onClick={() => setUpsell(false)}>Not now</Button>
-            <LinkButton to={`${base}/billing`}>See Pro</LinkButton>
+            <LinkButton to={`${base}/billing`}>See plans</LinkButton>
           </>
         }
       >
-        <p className="text-sm text-ink-2">Your free trial has ended. Upgrade to export your full inventory, decisions and realized values as a spreadsheet.</p>
+        <p className="text-sm text-ink-2">Your free trial has ended. Starter and Pro both include exporting your full inventory, decisions and realized values as a spreadsheet.</p>
       </Modal>
     </>
   )

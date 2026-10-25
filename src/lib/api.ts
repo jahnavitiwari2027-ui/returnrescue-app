@@ -1,3 +1,4 @@
+import type { Interval, PaidPlan } from './plans'
 // Thin client for the Netlify Functions under /api/*.
 
 import { supabase } from './supabase'
@@ -69,7 +70,8 @@ export const api = {
     call<{ inspection: AIInspection; usage?: { used: number; limit: number | null } }>('inspect', req),
   insightsSummary: (mode: 'demo' | 'account', stats?: WorkspaceStats) =>
     call<{ summary: string; model: string; generated_at: string }>('insights-summary', { mode, stats }),
-  createCheckout: () => call<{ checkout_url: string }>('create-checkout', {}),
+  /** Starts checkout, or changes the plan of an existing subscription (`changed`). */
+  createCheckout: (plan: PaidPlan, interval: Interval) => call<{ checkout_url?: string; changed?: boolean }>('create-checkout', { plan, interval }),
   customerPortal: () => call<{ link: string }>('customer-portal', {}),
   exportCsv: async () => {
     const res = await fetch('/api/export-csv', { headers: await authHeader() })

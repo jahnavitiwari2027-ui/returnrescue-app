@@ -4,11 +4,10 @@ import { Spinner } from './components/ui'
 import { accountsEnabled } from './config'
 import { useAuth } from './context/AuthContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
+import { PUBLIC_ROUTES } from './pages/site/routes'
 
-const Landing = lazy(() => import('./pages/Landing'))
 const AuthPage = lazy(() => import('./pages/AuthPage'))
 const UpdatePassword = lazy(() => import('./pages/UpdatePassword'))
-const LegalPage = lazy(() => import('./pages/LegalPage'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const AppLayout = lazy(() => import('./app/AppLayout'))
 const Dashboard = lazy(() => import('./app/DashboardPage'))
@@ -74,14 +73,11 @@ export default function App() {
     <Suspense fallback={<FullPageSpinner />}>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Landing />} />
+        {PUBLIC_ROUTES.map((r) => <Route key={r.path} path={r.path} element={r.element} />)}
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/signup" element={<AuthPage mode="signup" />} />
         <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
         <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="/privacy" element={<LegalPage doc="privacy" />} />
-        <Route path="/terms" element={<LegalPage doc="terms" />} />
-        <Route path="/refunds" element={<LegalPage doc="refunds" />} />
         <Route
           path="/demo"
           element={

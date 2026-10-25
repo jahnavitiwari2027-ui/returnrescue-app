@@ -9,11 +9,12 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Single-page app: every non-file route serves index.html.
+# Public pages are saved as their own HTML at build time (features.html, pricing.html, …);
+# everything else (/app, /demo, sign-in) loads the plain app shell.
 # (Functions under /api/* declare their own paths and take precedence.)
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/app.html"
   status = 200
 
 [[headers]]

@@ -2,8 +2,9 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '../components/SiteChrome'
 import { config } from '../config'
+import { usePageMeta } from './site/shared'
 
-const UPDATED = '17 October 2026'
+const UPDATED = '26 October 2026'
 
 const contact = config.contactEmail ? (
   <a className="underline" href={`mailto:${config.contactEmail}`}>{config.contactEmail}</a>
@@ -40,7 +41,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
         <h2>Security</h2>
         <p>Data is encrypted in transit. Each workspace is isolated with row-level security, photos are in a private bucket served through short-lived signed links, and secret keys never reach your browser.</p>
         <h2>Your rights</h2>
-        <p>You can access, correct, export (Pro) or delete your data. For any privacy request, contact {contact}. This policy is governed by the laws of India, including the Digital Personal Data Protection Act, 2023.</p>
+        <p>You can access, correct, export (on a paid plan) or delete your data. For any privacy request, contact {contact}. This policy is governed by the laws of India, including the Digital Personal Data Protection Act, 2023.</p>
       </>
     ),
   },
@@ -58,7 +59,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
         <h2>Your content</h2>
         <p>You own the data and photos you upload and grant us permission to process them only to provide the service. Do not upload images of people or personal data of your customers.</p>
         <h2>Plans and payment</h2>
-        <p>The free plan has the limits shown on our pricing page. Pro is a monthly subscription billed in advance through Dodo Payments and renews automatically until cancelled. See our <Link className="underline" to="/refunds">refund & cancellation policy</Link>.</p>
+        <p>The free plan has the limits shown on our pricing page. Starter and Pro are subscriptions billed in advance, monthly or yearly, through Dodo Payments, and renew automatically until cancelled. When you switch plans, the difference for the rest of the current period is charged or credited straight away. See our <Link className="underline" to="/refunds">refund & cancellation policy</Link>.</p>
         <h2>Acceptable use</h2>
         <p>Do not misuse the service, attempt to access other workspaces, overload the AI features, or use it for unlawful purposes. We may suspend accounts that do.</p>
         <h2>Liability</h2>
@@ -73,16 +74,18 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
     body: (
       <>
         <h2>Cancelling</h2>
-        <p>You can cancel Pro at any time from <strong>Plan & billing → Manage or cancel subscription</strong>. Cancellation stops the next renewal; your workspace stays on Pro until the end of the period you already paid for, then moves to the free plan. Your data is not deleted when you cancel.</p>
+        <p>You can cancel Starter or Pro at any time from <strong>Plan & billing → Manage or cancel subscription</strong>. Cancellation stops the next renewal; your workspace keeps its plan until the end of the month or year you already paid for, then moves to the free plan. Your data is not deleted when you cancel.</p>
+        <h2>Switching plans</h2>
+        <p>You can move between Starter and Pro, or between monthly and yearly billing, from Plan & billing. The difference for the rest of the current period is charged or credited straight away by Dodo Payments.</p>
         <h2>Refunds</h2>
         <ul>
-          <li>If you are charged for Pro and haven’t used it, contact us within 7 days of the charge for a full refund.</li>
-          <li>If a technical fault on our side prevents you from using Pro features, we will refund the affected period.</li>
-          <li>Otherwise, partial months are not refunded.</li>
+          <li>If you are charged for a plan and haven’t used it, contact us within 7 days of the charge for a full refund.</li>
+          <li>If a technical fault on our side prevents you from using your plan’s features, we will refund the affected period.</li>
+          <li>Otherwise, unused parts of a month or year are not refunded.</li>
         </ul>
         <p>Refunds are issued through Dodo Payments to the original payment method and usually appear within 5–10 business days, depending on your bank.</p>
         <h2>Failed payments</h2>
-        <p>If a renewal payment fails, Pro features pause until payment succeeds. Your records remain available.</p>
+        <p>If a renewal payment fails, paid features pause until payment succeeds. Your records remain available.</p>
         <h2>Contact</h2>
         <p>For billing help or refund requests, contact {contact} with the email on your account.</p>
       </>
@@ -92,6 +95,7 @@ const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: React
 
 export default function LegalPage({ doc }: { doc: keyof typeof docs }) {
   const d = docs[doc]
+  usePageMeta(`/${doc}`)
   return (
     <PublicLayout>
       <article className="mx-auto max-w-2xl px-5 py-16 [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_li]:mt-1.5 [&_p]:mt-3 [&_p]:leading-relaxed [&_p]:text-ink-2 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ul]:text-ink-2">

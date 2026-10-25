@@ -11,7 +11,7 @@ Keep a private note open while you work; you will collect these values:
 | service_role / secret key | Supabase | `SUPABASE_SERVICE_ROLE_KEY` 🔒 |
 | API key | Google AI Studio | `GEMINI_API_KEY` 🔒 |
 | Test API key | Dodo | `DODO_PAYMENTS_API_KEY` 🔒 |
-| Product id (`pdt_…`) | Dodo | `DODO_PRO_PRODUCT_ID` |
+| Product ids (`pdt_…`), one per plan and billing period | Dodo | `DODO_STARTER_MONTHLY_PRODUCT_ID`, `DODO_STARTER_YEARLY_PRODUCT_ID`, `DODO_PRO_PRODUCT_ID` (Pro monthly), `DODO_PRO_YEARLY_PRODUCT_ID` |
 | Webhook secret (`whsec_…`) | Dodo | `DODO_PAYMENTS_WEBHOOK_KEY` 🔒 |
 
 ---
@@ -34,6 +34,8 @@ If you ran `schema.sql` before 17 Oct 2026 02:30 IST, also run `supabase/update-
 
 If you ran `schema.sql` before 18 Oct 2026, also run `supabase/update-2026-10-18-platforms.sql` once (it adds the optional `sale_setup` column that remembers which platform each return sells on). Until you do, the app still saves returns — just without the platform.
 
+If you ran `schema.sql` before 26 Oct 2026, also run `supabase/update-2026-10-26-plans.sql` once. It records which plan and billing period each subscription is on, and makes Starter (as well as Pro) lift the free plan’s 15-return limit. It’s safe to re-run; `tests/sql-plans.test.ts` runs it on an embedded Postgres.
+
 ### 2c. Sign in with Google (optional, free)
 1. console.cloud.google.com → create (or pick) a project → **APIs & Services → OAuth consent screen** → External → app name *ReturnRescue*, your email as support and developer contact → save. Scopes: leave the defaults (email, profile). Then **Publish app** so anyone can sign in (basic scopes need no Google review).
 2. **APIs & Services → Credentials → Create credentials → OAuth client ID** → *Web application*. Under **Authorised redirect URIs** add `https://<your-project-ref>.supabase.co/auth/v1/callback` (Supabase shows this exact URL on its Google provider page). Create, then copy the **Client ID** and **Client secret**.
@@ -53,7 +55,13 @@ If you ran `schema.sql` before 18 Oct 2026, also run `supabase/update-2026-10-18
 ## 4. Dodo Payments (subscription billing — test mode)
 
 1. Sign up at dodopayments.com. Make sure the dashboard toggle shows **Test mode**.
-2. **Products → Create product**: name `ReturnRescue Pro`, type **Subscription**, price **₹999**, billing **monthly**, currency **INR**. Save and copy the product id (`pdt_…`).
+2. **Products → Create product** — four subscriptions in **INR**, copying each product id (`pdt_…`):
+   - `ReturnRescue Starter` — ₹499, billed **monthly** → `DODO_STARTER_MONTHLY_PRODUCT_ID`
+   - `ReturnRescue Starter (yearly)` — ₹5,388, billed **yearly** → `DODO_STARTER_YEARLY_PRODUCT_ID`
+   - `ReturnRescue Pro` — ₹999, billed **monthly** → `DODO_PRO_PRODUCT_ID`
+   - `ReturnRescue Pro (yearly)` — ₹10,788, billed **yearly** → `DODO_PRO_YEARLY_PRODUCT_ID`
+
+   Prices shown on the site come from `src/lib/plans.ts`; keep the Dodo prices the same. A plan whose product id isn’t set says “isn’t available yet” at checkout.
 3. **Developer → API Keys → Create** (test mode) → copy the key.
 4. Webhooks are set up in step 6, once you have the site URL.
 
@@ -70,8 +78,10 @@ SUPABASE_SERVICE_ROLE_KEY  = <service_role key>          (mark as secret)
 GEMINI_API_KEY             = <Google AI Studio key>      (mark as secret)
 DODO_PAYMENTS_API_KEY      = <Dodo test API key>         (mark as secret)
 DODO_PAYMENTS_ENVIRONMENT  = test_mode
-DODO_PRO_PRODUCT_ID        = <pdt_…>
-VITE_PRO_PRICE_INR         = 999
+DODO_STARTER_MONTHLY_PRODUCT_ID = <pdt_… Starter monthly>
+DODO_STARTER_YEARLY_PRODUCT_ID  = <pdt_… Starter yearly>
+DODO_PRO_PRODUCT_ID        = <pdt_… Pro monthly>
+DODO_PRO_YEARLY_PRODUCT_ID = <pdt_… Pro yearly>
 VITE_PAYMENTS_MODE         = test
 SITE_URL                   = https://<your custom domain>   (add after step 7; until then leave unset)
 VITE_CONTACT_EMAIL         = <optional public email>
@@ -111,13 +121,13 @@ Connecting the domain in Netlify (all options):
 2. Landing → **Try the live demo** → open a sample → it loads.
 3. Demo → **Add return** with a real product photo → **Run AI inspection** → a genuine result appears.
 4. **Start free** → sign up → add a return with a photo → run AI inspection → accept → save a decision → refresh.
-5. **Plan & billing → Upgrade** → Dodo test checkout with card `4242 4242 4242 4242`, expiry `06/32`, CVV `123` → you return to billing, which shows “Confirming…” and then **Pro**. In Supabase → Table editor → `entitlements` you’ll see the row written by the webhook; `webhook_events` shows the verified events.
+5. **Plan & billing → Choose Starter or Pro** (monthly or yearly) → in test mode, pay with card `4242 4242 4242 4242`, expiry `06/32`, CVV `123` → you return to billing, which shows “Confirming…” and then the plan. In Supabase → Table editor → `entitlements` you’ll see the row written by the webhook; `webhook_events` shows the verified events.
 6. Inventory → **Export CSV** now works; Insights → **Generate summary** works.
 7. Optional decline test: card `4000 0000 0000 0002` → billing stays on Free.
 
 ## 9. Going live later (not needed for the assignment)
 
-Complete Dodo merchant verification, create the same product in Live mode, swap `DODO_PAYMENTS_API_KEY`, `DODO_PRO_PRODUCT_ID`, `DODO_PAYMENTS_WEBHOOK_KEY` for live values, set `DODO_PAYMENTS_ENVIRONMENT=live_mode` and `VITE_PAYMENTS_MODE=live`, and redeploy.
+Complete Dodo merchant verification, switch the dashboard to **Live mode** (the switch is in the sidebar) and create the same four products, an API key and the webhook there — test and live keep separate products, keys and webhooks. Swap `DODO_PAYMENTS_API_KEY`, the four product ids and `DODO_PAYMENTS_WEBHOOK_KEY` for the live values, set `DODO_PAYMENTS_ENVIRONMENT=live_mode` and `VITE_PAYMENTS_MODE=live`, and redeploy.
 
 ## Troubleshooting
 

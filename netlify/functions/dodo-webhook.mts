@@ -8,6 +8,7 @@ import type { Config } from '@netlify/functions'
 import { getDodo } from './_shared/dodo'
 import { env, fail, json } from './_shared/http'
 import { getAdmin, supabaseConfigured } from './_shared/supabaseAdmin'
+import { planForProduct } from '../../src/lib/plans'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -77,8 +78,10 @@ export default async (req: Request) => {
 
   if (event.type.startsWith('subscription.')) {
     const sub = event.data as SubscriptionData
-    const productId = env('DODO_PRO_PRODUCT_ID')
-    if (productId && sub.product_id && sub.product_id !== productId) {
+    // Which plan this subscription is on comes only from its product ID, matched against the
+    // configured Starter and Pro products (monthly and yearly). Anything else isn't ours.
+    const matched = planForProduct(sub.product_id, env)
+    if (!matched) {
       await db.from('webhook_events').update({ processed_at: new Date().toISOString() }).eq('id', eventId)
       return json(200, { received: true, ignored: 'other product' })
     }
@@ -95,20 +98,20 @@ export default async (req: Request) => {
       current.data.dodo_subscription_id === sub.subscription_id &&
       new Date(current.data.last_event_at) > new Date(eventAt)
     if (!stale) {
-      const up = await db.from('entitlements').upsert(
-        {
-          user_id: userId,
-          plan: 'pro',
-          status: sub.status,
-          dodo_subscription_id: sub.subscription_id,
-          dodo_customer_id: sub.customer?.customer_id ?? null,
-          current_period_end: sub.next_billing_date ?? null,
-          cancel_at_period_end: !!sub.cancel_at_next_billing_date,
-          last_event_at: eventAt,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' },
-      )
+      const row = {
+        user_id: userId,
+        plan: matched.plan,
+        status: sub.status,
+        dodo_subscription_id: sub.subscription_id,
+        dodo_customer_id: sub.customer?.customer_id ?? null,
+        current_period_end: sub.next_billing_date ?? null,
+        cancel_at_period_end: !!sub.cancel_at_next_billing_date,
+        last_event_at: eventAt,
+        updated_at: new Date().toISOString(),
+      }
+      let up = await db.from('entitlements').upsert({ ...row, dodo_product_id: sub.product_id, billing_interval: matched.interval }, { onConflict: 'user_id' })
+      // Databases set up before the plans update don't have these two columns yet: save the rest.
+      if (up.error && /dodo_product_id|billing_interval/.test(up.error.message)) up = await db.from('entitlements').upsert(row, { onConflict: 'user_id' })
       if (up.error) {
         console.error('dodo-webhook: entitlement update failed', up.error.message)
         return fail(500, 'DB', 'Could not update entitlement.') // non-2xx → Dodo retries

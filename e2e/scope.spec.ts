@@ -26,7 +26,7 @@ test('a photo that isn’t clothing, footwear or a bag is refused, with a way to
   if (shots) await page.screenshot({ path: `${shots}/refused-${test.info().project.name}.png`, fullPage: true })
 
   await page.getByRole('link', { name: 'Contact support' }).first().click()
-  await expect(page).toHaveURL(/topic=ai_result&ref=sample-03#contact/)
+  await expect(page).toHaveURL(/\/contact\?topic=ai_result&ref=sample-03/)
   await expect(page.getByLabel('Topic')).toHaveValue('An AI result looks wrong')
   await expect(page.getByLabel('Return reference')).toHaveValue('sample-03')
   await expect(page.getByLabel('How can we help?')).toHaveValue(/The item is actually:/)

@@ -1,19 +1,23 @@
 import clsx from 'clsx'
 import { BarChart3, CreditCard, Handshake, LayoutDashboard, LogOut, PackageSearch, Plus, RotateCcw, SlidersHorizontal, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Badge, Button, buttonClass, Logo, Modal } from '../components/ui'
 import { accountsEnabled } from '../config'
 import { useAuth } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
+import { PLAN_NAME } from '../lib/plans'
 
 export default function AppLayout() {
+  useEffect(() => {
+    document.title = 'ReturnRescue'
+  }, [])
   const { mode, base, resetDemo } = useWorkspace()
-  const { user, isPro, inTrial, trialDaysLeft, signOut } = useAuth()
+  const { user, plan, inTrial, trialDaysLeft, signOut } = useAuth()
   const navigate = useNavigate()
   const [confirmReset, setConfirmReset] = useState(false)
 
-  const planLabel = isPro ? 'Pro' : inTrial ? `Trial · ${trialDaysLeft}d left` : 'Trial ended'
+  const planLabel = plan ? PLAN_NAME[plan] : inTrial ? `Trial · ${trialDaysLeft}d left` : 'Trial ended'
   const nav = [
     { to: base, label: 'Dashboard', short: 'Home', icon: LayoutDashboard, end: true },
     { to: `${base}/returns`, label: 'Inventory', short: 'Inventory', icon: PackageSearch, end: false },
@@ -72,7 +76,7 @@ export default function AppLayout() {
             <div className="rounded-xl border border-line bg-white px-3 py-2.5">
               <p className="truncate text-sm font-medium">{user?.email}</p>
               <div className="mt-1 flex items-center justify-between gap-2">
-                <Link to={`${base}/billing`}><Badge tone={isPro || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
+                <Link to={`${base}/billing`}><Badge tone={plan || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
                 <button className="text-xs text-muted hover:text-ink" onClick={doSignOut}>Sign out</button>
               </div>
             </div>
@@ -95,7 +99,7 @@ export default function AppLayout() {
           </div>
         ) : (
           <div className="flex items-center gap-1">
-            <Link to={`${base}/billing`} aria-label="Plan and billing"><Badge tone={isPro || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
+            <Link to={`${base}/billing`} aria-label="Plan and billing"><Badge tone={plan || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
             <Link to={`${base}/rates`} className="rounded-lg p-2 text-muted hover:bg-ink/5" aria-label="Your rates">
               <SlidersHorizontal className="size-4" />
             </Link>

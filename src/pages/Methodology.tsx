@@ -10,7 +10,7 @@ const formulas = [
 ]
 
 const trust = [
-  { icon: UserCheck, title: 'You make the call', body: 'The AI suggests a grade. Rules check it. You confirm.' },
+  { icon: UserCheck, title: 'You stay in control', body: 'The AI grades, rules check it, the best option is saved. Change either any time.' },
   { icon: Eye, title: 'No made-up money', body: 'The AI never sets a price. Every rupee links to a source.' },
   { icon: ClipboardCheck, title: 'Honest limits', body: 'It says what photos can’t prove.' },
   { icon: FileClock, title: 'Full record', body: 'Grades, decisions and outcomes are logged.' },

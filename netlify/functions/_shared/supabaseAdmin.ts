@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
+import { activePlan, TRIAL, type PaidPlan } from '../../../src/lib/plans'
 import { env } from './http'
 
 let admin: SupabaseClient | null = null
@@ -37,6 +38,9 @@ export interface EntitlementRow {
   current_period_end: string | null
   cancel_at_period_end: boolean
   last_event_at: string | null
+  /** Which Dodo product (plan and interval) the subscription is on. Older rows may not have it. */
+  dodo_product_id?: string | null
+  billing_interval?: 'month' | 'year' | null
 }
 
 export async function getEntitlement(userId: string): Promise<EntitlementRow | null> {
@@ -44,7 +48,8 @@ export async function getEntitlement(userId: string): Promise<EntitlementRow | n
   return (data as EntitlementRow) ?? null
 }
 
-export const isProRow = (e: EntitlementRow | null) => !!e && e.plan === 'pro' && e.status === 'active'
+/** The active paid plan (Starter or Pro), verified by webhook. */
+export const paidPlanOf = (e: EntitlementRow | null): PaidPlan | null => activePlan(e)
 
 export async function countUsage(userId: string, kind: 'inspection' | 'insights', sinceIso?: string) {
   let q = getAdmin().from('ai_usage').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('kind', kind)
@@ -58,24 +63,29 @@ export async function recordUsage(userId: string, kind: 'inspection' | 'insights
 }
 
 // ── Free trial: every new account gets TRIAL_DAYS of full Pro access, no card ──
-export const trialDays = () => Number(process.env.TRIAL_DAYS) || 14
-export const trialAiLimit = () => Number(process.env.TRIAL_AI_LIMIT) || 100
+export const trialDays = () => Number(process.env.TRIAL_DAYS) || TRIAL.days
+export const trialAiLimit = () => Number(process.env.TRIAL_AI_LIMIT) || TRIAL.aiInspections
 
 export function trialEndsAt(user: User) {
   return new Date(new Date(user.created_at).getTime() + trialDays() * 86_400_000)
 }
 
 export interface Access {
-  pro: boolean
+  /** Active paid plan, or null. */
+  plan: PaidPlan | null
+  /** Inside the free trial with no paid plan: every Pro feature is included. */
   trial: boolean
+  /** Paid (any plan) or in the trial: can use AI inspection and export. */
   allowed: boolean
+  /** Pro or trial: can use Pro-only features such as AI summaries. */
+  proFeatures: boolean
   trialEndsAt: string
 }
 
-/** Paid Pro (verified by webhook) or an active free trial. */
+/** A paid plan (verified by webhook) or an active free trial. */
 export async function getAccess(user: User): Promise<Access> {
-  const pro = isProRow(await getEntitlement(user.id))
+  const plan = paidPlanOf(await getEntitlement(user.id))
   const ends = trialEndsAt(user)
-  const trial = !pro && ends.getTime() > Date.now()
-  return { pro, trial, allowed: pro || trial, trialEndsAt: ends.toISOString() }
+  const trial = !plan && ends.getTime() > Date.now()
+  return { plan, trial, allowed: !!plan || trial, proFeatures: plan === 'pro' || trial, trialEndsAt: ends.toISOString() }
 }

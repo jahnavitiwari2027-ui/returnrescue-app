@@ -10,7 +10,7 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 
 ## Working features
 
-1. **Marketing site** — landing page with problem, 4-step workflow, live feature previews, use cases, pricing (14-day free trial with no card, then Pro ₹999 per month), a “No black boxes” methodology & trust section, FAQ, working contact form, privacy policy, terms and refund/cancellation policy.
+1. **Marketing site** — separate Home, Features, Pricing, FAQ and Contact pages, plus privacy policy, terms and refund/cancellation policy. Pricing: 14-day free trial with no card, then Starter (₹499/month or ₹5,388/year, save ₹600) or Pro (₹999/month or ₹10,788/year, save ₹1,200). Every page is saved as its own HTML with structured data, a sitemap and robots.txt so search engines and AI tools can read it.
 2. **Demo workspace** — 10 clearly labelled fictional returns, no sign-up, stored only in the visitor’s browser and separate from real accounts.
 3. **Accounts** — Continue with Google, or email sign-up/sign-in/password reset; each business’s data is isolated with database row-level security and private photo storage.
 4. **Add / edit returns** — only a photo (upload or live camera), name, category and price are required; SKU, reason, notes and per-route overrides are optional, with validation. **Where it will sell:** pick Amazon.in, Flipkart, Meesho or your own website; GST (0/5/18% by category and price), commission, closing/fixed fees and delivery are filled in automatically, each with an override and a “save as default”.
@@ -20,15 +20,15 @@ ReturnRescue is an AI-powered returns-recovery SaaS for small and mid-sized Indi
 8. **Next steps & partners** — after a decision, a pathway for that route: checklist, “find nearby” map searches, a Delhi NCR directory of 13 real, independent businesses (repair and cleaning, liquidation, donation and recycling) matched to the route and product type — each with address, services and public contact details taken from its own website — plus the business’s own saved partners with one-tap call, WhatsApp and email.
 9. **Inventory** — search, filters, sorting, edit, delete, CSV export; changes persist.
 10. **Dashboard & insights** — totals, pipeline status, estimated recoverable value, routes chosen, weekly intake, top categories, frequent defects, best-value routes, unprocessed items, plus an AI-written briefing grounded only in the computed figures.
-11. **Subscriptions (Dodo Payments)** — server-side hosted checkout, signature-verified idempotent webhooks, entitlements stored server-side, Pro features unlocked only by verified payment, failure/cancel handling and a customer portal to manage or cancel.
+11. **Subscriptions (Dodo Payments, live)** — Starter and Pro, monthly or yearly; server-side hosted checkout; plan changes on the existing subscription; signature-verified idempotent webhooks; entitlements stored server-side; features unlocked only by verified payment; failure/cancel handling and a customer portal to manage or cancel.
 
 ## What evaluators should test
 
-Open the site → explore **Try the live demo** → **Start 14-day free trial** (Continue with Google, or any email) → add a return with a real product photo → choose where it will sell → AI inspection runs automatically → try a non-fashion photo (e.g. a medicine strip) to see it refused → the grade and best option are saved automatically (re-run, change the grade or choose another option to correct them) → open **All options and the maths** to see every rupee traced to its source → change a rate under **Your rates** and update open returns → refresh to confirm persistence → search, edit and export the inventory → view insights. To test payments: **Plan & billing → Upgrade** → Dodo test card **4242 4242 4242 4242**, expiry **06/32**, CVV **123**.
+Open the site → explore **Try the live demo** → **Start 14-day free trial** (Continue with Google, or any email) → add a return with a real product photo → choose where it will sell → AI inspection runs automatically → try a non-fashion photo (e.g. a medicine strip) to see it refused → the grade and best option are saved automatically (re-run, change the grade or choose another option to correct them) → open **All options and the maths** to see every rupee traced to its source → change a rate under **Your rates** and update open returns → refresh to confirm persistence → search, edit and export the inventory → view insights. To see payments: **Plan & billing** → switch Monthly / Yearly → **Choose Starter** or **Choose Pro** opens Dodo’s hosted checkout (payments are live; close it without paying).
 
 ## Access instructions
 
-No credentials needed: the demo is public, and anyone can start the free trial in seconds (AI results require an account). Payments run in Dodo test mode — no real charges. See `docs/EVALUATOR_GUIDE.md` in the repository for a step-by-step test script.
+No credentials needed: the demo is public, and anyone can start the free trial in seconds (AI results require an account). Payments are live; the free trial covers everything needed to evaluate it. See `docs/EVALUATOR_GUIDE.md` in the repository for a step-by-step test script.
 
 ## Technology
 

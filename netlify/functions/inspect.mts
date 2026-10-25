@@ -6,6 +6,7 @@
 import type { Config } from '@netlify/functions'
 import { applyGuardrails, scopeCheck } from '../../src/lib/grading'
 import { eligibleRoutes } from '../../src/lib/recovery'
+import { AI_INSPECTIONS } from '../../src/lib/plans'
 import {
   CATEGORIES,
   DEFECT_TYPES,
@@ -19,7 +20,6 @@ import { aiErrorResponse, aiModel, aiProvider, structuredVision, type ImageInput
 import { fail, json, readJson } from './_shared/http'
 import { countUsage, getAccess, getUser, recordUsage, supabaseConfigured, trialAiLimit, trialDays } from './_shared/supabaseAdmin'
 
-const PRO_MONTHLY = 300
 const MAX_IMAGE_B64 = 2_000_000
 
 interface Body {
@@ -125,17 +125,21 @@ export default async (req: Request) => {
   const userId = user.id
   const access = await getAccess(user)
   let usage: { used: number; limit: number | null }
-  if (access.pro) {
+  if (access.plan) {
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
     const used = await countUsage(user.id, 'inspection', since)
-    if (used >= PRO_MONTHLY) return fail(429, 'FAIR_USE', `You’ve reached the fair-use limit of ${PRO_MONTHLY} inspections in 30 days. Contact us to raise it.`)
-    usage = { used: used + 1, limit: null }
+    const limit = AI_INSPECTIONS[access.plan]
+    if (used >= limit)
+      return access.plan === 'starter'
+        ? fail(402, 'PLAN_LIMIT', `You’ve used the ${limit} AI inspections included in Starter this month. Upgrade to Pro for ${AI_INSPECTIONS.pro} a month.`)
+        : fail(429, 'FAIR_USE', `You’ve reached the fair-use limit of ${limit} inspections in 30 days. Contact us to raise it.`)
+    usage = { used: used + 1, limit }
   } else if (access.trial) {
     const used = await countUsage(user.id, 'inspection')
-    if (used >= trialAiLimit()) return fail(402, 'TRIAL_LIMIT', `You’ve used the ${trialAiLimit()} AI inspections included in the free trial. Upgrade to Pro to continue.`)
+    if (used >= trialAiLimit()) return fail(402, 'TRIAL_LIMIT', `You’ve used the ${trialAiLimit()} AI inspections included in the free trial. Choose a plan to continue.`)
     usage = { used: used + 1, limit: trialAiLimit() }
   } else {
-    return fail(402, 'TRIAL_ENDED', 'Your free trial has ended. Upgrade to Pro to keep using AI inspection — your data is still here.')
+    return fail(402, 'TRIAL_ENDED', 'Your free trial has ended. Choose a plan to keep using AI inspection — your data is still here.')
   }
 
   // ── Call the model ──
