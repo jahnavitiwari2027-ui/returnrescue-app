@@ -18,7 +18,15 @@ export async function readJson<T>(req: Request, maxBytes = 5_500_000): Promise<T
   }
 }
 
-export const env = (name: string): string | undefined => process.env[name] || undefined
+// Live-payment settings can be added under these names instead of editing the older test ones;
+// when set, they win.
+const PREFERRED: Record<string, string> = {
+  DODO_PAYMENTS_ENVIRONMENT: 'DODO_LIVE_ENVIRONMENT',
+  DODO_PAYMENTS_API_KEY: 'DODO_LIVE_API_KEY',
+  DODO_PAYMENTS_WEBHOOK_KEY: 'DODO_LIVE_WEBHOOK_KEY',
+  DODO_PRO_PRODUCT_ID: 'DODO_LIVE_PRO_PRODUCT_ID',
+}
+export const env = (name: string): string | undefined => (PREFERRED[name] && process.env[PREFERRED[name]]) || process.env[name] || undefined
 
 export function siteUrl(req: Request) {
   return env('SITE_URL') || env('URL') || new URL(req.url).origin

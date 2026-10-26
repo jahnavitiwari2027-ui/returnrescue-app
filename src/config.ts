@@ -9,7 +9,7 @@ export const config = {
   supabaseUrl: (env.VITE_SUPABASE_URL as string | undefined) ?? '',
   supabaseAnonKey: (env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '',
   contactEmail: (env.VITE_CONTACT_EMAIL as string | undefined) ?? '',
-  paymentsMode: ((env.VITE_PAYMENTS_MODE as string | undefined) ?? 'test') as 'test' | 'live',
+  paymentsMode: ((env.VITE_LIVE_PAYMENTS_MODE as string | undefined) ?? (env.VITE_PAYMENTS_MODE as string | undefined) ?? 'test') as 'test' | 'live',
 }
 
 export const accountsEnabled = Boolean(config.supabaseUrl && config.supabaseAnonKey)

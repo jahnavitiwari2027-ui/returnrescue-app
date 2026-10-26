@@ -91,3 +91,18 @@ describe('Dodo webhook → plan', () => {
     expect(upserts[0]).toMatchObject({ plan: 'starter', status: 'cancelled' })
   })
 })
+
+describe('live settings under their own names', () => {
+  it('DODO_LIVE_* values win over the older ones', async () => {
+    const { env } = await import('../netlify/functions/_shared/http')
+    process.env.DODO_PAYMENTS_ENVIRONMENT = 'test_mode'
+    process.env.DODO_LIVE_ENVIRONMENT = 'live_mode'
+    process.env.DODO_LIVE_PRO_PRODUCT_ID = 'pdt_live'
+    expect(env('DODO_PAYMENTS_ENVIRONMENT')).toBe('live_mode')
+    expect(env('DODO_PRO_PRODUCT_ID')).toBe('pdt_live')
+    delete process.env.DODO_LIVE_ENVIRONMENT
+    delete process.env.DODO_LIVE_PRO_PRODUCT_ID
+    expect(env('DODO_PAYMENTS_ENVIRONMENT')).toBe('test_mode')
+    expect(env('DODO_PRO_PRODUCT_ID')).toBe('pdt_pro_m')
+  })
+})
