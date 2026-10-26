@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowRight, ScanSearch, Trophy } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ScanSearch, Trophy } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, buttonClass, GradeBadge } from '../../components/ui'
@@ -81,41 +81,117 @@ export function CtaBand({ title = 'See it in 30 seconds.', body = 'Ten sample re
   )
 }
 
-/** Live preview of the real recovery engine, run on a fictional sample product. */
+const PREVIEW_SKUS = ['SAMPLE-FTW-0311', 'SAMPLE-TOP-0142', 'SAMPLE-BAG-0061', 'SAMPLE-BTM-0458']
+
+/**
+ * Live preview of the real recovery engine on fictional sample returns. Swipe between products,
+ * tap an option to see its rupee breakdown, or open the same return in the demo.
+ */
 export function RecoveryPreview({ compact }: { compact?: boolean }) {
-  const sample = useMemo(() => buildDemoItems().find((i) => i.sku === 'SAMPLE-FTW-0311')!, [])
+  const samples = useMemo(() => {
+    const all = buildDemoItems()
+    return PREVIEW_SKUS.map((sku) => all.find((i) => i.sku === sku)!).filter(Boolean)
+  }, [])
+  const track = useRef<HTMLDivElement>(null)
+  const [index, setIndex] = useState(0)
+  const [height, setHeight] = useState<number>()
+  // The track takes the height of the card on screen, so a short card never sits above an empty gap.
+  useEffect(() => {
+    const slide = track.current?.children[index] as HTMLElement | undefined
+    if (!slide || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => setHeight(slide.offsetHeight))
+    ro.observe(slide)
+    return () => ro.disconnect()
+  }, [index])
+  const go = (i: number) => {
+    const el = track.current
+    if (!el) return
+    const n = Math.max(0, Math.min(samples.length - 1, i))
+    el.scrollTo({ left: n * el.clientWidth, behavior: 'smooth' })
+  }
+  return (
+    <div className="w-full min-w-0">
+      <div
+        ref={track}
+        onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))}
+        style={height ? { height } : undefined}
+        className="flex items-start snap-x snap-mandatory overflow-x-auto overflow-y-hidden transition-[height] duration-300 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Sample returns"
+        aria-roledescription="carousel"
+      >
+        {samples.map((sample, i) => (
+          <div key={sample.id} className="w-full shrink-0 snap-center px-0.5" aria-roledescription="slide" aria-label={`${i + 1} of ${samples.length}: ${sample.name}`}>
+            <PreviewCard sample={sample} compact={compact} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <button type="button" onClick={() => go(index - 1)} disabled={index === 0} className="grid size-8 place-items-center rounded-full border border-line bg-white text-ink-2 disabled:opacity-30" aria-label="Previous sample">
+          <ChevronLeft className="size-4" />
+        </button>
+        <div className="flex gap-1.5">
+          {samples.map((s, i) => (
+            <button key={s.id} type="button" onClick={() => go(i)} aria-label={`Show ${s.name}`} aria-current={i === index} className={clsx('h-1.5 rounded-full transition-all', i === index ? 'w-5 bg-brand-700' : 'w-1.5 bg-ink/20')} />
+          ))}
+        </div>
+        <button type="button" onClick={() => go(index + 1)} disabled={index === samples.length - 1} className="grid size-8 place-items-center rounded-full border border-line bg-white text-ink-2 disabled:opacity-30" aria-label="Next sample">
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PreviewCard({ sample, compact }: { sample: ReturnType<typeof buildDemoItems>[number]; compact?: boolean }) {
   const calc = useMemo(() => calculateRecovery(sample), [sample])
+  const [open, setOpen] = useState<string | null>(null)
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_30px_80px_-30px_rgb(11_61_47/0.35)]">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold">{sample.name}</p>
-          <p className="font-mono text-[11px] text-muted">{sample.sku} · original {inr(sample.original_price)}</p>
+      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{sample.name}</p>
+          <p className="font-mono text-[11px] text-muted">{sample.category} · original {inr(sample.original_price)}</p>
         </div>
         <GradeBadge grade={sample.grade} />
       </div>
       <div className="space-y-1.5 p-3">
-        {calc.routes.map((r) => (
-          <div
-            key={r.route}
-            className={clsx(
-              'flex items-center gap-3 rounded-xl border px-3 py-2.5',
-              calc.recommended === r.route ? 'border-brand-600 bg-brand-50/60 ring-1 ring-brand-600' : 'border-line',
-              !r.eligible && 'opacity-55',
-            )}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium">
-                {r.label}
-                {calc.recommended === r.route && <Trophy className="size-3.5 text-brand-700" aria-label="highest" />}
-              </p>
-              {!compact && <p className="text-[11px] text-muted">{r.eligible ? `Recovers ${pct(r.recoveryRate)} of original` : r.ineligibleReason}</p>}
+        {calc.routes.map((r) => {
+          const isOpen = open === r.route
+          return (
+            <div key={r.route} className={clsx('rounded-xl border', calc.recommended === r.route ? 'border-brand-600 bg-brand-50/60 ring-1 ring-brand-600' : 'border-line', !r.eligible && 'opacity-55')}>
+              <button type="button" onClick={() => setOpen(isOpen ? null : r.route)} aria-expanded={isOpen} className="flex w-full items-center gap-3 px-3 py-2.5 text-left">
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 text-[13px] font-medium">
+                    {r.label}
+                    {calc.recommended === r.route && <Trophy className="size-3.5 text-brand-700" aria-label="highest" />}
+                  </span>
+                  {!compact && <span className="block text-[11px] text-muted">{r.eligible ? `Recovers ${pct(r.recoveryRate)} of original` : r.ineligibleReason}</span>}
+                </span>
+                <span className={clsx('font-display text-xl tabular', r.net < 0 && 'text-red-700')}>{inr(r.net)}</span>
+                <ChevronDown className={clsx('size-4 shrink-0 text-muted transition', isOpen && 'rotate-180')} />
+              </button>
+              {isOpen && (
+                <dl className="space-y-1 border-t border-line/70 px-3 py-2 text-[12px]">
+                  {r.lines.map((l) => (
+                    <div key={l.label} className="flex justify-between gap-3">
+                      <dt className="text-ink-2">{l.label}</dt>
+                      <dd className={clsx('tabular', l.amount < 0 && 'text-red-700')}>{inr(l.amount)}</dd>
+                    </div>
+                  ))}
+                  <div className="flex justify-between gap-3 border-t border-line/70 pt-1 font-semibold">
+                    <dt>Net</dt>
+                    <dd className="tabular">{inr(r.net)}</dd>
+                  </div>
+                </dl>
+              )}
             </div>
-            <p className={clsx('font-display text-xl tabular', r.net < 0 && 'text-red-700')}>{inr(r.net)}</p>
-          </div>
-        ))}
+          )
+        })}
       </div>
-      <p className="border-t border-line bg-paper px-4 py-2 text-[11px] text-muted">Calculated live by the ReturnRescue engine · fictional sample product</p>
+      <div className="flex items-center justify-between gap-3 border-t border-line bg-paper px-4 py-2">
+        <p className="text-[11px] text-muted">Live from the ReturnRescue engine · fictional sample · tap an option</p>
+        <Link to={`/demo/returns/${sample.id}`} className="shrink-0 text-[12px] font-medium text-brand-700 hover:underline">Open in demo →</Link>
+      </div>
     </div>
   )
 }

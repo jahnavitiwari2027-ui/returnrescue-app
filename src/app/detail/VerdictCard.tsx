@@ -19,7 +19,7 @@ import { useInspection } from './useInspection'
 
 export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoRun: boolean }) {
   const { update, base, mode } = useWorkspace()
-  const { hasAccess } = useAuth()
+  const { hasAccess, session } = useAuth()
   const { rates } = useRates()
   const { run, running, error, canRun } = useInspection(item, autoRun)
   const ai = item.ai_inspection
@@ -126,8 +126,17 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
         {mode === 'demo' ? (
           <>
             <p className="mt-3 font-medium">Get an AI grade and value</p>
-            <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Start a free {LIMITS.trialDays}-day trial to inspect your own products. No card needed.</p>
-            <LinkButton to="/signup" className="mt-4" icon={<Sparkles className="size-4" />}>Start free trial</LinkButton>
+            {session ? (
+              <>
+                <p className="mx-auto mt-1 max-w-xs text-sm text-muted">AI inspection runs on returns in your own workspace — the demo’s samples are graded by hand.</p>
+                <LinkButton to="/app/returns/new" className="mt-4" icon={<Sparkles className="size-4" />}>Add a return in my workspace</LinkButton>
+              </>
+            ) : (
+              <>
+                <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Start a free {LIMITS.trialDays}-day trial to inspect your own products. No card needed.</p>
+                <LinkButton to="/signup" className="mt-4" icon={<Sparkles className="size-4" />}>Start free trial</LinkButton>
+              </>
+            )}
           </>
         ) : !hasAccess ? (
           <>

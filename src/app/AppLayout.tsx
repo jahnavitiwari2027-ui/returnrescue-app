@@ -63,10 +63,15 @@ export default function AppLayout() {
         <div className="mt-auto space-y-3">
           {mode === 'demo' ? (
             <>
-              {accountsEnabled && (
-                <Link to="/signup" className={buttonClass('dark', 'md', 'w-full')}>
-                  <Sparkles className="size-4" /> Start free trial
-                </Link>
+              {/* Signed-in visitors go back to their own workspace instead of being offered a trial. */}
+              {user ? (
+                <Link to="/app" className={buttonClass('dark', 'md', 'w-full')}>Open my workspace</Link>
+              ) : (
+                accountsEnabled && (
+                  <Link to="/signup" className={buttonClass('dark', 'md', 'w-full')}>
+                    <Sparkles className="size-4" /> Start free trial
+                  </Link>
+                )
               )}
               <button className="flex w-full items-center gap-2 px-2 text-sm text-muted hover:text-ink" onClick={() => setConfirmReset(true)}>
                 <RotateCcw className="size-4" /> Reset demo data
@@ -89,7 +94,11 @@ export default function AppLayout() {
         <Link to="/" aria-label="ReturnRescue home"><Logo /></Link>
         {mode === 'demo' ? (
           <div className="flex items-center gap-1">
-            {accountsEnabled && <Link to="/signup" className={buttonClass('primary', 'sm')}>Free trial</Link>}
+            {user ? (
+              <Link to="/app" className={buttonClass('primary', 'sm')}>My workspace</Link>
+            ) : (
+              accountsEnabled && <Link to="/signup" className={buttonClass('primary', 'sm')}>Free trial</Link>
+            )}
             <Link to={`${base}/rates`} className="rounded-lg p-2 text-muted hover:bg-ink/5" aria-label="Your rates">
               <SlidersHorizontal className="size-4" />
             </Link>

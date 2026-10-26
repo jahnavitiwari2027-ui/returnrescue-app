@@ -150,13 +150,13 @@ export default function Features() {
         intro="For each route the grade allows, ReturnRescue works out what actually reaches you after fees, GST, repairs and handling — per unit, line by line."
         tone="white"
       >
-        <div className="grid items-start gap-10 lg:grid-cols-2">
+        <div className="grid items-start gap-10 lg:grid-cols-2 [&>*]:min-w-0">
           <div className="space-y-5">
             <Point icon={Calculator} title="Restock, refurbish, liquidate or recycle">Restock and refurbish include marketplace fees and delivery. Liquidation is a bulk sale: commission and freight, no per-order fees. Recycling can be negative, and it says so.</Point>
             <Point icon={CheckCircle2} title="Sunk costs left out">Return shipping you’ve already paid is shown, but it doesn’t change the decision — it’s spent whichever route you pick.</Point>
             <Point icon={TrendingUp} title="Decisions keep their values">Change a rate and saved decisions stay as they were. Returns without a decision can be re-priced in one step.</Point>
           </div>
-          <Reveal delay={100}><RecoveryPreview /></Reveal>
+          <Reveal delay={100} className="min-w-0"><RecoveryPreview /></Reveal>
         </div>
       </Section>
 

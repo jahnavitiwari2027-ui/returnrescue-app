@@ -15,7 +15,7 @@ const tooltipStyle = { borderRadius: 12, border: '1px solid #e3e1d9', fontSize: 
 
 export default function InsightsPage() {
   const { items, loading, error, base, mode } = useWorkspace()
-  const { proFeatures, plan } = useAuth()
+  const { proFeatures, plan, session } = useAuth()
   const stats = useMemo(() => computeStats(items), [items])
   const findings = useMemo(() => deriveInsights(stats), [stats])
   const [summary, setSummary] = useState<{ summary: string; model: string; generated_at: string } | null>(null)
@@ -87,7 +87,9 @@ export default function InsightsPage() {
               <div className="my-auto text-center">
                 <p className="text-sm text-muted">
                   {mode === 'demo'
-                    ? `AI summaries need a free account — ${LIMITS.trialDays}-day free trial, no card.`
+                    ? session
+                      ? 'AI summaries are written from the returns in your own workspace.'
+                      : `AI summaries need a free account — ${LIMITS.trialDays}-day free trial, no card.`
                     : !proFeatures
                       ? plan === 'starter'
                         ? 'AI summaries are part of Pro. Upgrade from Starter to turn them on.'
@@ -95,7 +97,7 @@ export default function InsightsPage() {
                       : 'Turn these numbers into a short briefing with priorities for your team.'}
                 </p>
                 {mode === 'demo' ? (
-                  <LinkButton to="/signup" className="mt-4">Start free trial</LinkButton>
+                  session ? <LinkButton to="/app/insights" className="mt-4">Open my insights</LinkButton> : <LinkButton to="/signup" className="mt-4">Start free trial</LinkButton>
                 ) : !proFeatures ? (
                   <LinkButton to={`${base}/billing`} className="mt-4">See Pro</LinkButton>
                 ) : (

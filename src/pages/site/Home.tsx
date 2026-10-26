@@ -69,7 +69,7 @@ export default function Home() {
               No card needed · Then from {inr(PRICE.starter.month)} a month · <Link to="/pricing" className="underline hover:text-ink">See pricing</Link>
             </p>
           </div>
-          <div className="relative animate-rise [animation-delay:150ms]">
+          <div className="relative min-w-0 animate-rise [animation-delay:150ms]">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 via-paper to-transparent" />
             <RecoveryPreview />
           </div>
