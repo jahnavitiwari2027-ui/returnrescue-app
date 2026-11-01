@@ -8,7 +8,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('recharts') || id.includes('d3-')) return 'charts'
+          // No hand-made charts chunk: recharts is only used by the lazily loaded Insights page, so it splits
+          // off by itself. (Grouping it here also pulled React in, making every page download the charts library.)
           if (id.includes('@supabase')) return 'supabase'
         },
       },

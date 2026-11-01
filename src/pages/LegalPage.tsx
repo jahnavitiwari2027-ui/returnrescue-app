@@ -9,7 +9,7 @@ const UPDATED = '26 October 2026'
 const contact = config.contactEmail ? (
   <a className="underline" href={`mailto:${config.contactEmail}`}>{config.contactEmail}</a>
 ) : (
-  <Link className="underline" to="/#contact">our contact form</Link>
+  <Link className="underline" to="/contact">our contact form</Link>
 )
 
 const docs: Record<'privacy' | 'terms' | 'refunds', { title: string; body: ReactNode }> = {

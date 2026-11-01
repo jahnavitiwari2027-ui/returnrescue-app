@@ -10,7 +10,8 @@ const { render, PAGES, SITE_URL, FAQS, PRICE, PLAN_NAME, LIMITS } = await import
 
 const shell = readFileSync(`${dist}/index.html`, 'utf8')
 if (!shell.includes('<div id="root"></div>')) throw new Error('prerender: app shell has no empty #root')
-writeFileSync(`${dist}/app.html`, shell)
+// The shell serves sign-in, the demo, the app and unknown URLs: keep those out of search results.
+writeFileSync(`${dist}/app.html`, shell.replace('<head>', '<head>\n    <meta name="robots" content="noindex" />'))
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 const ld = (obj) => `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, '\\u003c')}</script>`

@@ -15,7 +15,7 @@ const yes = <Check className="mx-auto size-4 text-brand-600" aria-label="Include
 const no = <Minus className="mx-auto size-4 text-muted" aria-label="Not included" />
 
 const ROWS: [string, ReactNode, ReactNode, ReactNode][] = [
-  ['AI photo inspections', `${LIMITS.trialAiInspections} in total`, `${AI_INSPECTIONS.starter} a month`, `${AI_INSPECTIONS.pro} a month (fair use)`],
+  ['AI photo inspections', `${LIMITS.trialAiInspections} in total`, `${AI_INSPECTIONS.starter} a month`, <>{AI_INSPECTIONS.pro} a month<span className="block text-muted">fair use</span></>],
   ['Returns stored', 'Unlimited', 'Unlimited', 'Unlimited'],
   ['Automatic grading and best option', yes, yes, yes],
   ['Platform fees, GST and delivery', yes, yes, yes],
@@ -67,28 +67,32 @@ export default function Pricing() {
         <div className="mx-auto max-w-4xl px-5 py-16">
           <Eyebrow>Compare</Eyebrow>
           <h2 className="mt-3 font-display text-4xl tracking-tight">What’s in each plan</h2>
-          <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
+          <div className="mt-8">
+            <table className="w-full table-fixed text-[13px] sm:text-sm">
+              <colgroup>
+                <col className="w-[30%] sm:w-[40%]" />
+                <col /><col /><col />
+              </colgroup>
               <thead>
                 <tr className="border-b border-line text-left">
-                  <th className="py-3 pr-4 font-medium text-muted"><span className="sr-only">Feature</span></th>
-                  <th className="px-2 py-3 text-center font-semibold">Free trial</th>
-                  <th className="px-2 py-3 text-center font-semibold">Starter</th>
-                  <th className="px-2 py-3 text-center font-semibold">Pro</th>
+                  <th className="py-3 pr-2 sm:pr-4 font-medium text-muted"><span className="sr-only">Feature</span></th>
+                  <th className="px-1 py-3 text-center sm:px-2 font-semibold">Free trial</th>
+                  <th className="px-1 py-3 text-center sm:px-2 font-semibold">Starter</th>
+                  <th className="px-1 py-3 text-center sm:px-2 font-semibold">Pro</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {ROWS.map(([label, ...cells]) => (
                   <tr key={label}>
-                    <th scope="row" className="py-3 pr-4 text-left font-normal text-ink-2">{label}</th>
-                    {cells.map((c, i) => <td key={i} className="px-2 py-3 text-center">{c}</td>)}
+                    <th scope="row" className="py-3 pr-2 sm:pr-4 text-left font-normal text-ink-2">{label}</th>
+                    {cells.map((c, i) => <td key={i} className="px-1 py-3 text-center sm:px-2">{c}</td>)}
                   </tr>
                 ))}
                 <tr>
-                  <th scope="row" className="py-3 pr-4 text-left font-normal text-ink-2">Price</th>
-                  <td className="px-2 py-3 text-center">₹0 for {LIMITS.trialDays} days</td>
-                  <td className="px-2 py-3 text-center">{inr(PRICE.starter.month)}/month or {inr(PRICE.starter.year)}/year</td>
-                  <td className="px-2 py-3 text-center">{inr(PRICE.pro.month)}/month or {inr(PRICE.pro.year)}/year</td>
+                  <th scope="row" className="py-3 pr-2 sm:pr-4 text-left font-normal text-ink-2">Price</th>
+                  <td className="px-1 py-3 text-center sm:px-2">₹0<span className="block text-muted">for {LIMITS.trialDays} days</span></td>
+                  <td className="px-1 py-3 text-center sm:px-2"><span className="whitespace-nowrap">{inr(PRICE.starter.month)}/mo</span><span className="block whitespace-nowrap text-xs text-muted sm:text-sm">{inr(PRICE.starter.year)}/yr</span></td>
+                  <td className="px-1 py-3 text-center sm:px-2"><span className="whitespace-nowrap">{inr(PRICE.pro.month)}/mo</span><span className="block whitespace-nowrap text-xs text-muted sm:text-sm">{inr(PRICE.pro.year)}/yr</span></td>
                 </tr>
               </tbody>
             </table>

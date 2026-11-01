@@ -39,7 +39,7 @@ export function Reveal({ children, className, delay = 0 }: { children: ReactNode
 }
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={clsx('text-xs font-semibold uppercase tracking-[0.18em] text-brand-700', className)}>{children}</p>
+  return <p className={clsx('text-xs font-semibold uppercase tracking-[0.18em]', className?.includes('text-') ? className : ['text-brand-700', className])}>{children}</p>
 }
 
 /** The heading block at the top of an inner page. */
@@ -149,7 +149,7 @@ function PreviewCard({ sample, compact }: { sample: ReturnType<typeof buildDemoI
     <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_30px_80px_-30px_rgb(11_61_47/0.35)]">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">{sample.name}</p>
+          <p className="text-sm font-semibold leading-snug">{sample.name}</p>
           <p className="font-mono text-[11px] text-muted">{sample.category} · original {inr(sample.original_price)}</p>
         </div>
         <GradeBadge grade={sample.grade} />
@@ -165,7 +165,7 @@ function PreviewCard({ sample, compact }: { sample: ReturnType<typeof buildDemoI
                     {r.label}
                     {calc.recommended === r.route && <Trophy className="size-3.5 text-brand-700" aria-label="highest" />}
                   </span>
-                  {!compact && <span className="block text-[11px] text-muted">{r.eligible ? `Recovers ${pct(r.recoveryRate)} of original` : r.ineligibleReason}</span>}
+                  {!compact && <span className="block text-[11px] text-muted">{!r.eligible ? r.ineligibleReason : r.net < 0 ? 'Costs more than it brings in' : `Recovers ${pct(r.recoveryRate)} of original`}</span>}
                 </span>
                 <span className={clsx('font-display text-xl tabular', r.net < 0 && 'text-red-700')}>{inr(r.net)}</span>
                 <ChevronDown className={clsx('size-4 shrink-0 text-muted transition', isOpen && 'rotate-180')} />
