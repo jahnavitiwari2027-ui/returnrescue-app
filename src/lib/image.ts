@@ -55,8 +55,8 @@ export async function imageToDataUrl(blob: Blob, maxDim = 900, quality = 0.78): 
 }
 
 /** Base64 JPEG payload for the AI inspection endpoint. */
-export async function imageForInspection(blob: Blob): Promise<{ media_type: 'image/jpeg'; data: string }> {
-  const canvas = await drawScaled(blob, 1280)
+export async function imageForInspection(blob: Blob, maxDim = 1280): Promise<{ media_type: 'image/jpeg'; data: string }> {
+  const canvas = await drawScaled(blob, maxDim)
   const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
   return { media_type: 'image/jpeg', data: dataUrl.split(',')[1] }
 }

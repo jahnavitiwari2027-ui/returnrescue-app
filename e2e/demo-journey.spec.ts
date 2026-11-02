@@ -138,9 +138,9 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
   await expect(page.getByTestId('option')).toContainText('Liquidate')
 
   // Record realized proceeds → done
-  await page.getByRole('button', { name: /Record the amount received/ }).click()
+  await page.getByRole('button', { name: 'Mark as done' }).click()
   await page.getByLabel(/Amount received/).fill('880')
-  await page.getByRole('button', { name: 'Mark done' }).click()
+  await page.getByRole('button', { name: 'Mark as done' }).click()
   await expect(page.getByText(/₹30 above the estimate/)).toBeVisible()
 
   // The maths is one tap away

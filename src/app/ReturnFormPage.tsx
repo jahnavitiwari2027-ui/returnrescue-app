@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, ChevronDown, ImageUp, Info, Trash2 } from 'lucide-react'
+import { ArrowLeft, Camera, ChevronDown, History, ImageUp, Info, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CameraCapture, cameraSupported } from '../components/CameraCapture'
@@ -8,6 +8,8 @@ import { usePhotoUrls, useWorkspace } from '../context/WorkspaceContext'
 import { RepoError } from '../data/repo'
 import { useRates } from '../data/rates'
 import { validateImageFile } from '../lib/image'
+import { inr } from '../lib/format'
+import { knownProducts, matchProducts, productBySku, sameProduct, skuFor, type KnownProduct } from '../lib/products'
 import { estimateFromRates, estimateInputFor, isLocked, ratesPatch, saleOf, type SaleSetup } from '../lib/rates'
 import { SaleSetupCard } from './SaleSetupCard'
 import {
@@ -66,8 +68,6 @@ const FIELD_ROUTE: Record<string, RouteKey> = {
   recycling_cost: 'recycle',
 }
 
-const autoSku = () => `RR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
-
 interface PendingPhoto {
   file: File
   preview: string
@@ -76,7 +76,7 @@ interface PendingPhoto {
 export default function ReturnFormPage() {
   const { id } = useParams()
   const editing = Boolean(id)
-  const { repo, base, create, update, mode } = useWorkspace()
+  const { repo, base, create, update, mode, items } = useWorkspace()
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(() => toForm(emptyReturnInput()))
   const [loaded, setLoaded] = useState(!editing)
@@ -93,6 +93,9 @@ export default function ReturnFormPage() {
   // The platform card: null until the seller changes something, so the saved or default setup shows.
   const [sale, setSale] = useState<SaleSetup | null>(null)
   const [saveDefault, setSaveDefault] = useState(false)
+  // Products from earlier returns: suggested while typing, and their SKU is reused.
+  const products = useMemo(() => knownProducts(items.filter((i) => i.id !== id)), [items, id])
+  const [picked, setPicked] = useState<KnownProduct | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -119,6 +122,17 @@ export default function ReturnFormPage() {
   const setBasis = (route: RouteKey | 'costs', b: ValueBasis) => setForm((f) => ({ ...f, value_basis: { ...f.value_basis, [route]: b } }))
 
   const locked = isLocked(form)
+  const suggestions = !editing && !picked ? matchProducts(form.name, products) : []
+  const skuOwner = productBySku(form.sku, products)
+  const autoSkuPreview = form.name.trim() ? skuFor(form.name.trim(), form.category as Category, products) : ''
+  const repeat = picked ?? (form.sku.trim() ? skuOwner : sameProduct(form.name, form.category, products))
+
+  const fillFrom = (p: KnownProduct) => {
+    setForm((f) => ({ ...f, name: p.name, sku: p.sku, category: p.category, original_price: String(p.original_price) }))
+    if (p.sale_setup && !locked) setSale(p.sale_setup)
+    setErrors((e) => ({ ...e, name: undefined, sku: undefined, original_price: undefined }))
+    setPicked(p)
+  }
   const shownSale = sale ?? saleOf(form.sale_setup, rates)
   const photoCount = form.photos.length + pending.length
   const hygiene = HYGIENE_SENSITIVE.includes(form.category as Category)
@@ -189,7 +203,7 @@ export default function ReturnFormPage() {
       const payload: ReturnInput = {
         ...(form as unknown as ReturnInput),
         name: form.name.trim(),
-        sku: (form.sku.trim() || autoSku()).toUpperCase(),
+        sku: (form.sku.trim() || skuFor(form.name.trim(), form.category as Category, products)).toUpperCase(),
         seal_intact: hygiene ? form.seal_intact : false,
         photos: [...form.photos, ...uploaded],
         // New returns always record their platform; edits only when the seller changed it.
@@ -279,7 +293,45 @@ export default function ReturnFormPage() {
             <CardHeader title="Product" />
             <div className="grid gap-4 p-5 sm:grid-cols-2">
               <Field label="Product name" error={errors.name} required className="sm:col-span-2">
-                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.name} onChange={(e) => set('name', e.target.value)} invalid={!!errors.name} placeholder="e.g. Classic white cotton shirt" />}
+                {(fid, d) => (
+                  <>
+                    <Input
+                      id={fid}
+                      aria-describedby={d}
+                      value={form.name}
+                      onChange={(e) => {
+                        set('name', e.target.value)
+                        setPicked(null)
+                      }}
+                      invalid={!!errors.name}
+                      placeholder="e.g. Classic white cotton shirt"
+                      autoComplete="off"
+                    />
+                    {suggestions.length > 0 && (
+                      <div className="mt-2 overflow-hidden rounded-xl border border-line bg-white" role="list" aria-label="Returned before">
+                        <p className="border-b border-line bg-paper px-3 py-1.5 text-xs font-medium text-muted">Returned before — tap to fill in its details</p>
+                        {suggestions.map((p) => (
+                          <button key={p.sku} type="button" role="listitem" onClick={() => fillFrom(p)} className="flex w-full items-center justify-between gap-3 border-b border-line/60 px-3 py-2 text-left last:border-0 hover:bg-brand-50">
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-medium">{p.name}</span>
+                              <span className="block truncate font-mono text-[11px] text-muted">{p.sku} · {p.category} · {inr(p.original_price)}</span>
+                            </span>
+                            <span className="shrink-0 text-xs text-muted">{p.count} {p.count === 1 ? 'return' : 'returns'}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {!editing && repeat && !suggestions.length && (
+                      <p className="mt-2 flex items-start gap-1.5 text-xs text-brand-800" data-testid="repeat-product">
+                        <History className="mt-px size-3.5 shrink-0" />
+                        <span>
+                          Returned before ({repeat.count} {repeat.count === 1 ? 'time' : 'times'}) · SKU <span className="font-mono">{repeat.sku}</span>
+                          {picked ? ' · details filled in' : ''}
+                        </span>
+                      </p>
+                    )}
+                  </>
+                )}
               </Field>
               <Field label="Category" required>
                 {(fid) => (
@@ -315,8 +367,27 @@ export default function ReturnFormPage() {
               <ChevronDown className="size-4 text-muted transition group-open:rotate-180" />
             </summary>
             <div className="grid gap-4 border-t border-line p-5 sm:grid-cols-2">
-              <Field label="SKU" error={errors.sku} hint="Leave blank to auto-generate one.">
-                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.sku} onChange={(e) => set('sku', e.target.value)} invalid={!!errors.sku} placeholder="e.g. TOP-WHT-M-001" className="font-mono uppercase" />}
+              <Field
+                label="SKU"
+                error={errors.sku}
+                hint={
+                  form.sku.trim() ? (
+                    skuOwner && skuOwner.name !== form.name.trim() ? (
+                      <>
+                        This SKU is {skuOwner.name}.{' '}
+                        <button type="button" className="font-medium text-brand-700 underline" onClick={() => fillFrom(skuOwner)}>Use its details</button>
+                      </>
+                    ) : skuOwner ? (
+                      `Returned ${skuOwner.count} ${skuOwner.count === 1 ? 'time' : 'times'} before.`
+                    ) : undefined
+                  ) : autoSkuPreview ? (
+                    <>Leave blank to use <span className="font-mono">{autoSkuPreview}</span>{sameProduct(form.name, form.category, products) ? ' (same as before)' : ''}.</>
+                  ) : (
+                    'Leave blank and one is made from the name — the same product always gets the same SKU.'
+                  )
+                }
+              >
+                {(fid, d) => <Input id={fid} aria-describedby={d} value={form.sku} onChange={(e) => { set('sku', e.target.value); setPicked(null) }} invalid={!!errors.sku} placeholder={autoSkuPreview || 'e.g. TOP-WHT-M-001'} className="font-mono uppercase" autoComplete="off" />}
               </Field>
               <Field label="Return reason" required>
                 {(fid) => (

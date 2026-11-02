@@ -356,14 +356,21 @@ function Outcome({ item }: { item: ReturnItem }) {
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
   if (!open)
-    return (
+    return item.status === 'completed' ? (
       <button className="mt-3 block text-sm font-medium text-brand-700 hover:underline" onClick={() => setOpen(true)}>
-        {item.realized_amount == null ? 'Sold it? Record the amount received' : 'Edit amount received'}
+        Edit amount received
       </button>
+    ) : (
+      <div className="mt-4 border-t border-line pt-4">
+        <Button variant="dark" size="lg" className="w-full" icon={<CheckCircle2 className="size-4" />} onClick={() => setOpen(true)}>
+          Mark as done
+        </Button>
+        <p className="mt-1.5 text-center text-xs text-muted">Once it’s sold, repaired or disposed of — you’ll add the amount received.</p>
+      </div>
     )
   return (
     <div className="mt-4 border-t border-line pt-4">
-      <label htmlFor="realized" className="text-sm font-medium">Sold or disposed? Amount received</label>
+      <label htmlFor="realized" className="text-sm font-medium">Amount received</label>
       <p className="text-xs text-muted">What actually reached you, after fees and excluding GST. It’s kept separate from the estimate.</p>
       <div className="mt-1.5 flex gap-2">
         <div className="flex-1">
@@ -386,7 +393,7 @@ function Outcome({ item }: { item: ReturnItem }) {
             }
           }}
         >
-          Mark done
+          {item.status === 'completed' ? 'Save' : 'Mark as done'}
         </Button>
       </div>
       {err && <p className="mt-1 text-xs font-medium text-red-700">{err}</p>}

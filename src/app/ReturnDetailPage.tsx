@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { ArrowLeft, ChevronDown, ImageOff, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ChevronDown, History, ImageOff, Pencil, Trash2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, EmptyState, LinkButton, Modal, SampleBadge, Spinner, StatusBadge } from '../components/ui'
@@ -81,6 +81,7 @@ export default function ReturnDetailPage() {
         </div>
       </div>
 
+      <ProductMatch item={item} />
       <VerdictCard item={item} autoRun={!!params.get('new')} />
       {item.decision_route && <NextSteps item={item} route={item.decision_route} />}
 
@@ -113,6 +114,9 @@ export default function ReturnDetailPage() {
           </LinkButton>
         </Section>
       </div>
+      <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted">
+        <CheckCircle2 className="size-3.5" /> Changes are saved automatically — nothing else to press.
+      </p>
 
       <Modal
         open={confirmDelete}
@@ -202,5 +206,40 @@ function AIFindings({ item }: { item: ReturnItem }) {
       <p className="text-xs text-muted">{ai.model} · {shortDate(ai.created_at)} · AI results are provisional — a person confirms the grade.</p>
       <SupportNote id={item.id} />
     </div>
+  )
+}
+
+/** The AI recognised the photo as a product returned before: offer to track them together. */
+function ProductMatch({ item }: { item: ReturnItem }) {
+  const { update } = useWorkspace()
+  const [busy, setBusy] = useState(false)
+  const m = item.ai_inspection?.matched_product
+  if (!m || m.sku === item.sku.trim().toUpperCase()) return null
+  return (
+    <Card className="mb-4 border-brand-200 bg-brand-50/60 p-4" data-testid="product-match">
+      <p className="flex items-center gap-2 text-sm font-medium"><History className="size-4 text-brand-700" /> Looks like a product returned before</p>
+      <p className="mt-1 text-sm text-ink-2">
+        The photo matches <span className="font-medium text-ink">{m.name}</span> (SKU <span className="font-mono">{m.sku}</span>). Use the same name and SKU so they’re tracked together?
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          loading={busy}
+          onClick={async () => {
+            setBusy(true)
+            try {
+              await update(item.id, { name: m.name, sku: m.sku })
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          Yes, same product
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => update(item.id, { ai_inspection: { ...item.ai_inspection!, matched_product: null } })}>
+          No, it’s different
+        </Button>
+      </div>
+    </Card>
   )
 }

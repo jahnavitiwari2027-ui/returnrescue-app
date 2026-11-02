@@ -6,7 +6,30 @@ import { api, ApiError } from '../../lib/api'
 import { useRates } from '../../data/rates'
 import { imageForInspection } from '../../lib/image'
 import { inspectionPatch } from '../../lib/decision'
+import { knownProducts, productBySku } from '../../lib/products'
 import type { ReturnItem } from '../../lib/types'
+import type { ReturnsRepo } from '../../data/repo'
+
+/**
+ * One small photo of up to four earlier products in the same category, so the AI can say if
+ * this return is one of them. Skipped when the return already has a SKU we know.
+ */
+async function referencePhotos(item: ReturnItem, items: ReturnItem[], repo: ReturnsRepo) {
+  const others = items.filter((i) => i.id !== item.id && !i.is_sample)
+  const products = knownProducts(others)
+  if (productBySku(item.sku, products)) return []
+  const refs = []
+  for (const p of products.filter((x) => x.category === item.category).slice(0, 4)) {
+    const withPhoto = others.find((i) => i.id === p.lastId && i.photos.length) ?? others.find((i) => i.sku.toUpperCase() === p.sku && i.photos.length)
+    if (!withPhoto) continue
+    try {
+      refs.push({ id: p.sku, name: p.name, image: await imageForInspection(await repo.photoBlob(withPhoto.photos[0]), 512) })
+    } catch {
+      // A missing reference photo just means one fewer comparison.
+    }
+  }
+  return refs
+}
 
 export interface InspectionError {
   text: string
@@ -15,7 +38,7 @@ export interface InspectionError {
 
 /** Runs AI inspection for an item; optionally starts automatically once. */
 export function useInspection(item: ReturnItem, autoRun: boolean) {
-  const { repo, update, mode } = useWorkspace()
+  const { repo, update, mode, items } = useWorkspace()
   const { hasAccess, refresh } = useAuth()
   const { rates } = useRates()
   const [running, setRunning] = useState(false)
@@ -33,9 +56,11 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
     try {
       const images = []
       for (const ref of item.photos.slice(0, LIMITS.maxPhotos)) images.push(await imageForInspection(await repo.photoBlob(ref)))
+      const references = await referencePhotos(item, items, repo)
       const { inspection } = await api.inspect({
         mode,
         images,
+        ...(references.length ? { references } : {}),
         context: {
           name: item.name,
           category: item.category,
@@ -53,7 +78,7 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
     } finally {
       setRunning(false)
     }
-  }, [item, mode, repo, update, refresh, rates])
+  }, [item, items, mode, repo, update, refresh, rates])
 
   const started = useRef(false)
   useEffect(() => {

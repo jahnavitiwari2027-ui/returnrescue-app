@@ -56,6 +56,8 @@ async function call<T>(path: string, body?: unknown, method = 'POST'): Promise<T
 export interface InspectRequest {
   mode: 'demo' | 'account'
   images: { media_type: 'image/jpeg'; data: string }[]
+  /** Photos of earlier products in the same category, so the AI can say if this is one of them. */
+  references?: { id: string; name: string; image: { media_type: 'image/jpeg'; data: string } }[]
   context: {
     name: string
     category: string

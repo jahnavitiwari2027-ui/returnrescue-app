@@ -94,6 +94,8 @@ export interface AIInspection {
   ai_proposed_grade?: Grade
   /** Why the rules changed the grade, plus cautions (low confidence, limited photos). */
   guardrail_notes?: string[]
+  /** An earlier product the photos appear to show (from reference photos), or null once dismissed. */
+  matched_product?: { sku: string; name: string } | null
   /** Older inspections only: money values the AI used to suggest. New inspections never include these. */
   suggested_estimates?: SuggestedEstimates | null
 }

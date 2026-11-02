@@ -62,6 +62,8 @@ function toGeminiSchema(s: JSchema): Record<string, unknown> {
 export interface ImageInput {
   media_type: 'image/jpeg' | 'image/png' | 'image/webp'
   data: string // base64
+  /** Optional text shown to the model just before this image. */
+  label?: string
 }
 
 // Google answers 429 (rate or daily limit) and 500/503 (overloaded) quickly, so these are
@@ -158,7 +160,7 @@ export async function structuredVision(opts: {
         {
           role: 'user',
           parts: [
-            ...opts.images.map((i) => ({ inline_data: { mime_type: i.media_type, data: i.data } })),
+            ...opts.images.flatMap((i) => [...(i.label ? [{ text: i.label }] : []), { inline_data: { mime_type: i.media_type, data: i.data } }]),
             { text: opts.text },
           ],
         },
@@ -213,7 +215,10 @@ export async function structuredVision(opts: {
         {
           role: 'user',
           content: [
-            ...opts.images.map((i) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: i.media_type, data: i.data } })),
+            ...opts.images.flatMap((i) => [
+              ...(i.label ? [{ type: 'text' as const, text: i.label }] : []),
+              { type: 'image' as const, source: { type: 'base64' as const, media_type: i.media_type, data: i.data } },
+            ]),
             { type: 'text' as const, text: opts.text },
           ],
         },
