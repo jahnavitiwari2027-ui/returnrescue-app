@@ -3,7 +3,7 @@ import { BarChart3, CreditCard, Handshake, LayoutDashboard, LogOut, PackageSearc
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Badge, Button, buttonClass, Logo, Modal } from '../components/ui'
-import { accountsEnabled } from '../config'
+import { accountsEnabled, offer } from '../config'
 import { useAuth } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { PLAN_NAME } from '../lib/plans'
@@ -13,11 +13,11 @@ export default function AppLayout() {
     document.title = 'ReturnRescue'
   }, [])
   const { mode, base, resetDemo } = useWorkspace()
-  const { user, plan, inTrial, trialDaysLeft, signOut } = useAuth()
+  const { user, plan, launch, ai, signOut } = useAuth()
   const navigate = useNavigate()
   const [confirmReset, setConfirmReset] = useState(false)
 
-  const planLabel = plan ? PLAN_NAME[plan] : inTrial ? `Trial · ${trialDaysLeft}d left` : 'Trial ended'
+  const planLabel = plan ? PLAN_NAME[plan] : launch ? `Free · ${ai.remaining} AI left` : ai.remaining > 0 ? `${ai.remaining} AI left` : 'Free'
   const nav = [
     { to: base, label: 'Dashboard', short: 'Home', icon: LayoutDashboard, end: true },
     { to: `${base}/returns`, label: 'Inventory', short: 'Inventory', icon: PackageSearch, end: false },
@@ -69,7 +69,7 @@ export default function AppLayout() {
               ) : (
                 accountsEnabled && (
                   <Link to="/signup" className={buttonClass('dark', 'md', 'w-full')}>
-                    <Sparkles className="size-4" /> Start free trial
+                    <Sparkles className="size-4" /> {offer().cta}
                   </Link>
                 )
               )}
@@ -81,7 +81,7 @@ export default function AppLayout() {
             <div className="rounded-xl border border-line bg-white px-3 py-2.5">
               <p className="truncate text-sm font-medium">{user?.email}</p>
               <div className="mt-1 flex items-center justify-between gap-2">
-                <Link to={`${base}/billing`}><Badge tone={plan || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
+                <Link to={`${base}/billing`}><Badge tone={plan || ai.remaining > 0 ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
                 <button className="text-xs text-muted hover:text-ink" onClick={doSignOut}>Sign out</button>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function AppLayout() {
             {user ? (
               <Link to="/app" className={buttonClass('primary', 'sm')}>My workspace</Link>
             ) : (
-              accountsEnabled && <Link to="/signup" className={buttonClass('primary', 'sm')}>Free trial</Link>
+              accountsEnabled && <Link to="/signup" className={buttonClass('primary', 'sm')}>{offer().open ? 'Try free' : 'Sign up'}</Link>
             )}
             <Link to={`${base}/rates`} className="rounded-lg p-2 text-muted hover:bg-ink/5" aria-label="Your rates">
               <SlidersHorizontal className="size-4" />
@@ -108,7 +108,7 @@ export default function AppLayout() {
           </div>
         ) : (
           <div className="flex items-center gap-1">
-            <Link to={`${base}/billing`} aria-label="Plan and billing"><Badge tone={plan || inTrial ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
+            <Link to={`${base}/billing`} aria-label="Plan and billing"><Badge tone={plan || ai.remaining > 0 ? 'brand' : 'amber'}>{planLabel}</Badge></Link>
             <Link to={`${base}/rates`} className="rounded-lg p-2 text-muted hover:bg-ink/5" aria-label="Your rates">
               <SlidersHorizontal className="size-4" />
             </Link>

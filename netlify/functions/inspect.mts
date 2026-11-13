@@ -6,7 +6,7 @@
 import type { Config } from '@netlify/functions'
 import { applyGuardrails, scopeCheck } from '../../src/lib/grading'
 import { eligibleRoutes } from '../../src/lib/recovery'
-import { AI_INSPECTIONS } from '../../src/lib/plans'
+import { AI_INSPECTIONS, LAUNCH, PACK } from '../../src/lib/plans'
 import {
   CATEGORIES,
   DEFECT_TYPES,
@@ -18,7 +18,7 @@ import {
 } from '../../src/lib/types'
 import { aiErrorResponse, aiModel, aiProvider, structuredVision, type ImageInput, type JSchema } from './_shared/ai'
 import { fail, json, readJson } from './_shared/http'
-import { countUsage, getAccess, getUser, recordUsage, supabaseConfigured, trialAiLimit, trialDays } from './_shared/supabaseAdmin'
+import { getAccess, getUser, recordUsage, supabaseConfigured } from './_shared/supabaseAdmin'
 
 const MAX_IMAGE_B64 = 2_000_000
 const MAX_REF_B64 = 400_000
@@ -136,32 +136,24 @@ export default async (req: Request) => {
   const ctx = body.context ?? {}
   const category = CATEGORIES.includes(ctx.category as never) ? (ctx.category as string) : 'Unknown'
 
-  // ── Access control: AI results require a signed-in account (Pro or active free trial) ──
+  // ── Access control: AI results need a signed-in account with inspections left ──
   if (mode !== 'account') {
-    return fail(401, 'SIGN_IN_REQUIRED', `Create a free account to run AI inspection — ${trialDays()}-day free trial, no card needed.`)
+    return fail(401, 'SIGN_IN_REQUIRED', `Sign in to run AI inspection on your own products — free for everyone until ${LAUNCH.endLabel}.`)
   }
   if (!supabaseConfigured()) return fail(503, 'NOT_CONFIGURED', 'Accounts are not configured on this deployment.')
   const user = await getUser(req)
   if (!user) return fail(401, 'AUTH', 'Please sign in again.')
   const userId = user.id
   const access = await getAccess(user)
-  let usage: { used: number; limit: number | null }
-  if (access.plan) {
-    const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
-    const used = await countUsage(user.id, 'inspection', since)
-    const limit = AI_INSPECTIONS[access.plan]
-    if (used >= limit)
-      return access.plan === 'starter'
-        ? fail(402, 'PLAN_LIMIT', `You’ve used the ${limit} AI inspections included in Starter this month. Upgrade to Pro for ${AI_INSPECTIONS.pro} a month.`)
-        : fail(429, 'FAIR_USE', `You’ve reached the fair-use limit of ${limit} inspections in 30 days. Contact us to raise it.`)
-    usage = { used: used + 1, limit }
-  } else if (access.trial) {
-    const used = await countUsage(user.id, 'inspection')
-    if (used >= trialAiLimit()) return fail(402, 'TRIAL_LIMIT', `You’ve used the ${trialAiLimit()} AI inspections included in the free trial. Choose a plan to continue.`)
-    usage = { used: used + 1, limit: trialAiLimit() }
-  } else {
-    return fail(402, 'TRIAL_ENDED', 'Your free trial has ended. Choose a plan to keep using AI inspection — your data is still here.')
+  const { ai } = access
+  if (ai.remaining <= 0) {
+    if (access.plan === 'starter') return fail(402, 'PLAN_LIMIT', `You’ve used the ${ai.limit} AI inspections included in Starter this month. Upgrade to Pro for ${AI_INSPECTIONS.pro} a month.`)
+    if (access.plan === 'pro') return fail(429, 'FAIR_USE', `You’ve reached the fair-use limit of ${ai.limit} inspections in 30 days. Contact us to raise it.`)
+    if (ai.packsLeft <= 0)
+      return fail(402, 'PACK_LIMIT', `You’ve used your inspections and the ${PACK.maxPer30Days} top-up packs available this month. Starter includes ${AI_INSPECTIONS.starter} a month.`)
+    return fail(402, 'NEED_PACK', `You’ve used your AI inspections. Get ${PACK.inspections} more for ₹${PACK.price}, one-time — your data is all still here.`)
   }
+  const usage = { used: ai.limit - ai.remaining + 1, limit: ai.limit }
 
   // ── Call the model ──
   const model = aiModel()

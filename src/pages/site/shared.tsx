@@ -3,7 +3,7 @@ import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ScanSearch, Trophy 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, buttonClass, GradeBadge } from '../../components/ui'
-import { accountsEnabled, LIMITS } from '../../config'
+import { accountsEnabled, offer } from '../../config'
 import { buildDemoItems } from '../../data/demoSeed'
 import { inr, pct } from '../../lib/format'
 import { calculateRecovery, GRADE_ELIGIBILITY } from '../../lib/recovery'
@@ -56,7 +56,7 @@ export function PageIntro({ eyebrow, title, children }: { eyebrow: string; title
   )
 }
 
-/** Start-trial and demo buttons, shown at the end of pages. */
+/** Sign-up and demo buttons, shown at the end of pages. */
 export function CtaBand({ title = 'See it in 30 seconds.', body = 'Ten sample returns in the demo. No sign-up.' }: { title?: string; body?: string }) {
   return (
     <section className="px-5 py-20">
@@ -70,7 +70,7 @@ export function CtaBand({ title = 'See it in 30 seconds.', body = 'Ten sample re
           <div className="flex flex-wrap gap-3">
             {accountsEnabled && (
               <Link to="/signup" className={buttonClass('secondary', 'lg', 'border-transparent')}>
-                Start {LIMITS.trialDays}-day free trial <ArrowRight className="size-4" />
+                {offer().cta} <ArrowRight className="size-4" />
               </Link>
             )}
             <Link to="/demo" className={buttonClass('ghost', 'lg', 'text-white ring-1 ring-white/30 hover:bg-white/10 hover:text-white')}>Open the demo</Link>

@@ -1,7 +1,8 @@
 import { Menu, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { accountsEnabled, config } from '../config'
+import { accountsEnabled, config, offer } from '../config'
+import { LAUNCH } from '../lib/plans'
 import { useAuth } from '../context/AuthContext'
 import { buttonClass, Logo } from './ui'
 
@@ -17,6 +18,7 @@ export function SiteHeader() {
   }, [])
   const links = [
     ['Features', '/features'],
+    ['Calculator', '/calculator'],
     ['Pricing', '/pricing'],
     ['FAQ', '/faq'],
     ['Contact', '/contact'],
@@ -65,7 +67,7 @@ export function SiteHeader() {
 export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-paper-2/50">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-5">
         <div className="md:col-span-2">
           <Logo />
           <p className="mt-3 max-w-sm text-sm text-muted">
@@ -80,13 +82,21 @@ export function SiteFooter() {
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li><Link to="/features" className="hover:text-ink">Features</Link></li>
             <li><Link to="/pricing" className="hover:text-ink">Pricing</Link></li>
+            <li><Link to="/calculator" className="hover:text-ink">Free calculator</Link></li>
+            <li><Link to="/returns-report-2026" className="hover:text-ink">2026 returns report</Link></li>
             <li><Link to="/demo" className="hover:text-ink">Live demo</Link></li>
             <li><Link to="/faq" className="hover:text-ink">FAQ</Link></li>
             <li><Link to="/contact" className="hover:text-ink">Contact</Link></li>
           </ul>
         </div>
         <div>
-          <p className="text-sm font-semibold">Legal</p>
+          <p className="text-sm font-semibold">Guides</p>
+          <ul className="mt-3 space-y-2 text-sm text-muted">
+            <li><Link to="/amazon-return-cost" className="hover:text-ink">What a return costs on Amazon.in</Link></li>
+            <li><Link to="/what-to-do-with-returned-products" className="hover:text-ink">What to do with returned products</Link></li>
+            <li><Link to="/how-to-grade-returned-clothes-and-shoes" className="hover:text-ink">How to grade returns</Link></li>
+          </ul>
+          <p className="mt-6 text-sm font-semibold">Legal</p>
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li><Link to="/privacy" className="hover:text-ink">Privacy policy</Link></li>
             <li><Link to="/terms" className="hover:text-ink">Terms of service</Link></li>
@@ -100,9 +110,21 @@ export function SiteFooter() {
   )
 }
 
+/** Launch-weekend strip above the header, only while the offer runs. */
+export function LaunchBanner() {
+  const o = offer()
+  if (!o.open) return null
+  return (
+    <Link to={accountsEnabled ? '/signup' : '/demo'} className="block bg-brand-800 px-4 py-2 text-center text-[13px] text-white hover:bg-brand-900">
+      <span className="font-semibold">Launch weekend:</span> {o.short.replace('Free for everyone', 'everything free for everyone')} — {LAUNCH.freeInspections} AI inspections each. <span className="underline">Try it →</span>
+    </Link>
+  )
+}
+
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
+      <LaunchBanner />
       <SiteHeader />
       {children}
       <SiteFooter />

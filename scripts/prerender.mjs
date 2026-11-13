@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const dist = resolve('dist')
-const { render, PAGES, SITE_URL, FAQS, PRICE, PLAN_NAME, LIMITS } = await import(pathToFileURL(resolve('dist-ssr/entry-server.js')).href)
+const { render, PAGES, SITE_URL, FAQS, PRICE, PLAN_NAME, PACK, ARTICLES } = await import(pathToFileURL(resolve('dist-ssr/entry-server.js')).href)
 
 const shell = readFileSync(`${dist}/index.html`, 'utf8')
 if (!shell.includes('<div id="root"></div>')) throw new Error('prerender: app shell has no empty #root')
@@ -24,22 +24,41 @@ const app = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description: PAGES[0].description,
-  offers: ['starter', 'pro'].flatMap((plan) =>
-    [['month', 'monthly'], ['year', 'yearly']].map(([interval, word]) => ({
-      '@type': 'Offer',
-      name: `${PLAN_NAME[plan]} (${word})`,
-      price: PRICE[plan][interval],
-      priceCurrency: 'INR',
-      url: `${SITE_URL}/pricing`,
-    })),
-  ),
+  offers: [
+    { '@type': 'Offer', name: `${PACK.inspections} AI inspections (one-time)`, price: PACK.price, priceCurrency: 'INR', url: `${SITE_URL}/pricing` },
+    ...['starter', 'pro'].flatMap((plan) =>
+      [['month', 'monthly'], ['year', 'yearly']].map(([interval, word]) => ({
+        '@type': 'Offer',
+        name: `${PLAN_NAME[plan]} (${word})`,
+        price: PRICE[plan][interval],
+        priceCurrency: 'INR',
+        url: `${SITE_URL}/pricing`,
+      })),
+    ),
+  ],
 }
 const faqPage = (faqs) => ({
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 })
+const article = (path, headline, description) => ({
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline,
+  description,
+  datePublished: '2026-11-14',
+  dateModified: '2026-11-14',
+  author: { '@type': 'Organization', name: 'ReturnRescue', url: SITE_URL },
+  publisher: { '@type': 'Organization', name: 'ReturnRescue', url: SITE_URL },
+  mainEntityOfPage: `${SITE_URL}${path}`,
+  image: `${SITE_URL}/og.png`,
+})
+const reportMeta = PAGES.find((p) => p.path === '/returns-report-2026')
 const structured = {
+  '/calculator': [{ '@context': 'https://schema.org', '@type': 'WebApplication', name: 'Return value calculator', url: `${SITE_URL}/calculator`, applicationCategory: 'BusinessApplication', operatingSystem: 'Web', isAccessibleForFree: true, offers: { '@type': 'Offer', price: 0, priceCurrency: 'INR' } }],
+  '/returns-report-2026': [article('/returns-report-2026', 'What a return really costs Indian fashion sellers in 2026', reportMeta.description)],
+  ...Object.fromEntries(ARTICLES.map((a) => [a.path, [article(a.path, a.h1, a.description), faqPage([{ q: a.h1, a: a.answer }, ...a.faqs])]])),
   '/': [app],
   '/features': [app],
   '/pricing': [app, faqPage(FAQS.filter((f) => f.pricing))],
@@ -84,4 +103,4 @@ writeFileSync(
 )
 writeFileSync(`${dist}/robots.txt`, `User-agent: *\nAllow: /\nDisallow: /app\n\nSitemap: ${SITE_URL}/sitemap.xml\n`)
 rmSync(resolve('dist-ssr'), { recursive: true, force: true })
-console.log(`sitemap.xml and robots.txt written · trial ${LIMITS.trialDays} days`)
+console.log('sitemap.xml and robots.txt written')

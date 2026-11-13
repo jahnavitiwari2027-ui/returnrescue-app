@@ -1,28 +1,30 @@
 import { Check, Minus } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { IntervalToggle, PlanCard, TrialCard } from '../../components/pricing'
+import { IntervalToggle, PlanCard, StartCard } from '../../components/pricing'
 import { PublicLayout } from '../../components/SiteChrome'
 import { buttonClass } from '../../components/ui'
-import { accountsEnabled, AFTER_TRIAL, LIMITS } from '../../config'
+import { accountsEnabled, offer, PACK_LINE, WITHOUT_PLAN } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { inr } from '../../lib/format'
-import { AI_INSPECTIONS, PLAN_NAME, PRICE, yearlySaving, type Interval } from '../../lib/plans'
+import { AI_INSPECTIONS, FREE_ITEMS, LAUNCH, PACK, PLAN_NAME, PRICE, yearlySaving, type Interval } from '../../lib/plans'
 import { FAQS } from './faqs'
 import { CtaBand, Eyebrow, PageIntro, Reveal, usePageMeta } from './shared'
 
 const yes = <Check className="mx-auto size-4 text-brand-600" aria-label="Included" />
 const no = <Minus className="mx-auto size-4 text-muted" aria-label="Not included" />
 
-const ROWS: [string, ReactNode, ReactNode, ReactNode][] = [
-  ['AI photo inspections', `${LIMITS.trialAiInspections} in total`, `${AI_INSPECTIONS.starter} a month`, <>{AI_INSPECTIONS.pro} a month<span className="block text-muted">fair use</span></>],
-  ['Returns stored', 'Unlimited', 'Unlimited', 'Unlimited'],
+// The first column is the launch weekend while it runs, then the one-time pack.
+const rows = (open: boolean): [string, ReactNode, ReactNode, ReactNode][] => [
+  ['AI photo inspections', open ? `${LAUNCH.freeInspections} each` : `${PACK.inspections} per pack`, `${AI_INSPECTIONS.starter} a month`, <>{AI_INSPECTIONS.pro} a month<span className="block text-muted">fair use</span></>],
+  ['Returns stored', open ? 'Unlimited' : `Up to ${FREE_ITEMS}`, 'Unlimited', 'Unlimited'],
   ['Automatic grading and best option', yes, yes, yes],
   ['Platform fees, GST and delivery', yes, yes, yes],
   ['Sourced rate card you can edit', yes, yes, yes],
   ['Next steps and partner directory', yes, yes, yes],
-  ['Dashboard and CSV export', yes, yes, yes],
-  ['AI-written briefings', yes, no, yes],
+  ['Dashboard', yes, yes, yes],
+  ['CSV export', open ? yes : no, yes, yes],
+  ['AI-written briefings', open ? yes : no, no, yes],
 ]
 
 export default function Pricing() {
@@ -30,11 +32,13 @@ export default function Pricing() {
   const { session } = useAuth()
   const [interval, setInterval] = useState<Interval>('month')
   const paidHref = session ? '/app/billing' : accountsEnabled ? '/signup?next=/app/billing' : '/demo'
+  const o = offer()
 
   return (
     <PublicLayout>
-      <PageIntro eyebrow="Pricing" title={<>Try it free for {LIMITS.trialDays} days. Then pick a plan.</>}>
-        Every feature is included in the trial, with no card needed. Pay monthly, or yearly and save: {inr(yearlySaving('starter'))} a year on Starter, {inr(yearlySaving('pro'))} on Pro.
+      <PageIntro eyebrow="Pricing" title={o.open ? <>Free for everyone this weekend.</> : <>Start at ₹{PACK.price}. No subscription needed.</>}>
+        {o.open ? `${o.detail} ` : `${PACK.inspections} AI inspections for ₹${PACK.price}, one-time. `}
+        For regular use, pay monthly or yearly and save: {inr(yearlySaving('starter'))} a year on Starter, {inr(yearlySaving('pro'))} on Pro.
       </PageIntro>
 
       <section className="mx-auto max-w-6xl px-5 py-16">
@@ -43,7 +47,7 @@ export default function Pricing() {
         </div>
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
           <Reveal>
-            <TrialCard action={<Link to={accountsEnabled ? '/signup' : '/demo'} className={buttonClass('secondary', 'lg', 'w-full')}>Start free trial</Link>} />
+            <StartCard action={<Link to={session ? '/app/billing' : accountsEnabled ? '/signup' : '/demo'} className={buttonClass(o.open ? 'primary' : 'secondary', 'lg', 'w-full')}>{o.open ? 'Try it free' : `Get ${PACK.inspections} for ₹${PACK.price}`}</Link>} />
           </Reveal>
           {(['starter', 'pro'] as const).map((p, i) => (
             <Reveal key={p} delay={(i + 1) * 80}>
@@ -58,7 +62,7 @@ export default function Pricing() {
           ))}
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-center text-xs text-muted">
-          Prices in INR, including applicable taxes as shown at checkout. Payments by Dodo Payments. {AFTER_TRIAL}{' '}
+          {o.open && <>Need more than {LAUNCH.freeInspections} AI inspections this weekend? {PACK_LINE}, one-time. </>}Prices in INR, including applicable taxes as shown at checkout. Payments by Dodo Payments. {WITHOUT_PLAN}{' '}
           <Link to="/refunds" className="underline">Refunds & cancellation</Link>.
         </p>
       </section>
@@ -76,13 +80,13 @@ export default function Pricing() {
               <thead>
                 <tr className="border-b border-line text-left">
                   <th className="py-3 pr-2 sm:pr-4 font-medium text-muted"><span className="sr-only">Feature</span></th>
-                  <th className="px-1 py-3 text-center sm:px-2 font-semibold">Free trial</th>
+                  <th className="px-1 py-3 text-center sm:px-2 font-semibold">{o.open ? 'Launch weekend' : '₹69 pack'}</th>
                   <th className="px-1 py-3 text-center sm:px-2 font-semibold">Starter</th>
                   <th className="px-1 py-3 text-center sm:px-2 font-semibold">Pro</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {ROWS.map(([label, ...cells]) => (
+                {rows(o.open).map(([label, ...cells]) => (
                   <tr key={label}>
                     <th scope="row" className="py-3 pr-2 sm:pr-4 text-left font-normal text-ink-2">{label}</th>
                     {cells.map((c, i) => <td key={i} className="px-1 py-3 text-center sm:px-2">{c}</td>)}
@@ -90,7 +94,7 @@ export default function Pricing() {
                 ))}
                 <tr>
                   <th scope="row" className="py-3 pr-2 sm:pr-4 text-left font-normal text-ink-2">Price</th>
-                  <td className="px-1 py-3 text-center sm:px-2">₹0<span className="block text-muted">for {LIMITS.trialDays} days</span></td>
+                  <td className="px-1 py-3 text-center sm:px-2">{o.open ? <>₹0<span className="block text-xs text-muted sm:text-sm">until Sun</span></> : <>₹{PACK.price}<span className="block text-xs text-muted sm:text-sm">one-time</span></>}</td>
                   <td className="px-1 py-3 text-center sm:px-2"><span className="whitespace-nowrap">{inr(PRICE.starter.month)}/mo</span><span className="block whitespace-nowrap text-xs text-muted sm:text-sm">{inr(PRICE.starter.year)}/yr</span></td>
                   <td className="px-1 py-3 text-center sm:px-2"><span className="whitespace-nowrap">{inr(PRICE.pro.month)}/mo</span><span className="block whitespace-nowrap text-xs text-muted sm:text-sm">{inr(PRICE.pro.year)}/yr</span></td>
                 </tr>

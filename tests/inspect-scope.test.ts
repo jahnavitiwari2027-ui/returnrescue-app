@@ -13,7 +13,7 @@ const recordUsage = vi.fn(async () => undefined)
 vi.mock('../netlify/functions/_shared/supabaseAdmin', () => ({
   supabaseConfigured: () => true,
   getUser: async () => ({ id: 'u1' }),
-  getAccess: async () => ({ plan: null, trial: true, allowed: true, proFeatures: true }),
+  getAccess: async () => ({ plan: null, launch: true, exports: true, proFeatures: true, ai: { remaining: 10, limit: 10, packsRecent: 0, packsLeft: 2 } }),
   countUsage: async () => 0,
   recordUsage: (...a: unknown[]) => recordUsage(...(a as [])),
   trialAiLimit: () => 100,

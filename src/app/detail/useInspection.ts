@@ -73,7 +73,7 @@ export function useInspection(item: ReturnItem, autoRun: boolean) {
       await update(item.id, inspectionPatch(item, inspection, rates))
       refresh()
     } catch (e) {
-      if (e instanceof ApiError) setError({ text: e.message, upgrade: ['TRIAL_ENDED', 'TRIAL_LIMIT', 'PRO_REQUIRED'].includes(e.code) })
+      if (e instanceof ApiError) setError({ text: e.message, upgrade: ['NEED_PACK', 'PACK_LIMIT', 'PLAN_LIMIT', 'TRIAL_ENDED', 'TRIAL_LIMIT', 'PRO_REQUIRED'].includes(e.code) })
       else setError({ text: (e as Error).message })
     } finally {
       setRunning(false)

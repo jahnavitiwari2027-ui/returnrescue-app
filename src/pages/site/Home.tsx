@@ -3,9 +3,10 @@ import { useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PublicLayout } from '../../components/SiteChrome'
 import { buttonClass } from '../../components/ui'
-import { accountsEnabled, LIMITS } from '../../config'
-import { inr } from '../../lib/format'
-import { PRICE } from '../../lib/plans'
+import { accountsEnabled, offer } from '../../config'
+import { inr, pct } from '../../lib/format'
+import { liquidateEverythingLoss, minorFlawCost, recoveryRate } from '../../lib/report'
+import { PACK } from '../../lib/plans'
 import { CtaBand, Eyebrow, RecoveryPreview, Reveal, usePageMeta } from './shared'
 
 // Sections that used to live on this page now have their own pages.
@@ -61,12 +62,12 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to={accountsEnabled ? '/signup' : '/demo'} className={buttonClass('primary', 'lg')}>
-                {accountsEnabled ? `Start ${LIMITS.trialDays}-day free trial` : 'Try the demo'} <ArrowRight className="size-4" />
+                {accountsEnabled ? offer().cta : 'Try the demo'} <ArrowRight className="size-4" />
               </Link>
-              <Link to="/demo" className={buttonClass('secondary', 'lg')}>See the demo</Link>
+              <Link to="/calculator" className={buttonClass('secondary', 'lg')}>Value a return — free</Link>
             </div>
             <p className="mt-4 text-sm text-muted">
-              No card needed · Then from {inr(PRICE.starter.month)} a month · <Link to="/pricing" className="underline hover:text-ink">See pricing</Link>
+              {offer().open ? `${offer().short}. No card needed` : `AI inspection from ₹${PACK.price}, no subscription`} · <Link to="/demo" className="underline hover:text-ink">See the demo</Link> · <Link to="/pricing" className="underline hover:text-ink">Pricing</Link>
             </p>
           </div>
           <div className="relative min-w-0 animate-rise [animation-delay:150ms]">
@@ -91,6 +92,31 @@ export default function Home() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-line">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <Reveal className="grid items-center gap-8 lg:grid-cols-[1fr_1.4fr]">
+            <div>
+              <Eyebrow>New research · November 2026</Eyebrow>
+              <h2 className="mt-3 font-display text-4xl leading-tight tracking-tight">What a return really costs Indian fashion sellers</h2>
+              <p className="mt-3 text-ink-2">216 typical returns, priced for Amazon.in, Flipkart, Meesho and own websites.</p>
+              <Link to="/returns-report-2026" className={buttonClass('primary', 'md', 'mt-5')}>Read the report <ArrowRight className="size-4" /></Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                [pct(recoveryRate((s) => s.condition === 'A')), 'of the price is all a like-new return gets back'],
+                [pct(minorFlawCost().avg), 'of the price lost to one small, fixable flaw'],
+                [inr(liquidateEverythingLoss('A').rupees), 'thrown away per item by liquidating good stock'],
+              ].map(([n, t]) => (
+                <div key={t} className="rounded-2xl border border-line bg-white p-5">
+                  <p className="font-display text-4xl tabular text-brand-800">{n}</p>
+                  <p className="mt-1 text-sm text-ink-2">{t}</p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 

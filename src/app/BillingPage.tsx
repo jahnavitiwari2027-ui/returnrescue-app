@@ -1,24 +1,25 @@
-import { Check, CreditCard, ExternalLink, Loader2, ShieldCheck, XCircle } from 'lucide-react'
+import { Check, CreditCard, ExternalLink, Loader2, ShieldCheck, Sparkles, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, CardHeader, PageHeader } from '../components/ui'
 import { IntervalToggle, PlanCard } from '../components/pricing'
-import { AFTER_TRIAL, config, LIMITS } from '../config'
+import { config, LIMITS, PACK_LINE, WITHOUT_PLAN } from '../config'
 import { useAuth, type Entitlement } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { api } from '../lib/api'
 import { shortDate } from '../lib/format'
-import { activePlan, AI_INSPECTIONS, PLAN_NAME, type Interval, type PaidPlan } from '../lib/plans'
+import { activePlan, LAUNCH, PACK, packsOf, PLAN_NAME, type Interval, type PaidPlan } from '../lib/plans'
+import { supabase } from '../lib/supabase'
 
-type ReturnState = 'idle' | 'confirming' | 'confirmed' | 'pending' | 'failed'
+type ReturnState = 'idle' | 'confirming' | 'confirmed' | 'pack' | 'pending' | 'failed'
 
 const planSignature = (e: Entitlement | null) => [e?.plan, e?.billing_interval, e?.dodo_product_id, e?.updated_at].join('|')
 
 export default function BillingPage() {
-  const { entitlement, plan, inTrial, trialDaysLeft, trialEndsAt, refresh, aiInspectionsUsed, aiInspections30d } = useAuth()
+  const { entitlement, plan, launch, ai, refresh } = useAuth()
   const { items } = useWorkspace()
   const [params, setParams] = useSearchParams()
-  const [busy, setBusy] = useState<PaidPlan | 'portal' | null>(null)
+  const [busy, setBusy] = useState<PaidPlan | 'portal' | 'pack' | null>(null)
   // Older subscriptions (before yearly billing) have no interval saved: they're monthly.
   const current = plan ? { plan, interval: entitlement?.billing_interval ?? ('month' as Interval) } : null
   const [interval, setInterval] = useState<Interval>(current?.interval ?? 'month')
@@ -40,12 +41,23 @@ export default function BillingPage() {
     let tries = 0
     // A plan change passes what the subscription looked like before; a new checkout doesn't.
     const before = params.get('from')
+    const isPack = params.get('pack') === '1'
     const tick = async () => {
       tries++
-      const e = await refresh()
-      if (activePlan(e) && (before === null || planSignature(e) !== before)) {
-        setRet('confirmed')
-        return
+      if (isPack) {
+        // A pack is added to the account by the verified webhook; look for one bought in the last 15 minutes.
+        const { data } = (await supabase?.auth.getUser()) ?? { data: { user: null } }
+        if (packsOf(data.user?.app_metadata).some((p) => Date.now() - Date.parse(p.at) < 15 * 60_000)) {
+          await refresh()
+          setRet('pack')
+          return
+        }
+      } else {
+        const e = await refresh()
+        if (activePlan(e) && (before === null || planSignature(e) !== before)) {
+          setRet('confirmed')
+          return
+        }
       }
       if (tries >= 20) {
         setRet('pending')
@@ -69,6 +81,19 @@ export default function BillingPage() {
       polling.current = false
       setParams({ checkout: 'return', from: planSignature(entitlement), t: String(Date.now()) })
       setBusy(null)
+    } catch (e) {
+      setError((e as Error).message)
+      setBusy(null)
+    }
+  }
+
+  const buyPack = async () => {
+    setError('')
+    setBusy('pack')
+    try {
+      const res = await api.buyPack()
+      if (res.checkout_url) window.location.assign(res.checkout_url)
+      else setBusy(null)
     } catch (e) {
       setError((e as Error).message)
       setBusy(null)
@@ -101,6 +126,11 @@ export default function BillingPage() {
           Payment confirmed. Everything in your plan is unlocked.
         </Alert>
       )}
+      {ret === 'pack' && (
+        <Alert tone="success" icon={<Check className="size-4" />} title={`${PACK.inspections} AI inspections added`} className="mb-4">
+          Payment confirmed. You have {ai.remaining} AI inspections to use.
+        </Alert>
+      )}
       {ret === 'pending' && (
         <Alert tone="warning" title="Still waiting for confirmation" className="mb-4">
           We haven’t received Dodo’s confirmation yet. If you completed payment, refresh this page in a minute. If you closed the checkout, no charge was made.
@@ -115,7 +145,7 @@ export default function BillingPage() {
       {error && <Alert tone="error" className="mb-4">{error}</Alert>}
 
       <Card>
-        <CardHeader title="Current plan" action={<Badge tone={plan ? 'brand' : 'neutral'}>{plan ? PLAN_NAME[plan] : inTrial ? 'Free trial' : 'Free'}</Badge>} />
+        <CardHeader title="Current plan" action={<Badge tone={plan || launch ? 'brand' : 'neutral'}>{plan ? PLAN_NAME[plan] : launch ? 'Launch weekend' : 'Free'}</Badge>} />
         <div className="space-y-4 p-5">
           {plan ? (
             <>
@@ -126,7 +156,7 @@ export default function BillingPage() {
                 )}
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Usage label="AI inspections, last 30 days" used={aiInspections30d} limit={AI_INSPECTIONS[plan]} />
+                <Usage label="AI inspections, last 30 days" used={ai.limit - ai.remaining} limit={ai.limit} />
               </div>
               <Button variant="secondary" icon={<ExternalLink className="size-4" />} onClick={openPortal} loading={busy === 'portal'}>
                 Manage or cancel subscription
@@ -134,22 +164,27 @@ export default function BillingPage() {
             </>
           ) : (
             <>
-              {inTrial ? (
+              {launch ? (
                 <p className="text-sm text-ink-2">
-                  You’re on the <strong>free trial</strong> with every Pro feature — <strong>{trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left</strong>
-                  {trialEndsAt && <> (ends {shortDate(trialEndsAt.toISOString())})</>}. No card needed until you choose a plan.
+                  <strong>Launch weekend:</strong> every feature is free for everyone until <strong>{LAUNCH.endLabel}</strong>, with {LAUNCH.freeInspections} AI inspections each. No card needed.
                 </p>
               ) : (
                 <p className="text-sm text-ink-2">
-                  Your free trial has ended{entitlement && entitlement.status !== 'none' ? ` (last subscription status: ${entitlement.status.replace('_', ' ')})` : ''}. {AFTER_TRIAL}
+                  {entitlement && entitlement.status !== 'none' ? `Your subscription is ${entitlement.status.replace('_', ' ')}. ` : ''}{WITHOUT_PLAN}
                 </p>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
-                {inTrial ? (
-                  <Usage label="Trial AI inspections" used={aiInspectionsUsed} limit={LIMITS.trialAiInspections} />
-                ) : (
-                  <Usage label="Stored returns (free plan)" used={items.length} limit={LIMITS.freeItems} />
-                )}
+                <Usage label="AI inspections used" used={ai.limit - ai.remaining} limit={ai.limit} />
+                {!launch && <Usage label="Stored returns (without a plan)" used={items.length} limit={LIMITS.freeItems} />}
+              </div>
+              <div className="rounded-xl border border-line bg-paper p-4">
+                <p className="flex items-center gap-2 font-medium"><Sparkles className="size-4 text-brand-700" /> Need more AI inspections?</p>
+                <p className="mt-1 text-sm text-ink-2">
+                  {PACK_LINE}, one-time — no subscription. Up to {PACK.maxPer30Days} packs every 30 days; for more, Starter includes 100 a month.
+                </p>
+                <Button className="mt-3" icon={<CreditCard className="size-4" />} onClick={buyPack} loading={busy === 'pack'} disabled={ai.packsLeft <= 0 || !!busy || ret === 'confirming'}>
+                  {ai.packsLeft > 0 ? `Get ${PACK.inspections} inspections for ₹${PACK.price}` : 'Pack limit reached this month'}
+                </Button>
               </div>
             </>
           )}

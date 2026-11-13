@@ -7,7 +7,8 @@ import { computeStats, type WorkspaceStats } from '../../src/lib/insights'
 import { aiErrorResponse, aiModel, aiProvider, generateText } from './_shared/ai'
 import { fail, json, readJson } from './_shared/http'
 import { normalizeRow } from './_shared/rows'
-import { getAccess, getAdmin, getUser, recordUsage, supabaseConfigured, trialDays } from './_shared/supabaseAdmin'
+import { getAccess, getAdmin, getUser, recordUsage, supabaseConfigured } from './_shared/supabaseAdmin'
+import { LAUNCH } from '../../src/lib/plans'
 
 export default async (req: Request) => {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Use POST.')
@@ -23,13 +24,13 @@ export default async (req: Request) => {
     if (!user) return fail(401, 'AUTH', 'Please sign in again.')
     const access = await getAccess(user)
     if (!access.proFeatures)
-      return fail(402, 'PRO_REQUIRED', access.plan === 'starter' ? 'AI summaries are part of Pro. Upgrade from Starter to turn them on.' : 'Your free trial has ended. AI summaries are part of ReturnRescue Pro.')
+      return fail(402, 'PRO_REQUIRED', access.plan === 'starter' ? 'AI summaries are part of Pro. Upgrade from Starter to turn them on.' : 'AI summaries are part of ReturnRescue Pro.')
     userId = user.id
     const { data, error } = await getAdmin().from('returns').select('*').eq('user_id', user.id).limit(5000)
     if (error) return fail(500, 'DB', 'Could not read your records.')
     stats = computeStats((data ?? []).map(normalizeRow))
   } else {
-    return fail(401, 'SIGN_IN_REQUIRED', `Create a free account to generate AI summaries — ${trialDays()}-day free trial, no card needed.`)
+    return fail(401, 'SIGN_IN_REQUIRED', `Sign in to generate AI summaries — free for everyone until ${LAUNCH.endLabel}.`)
   }
   if (!stats.total) return fail(400, 'EMPTY', 'There are no records to summarise yet.')
 

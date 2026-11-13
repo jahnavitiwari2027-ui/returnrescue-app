@@ -25,6 +25,7 @@ const PREFERRED: Record<string, string> = {
   DODO_PAYMENTS_API_KEY: 'DODO_LIVE_API_KEY',
   DODO_PAYMENTS_WEBHOOK_KEY: 'DODO_LIVE_WEBHOOK_KEY',
   DODO_PRO_PRODUCT_ID: 'DODO_LIVE_PRO_PRODUCT_ID',
+  DODO_PACK_PRODUCT_ID: 'DODO_LIVE_PACK_PRODUCT_ID',
 }
 export const env = (name: string): string | undefined => (PREFERRED[name] && process.env[PREFERRED[name]]) || process.env[name] || undefined
 

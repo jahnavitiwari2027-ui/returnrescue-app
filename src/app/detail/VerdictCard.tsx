@@ -3,7 +3,7 @@ import { Ban, Camera, Check, CheckCircle2, Loader2, RotateCcw, ScanSearch, Spark
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alert, Button, Card, GradeBadge, GradeGuide, LinkButton, MoneyInput, Textarea } from '../../components/ui'
-import { LIMITS } from '../../config'
+import { offer, PACK_LINE } from '../../config'
 import { useAuth } from '../../context/AuthContext'
 import { useWorkspace } from '../../context/WorkspaceContext'
 import { inr, shortDate } from '../../lib/format'
@@ -133,16 +133,16 @@ export default function VerdictCard({ item, autoRun }: { item: ReturnItem; autoR
               </>
             ) : (
               <>
-                <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Start a free {LIMITS.trialDays}-day trial to inspect your own products. No card needed.</p>
-                <LinkButton to="/signup" className="mt-4" icon={<Sparkles className="size-4" />}>Start free trial</LinkButton>
+                <p className="mx-auto mt-1 max-w-xs text-sm text-muted">{offer().open ? `${offer().detail} Sign up to inspect your own products.` : `Sign up to inspect your own products — ${PACK_LINE}, one-time.`}</p>
+                <LinkButton to="/signup" className="mt-4" icon={<Sparkles className="size-4" />}>{offer().cta}</LinkButton>
               </>
             )}
           </>
         ) : !hasAccess ? (
           <>
-            <p className="mt-3 font-medium">Your free trial has ended</p>
-            <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Upgrade to keep using AI inspection.</p>
-            <LinkButton to={`${base}/billing`} className="mt-4">Choose a plan</LinkButton>
+            <p className="mt-3 font-medium">You’ve used your AI inspections</p>
+            <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Get more — {PACK_LINE}, one-time — or choose a plan. You can still grade it yourself.</p>
+            <LinkButton to={`${base}/billing`} className="mt-4">Get more inspections</LinkButton>
           </>
         ) : !item.photos.length ? (
           <>

@@ -18,8 +18,65 @@ export const AI_INSPECTIONS: Record<PaidPlan, number> = { starter: 100, pro: 300
 /** AI-written insight summaries are a Pro feature. */
 export const AI_SUMMARIES: Record<PaidPlan, boolean> = { starter: false, pro: true }
 
-export const TRIAL = { days: 14, aiInspections: 100 }
-/** Returns kept on the free plan after the trial ends. */
+/**
+ * Launch weekend: every signed-in account gets the full product free, with a few AI inspections,
+ * until the end date. There is no time-limited trial any more.
+ */
+export const LAUNCH = {
+  /** Inspections before this moment (old trial usage) don't count against anyone. */
+  start: '2026-11-14T00:00:00+05:30',
+  end: '2026-11-15T23:59:59+05:30',
+  /** Shown on the site. */
+  endLabel: 'Sun 15 Nov, 11:59 PM IST',
+  freeInspections: 10,
+}
+export const launchOpen = (now = Date.now()) => now < Date.parse(LAUNCH.end)
+
+/** One-time top-up of AI inspections, for anyone without a plan. Capped so the AI quota lasts. */
+export const PACK = { price: 69, inspections: 15, maxPer30Days: 2 }
+/** Env var holding the Dodo product ID of the one-time pack. */
+export const PACK_ENV = 'DODO_PACK_PRODUCT_ID'
+
+/** A pack purchase, recorded on the account (app_metadata.ai_packs) by the verified webhook. */
+export interface PackRecord {
+  id: string
+  at: string
+}
+export function packsOf(appMetadata: Record<string, unknown> | null | undefined): PackRecord[] {
+  const raw = appMetadata?.ai_packs
+  return Array.isArray(raw) ? raw.filter((p): p is PackRecord => !!p && typeof p.id === 'string' && typeof p.at === 'string') : []
+}
+
+export interface Allowance {
+  /** AI inspections this account can still run (plans: in the current 30 days). */
+  remaining: number
+  /** The limit `remaining` counts down from. */
+  limit: number
+  /** Packs bought in the last 30 days, and how many more can be bought now. */
+  packsRecent: number
+  packsLeft: number
+}
+
+/**
+ * How many AI inspections an account has left.
+ * - Plans: a monthly allowance (counted over the last 30 days).
+ * - Everyone else: the launch-weekend free inspections (only those actually used once it ends)
+ *   plus 15 per pack bought, against everything used since the launch started.
+ */
+export function aiAllowance(opts: { plan: PaidPlan | null; used30d: number; usedSinceLaunch: number; usedInWindow: number; packs: PackRecord[]; now?: number }): Allowance {
+  const now = opts.now ?? Date.now()
+  const packsRecent = opts.packs.filter((p) => now - Date.parse(p.at) < 30 * 86_400_000).length
+  const packsLeft = Math.max(0, PACK.maxPer30Days - packsRecent)
+  if (opts.plan) {
+    const limit = AI_INSPECTIONS[opts.plan]
+    return { remaining: Math.max(0, limit - opts.used30d), limit, packsRecent, packsLeft }
+  }
+  const free = launchOpen(now) ? LAUNCH.freeInspections : Math.min(LAUNCH.freeInspections, opts.usedInWindow)
+  const limit = free + PACK.inspections * opts.packs.length
+  return { remaining: Math.max(0, limit - opts.usedSinceLaunch), limit, packsRecent, packsLeft }
+}
+
+/** Returns kept without a plan once the launch weekend is over. */
 export const FREE_ITEMS = 15
 
 /** Saving per year when paying yearly instead of monthly. */

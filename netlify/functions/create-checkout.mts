@@ -1,4 +1,4 @@
-// POST /api/create-checkout — { plan: 'starter' | 'pro', interval: 'month' | 'year' }
+// POST /api/create-checkout — { plan: 'starter' | 'pro', interval: 'month' | 'year' } or { pack: true }
 // New subscribers get a Dodo Payments hosted checkout. Someone already subscribed is moved to
 // the new plan instead (Dodo charges or credits the difference), so nobody pays twice.
 // Server-side only; the API key never reaches the browser. The plan is only unlocked by the
@@ -7,8 +7,8 @@
 import type { Config } from '@netlify/functions'
 import { dodoConfigured, getDodo } from './_shared/dodo'
 import { env, fail, json, siteUrl } from './_shared/http'
-import { getEntitlement, getUser, paidPlanOf, supabaseConfigured } from './_shared/supabaseAdmin'
-import { isInterval, isPaidPlan, PLAN_NAME, planForProduct, PRODUCT_ENV } from '../../src/lib/plans'
+import { getAccess, getEntitlement, getUser, paidPlanOf, supabaseConfigured } from './_shared/supabaseAdmin'
+import { isInterval, isPaidPlan, PACK, PACK_ENV, PLAN_NAME, planForProduct, PRODUCT_ENV } from '../../src/lib/plans'
 
 export default async (req: Request) => {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Use POST.')
@@ -17,7 +17,35 @@ export default async (req: Request) => {
   const user = await getUser(req)
   if (!user) return fail(401, 'AUTH', 'Please sign in to upgrade.')
 
-  const body = (await req.json().catch(() => ({}))) as { plan?: unknown; interval?: unknown }
+  const body = (await req.json().catch(() => ({}))) as { plan?: unknown; interval?: unknown; pack?: unknown }
+  const site = siteUrl(req)
+  const name = (user.user_metadata?.business_name as string | undefined)?.trim() || user.email!.split('@')[0]
+
+  // A one-time pack of AI inspections. It is added to the account only by the verified webhook.
+  if (body.pack === true) {
+    const packProduct = env(PACK_ENV)
+    if (!packProduct) return fail(503, 'PACK_NOT_AVAILABLE', 'Inspection packs aren’t available yet. Please try again shortly or contact us.')
+    const access = await getAccess(user)
+    if (access.plan) return fail(409, 'HAS_PLAN', `Your ${PLAN_NAME[access.plan]} plan already includes AI inspections.`)
+    if (access.ai.packsLeft <= 0) return fail(409, 'PACK_LIMIT', `You can buy up to ${PACK.maxPer30Days} packs every 30 days. Starter includes 100 AI inspections a month.`)
+    const ent = await getEntitlement(user.id)
+    try {
+      const session = await getDodo().checkoutSessions.create({
+        product_cart: [{ product_id: packProduct, quantity: 1 }],
+        customer: ent?.dodo_customer_id ? { customer_id: ent.dodo_customer_id } : { email: user.email!, name },
+        return_url: `${site}/app/billing?checkout=return&pack=1`,
+        cancel_url: `${site}/app/billing?checkout=return&status=cancelled`,
+        metadata: { user_id: user.id, app: 'returnrescue', kind: 'pack' },
+      })
+      if (!session.checkout_url) throw new Error('No checkout URL returned')
+      return json(200, { checkout_url: session.checkout_url })
+    } catch (e) {
+      const err = e as { status?: number; message?: string }
+      console.error('create-checkout (pack) failed', err.status, err.message)
+      return fail(502, 'CHECKOUT_FAILED', 'Could not start checkout with Dodo Payments. Please try again in a moment.')
+    }
+  }
+
   // Older clients sent no body: they meant Pro monthly.
   const plan = body.plan === undefined ? 'pro' : body.plan
   const interval = body.interval === undefined ? 'month' : body.interval
@@ -47,8 +75,6 @@ export default async (req: Request) => {
     }
   }
 
-  const site = siteUrl(req)
-  const name = (user.user_metadata?.business_name as string | undefined)?.trim() || user.email!.split('@')[0]
   try {
     const session = await getDodo().checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],

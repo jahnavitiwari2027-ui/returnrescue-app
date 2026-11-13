@@ -1,9 +1,9 @@
 import clsx from 'clsx'
 import { Check } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { TRIAL_FEATURES, LIMITS } from '../config'
+import { LAUNCH_FEATURES, offer } from '../config'
 import { inr } from '../lib/format'
-import { PLAN_BLURB, PLAN_FEATURES, PLAN_NAME, PRICE, yearlyPerMonth, yearlySaving, type Interval, type PaidPlan } from '../lib/plans'
+import { LAUNCH, PACK, PLAN_BLURB, PLAN_FEATURES, PLAN_NAME, PRICE, yearlyPerMonth, yearlySaving, type Interval, type PaidPlan } from '../lib/plans'
 
 /** Monthly / Yearly switch. The yearly side says how much it saves. */
 export function IntervalToggle({ value, onChange, className }: { value: Interval; onChange: (i: Interval) => void; className?: string }) {
@@ -72,17 +72,26 @@ export function PlanCard({ plan, interval, action, badge, highlight }: { plan: P
   )
 }
 
-export function TrialCard({ action }: { action: ReactNode }) {
+/** What to start with: the launch weekend while it runs, then the one-time pack. */
+export function StartCard({ action }: { action: ReactNode }) {
+  const open = offer().open
+  const features = open
+    ? LAUNCH_FEATURES
+    : [`${PACK.inspections} AI photo inspections`, 'Automatic grading and best option', 'Calculator, next steps and partners', `Up to ${PACK.maxPer30Days} packs a month`]
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-line bg-white p-7">
-      <h3 className="text-lg font-semibold">Free trial</h3>
-      <p className="mt-1 text-sm text-muted">Try everything before you choose.</p>
+    <div className={clsx('flex h-full flex-col rounded-3xl border bg-white p-7', open ? 'border-brand-700 ring-1 ring-brand-700' : 'border-line')}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold">{open ? 'Launch weekend' : 'Pay as you go'}</h3>
+        {open && <span className="rounded-full bg-brand-700 px-2.5 py-0.5 text-xs font-medium text-white">Ends {LAUNCH.endLabel.split(',')[0]}</span>}
+      </div>
+      <p className="mt-1 text-sm text-muted">{open ? 'Everything free for everyone while we launch.' : 'Try AI inspection without a subscription.'}</p>
       <p className="mt-4 font-display text-5xl leading-none tabular">
-        ₹0<span className="font-sans text-base text-muted"> for {LIMITS.trialDays} days</span>
+        {open ? '₹0' : `₹${PACK.price}`}
+        <span className="font-sans text-base text-muted">{open ? ` until ${LAUNCH.endLabel}` : ' one-time'}</span>
       </p>
-      <p className="mt-2 text-xs text-muted">No card needed</p>
+      <p className="mt-2 text-xs text-muted">{open ? 'No card needed' : 'No subscription · no card saved'}</p>
       <ul className="mt-6 flex-1 space-y-2 text-sm">
-        {TRIAL_FEATURES.map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-brand-600" />{f}</li>)}
+        {features.map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-brand-600" />{f}</li>)}
       </ul>
       <div className="mt-7">{action}</div>
     </div>

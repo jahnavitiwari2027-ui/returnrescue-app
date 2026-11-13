@@ -74,6 +74,8 @@ export const api = {
     call<{ summary: string; model: string; generated_at: string }>('insights-summary', { mode, stats }),
   /** Starts checkout, or changes the plan of an existing subscription (`changed`). */
   createCheckout: (plan: PaidPlan, interval: Interval) => call<{ checkout_url?: string; changed?: boolean }>('create-checkout', { plan, interval }),
+  /** Starts checkout for a one-time pack of AI inspections. */
+  buyPack: () => call<{ checkout_url?: string }>('create-checkout', { pack: true }),
   customerPortal: () => call<{ link: string }>('customer-portal', {}),
   exportCsv: async () => {
     const res = await fetch('/api/export-csv', { headers: await authHeader() })

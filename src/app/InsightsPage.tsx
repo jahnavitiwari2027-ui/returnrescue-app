@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Alert, Button, Card, CardHeader, EmptyState, LinkButton, PageHeader, Spinner } from '../components/ui'
-import { LIMITS } from '../config'
+import { offer } from '../config'
+import { LAUNCH } from '../lib/plans'
 import { useAuth } from '../context/AuthContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { api, ApiError } from '../lib/api'
@@ -89,15 +90,15 @@ export default function InsightsPage() {
                   {mode === 'demo'
                     ? session
                       ? 'AI summaries are written from the returns in your own workspace.'
-                      : `AI summaries need a free account — ${LIMITS.trialDays}-day free trial, no card.`
+                      : offer().open ? `AI summaries are free for everyone until ${LAUNCH.endLabel}. Just sign up.` : 'AI summaries are part of Pro.'
                     : !proFeatures
                       ? plan === 'starter'
                         ? 'AI summaries are part of Pro. Upgrade from Starter to turn them on.'
-                        : 'Your free trial has ended. AI summaries are included with Pro.'
+                        : 'AI summaries are included with Pro.'
                       : 'Turn these numbers into a short briefing with priorities for your team.'}
                 </p>
                 {mode === 'demo' ? (
-                  session ? <LinkButton to="/app/insights" className="mt-4">Open my insights</LinkButton> : <LinkButton to="/signup" className="mt-4">Start free trial</LinkButton>
+                  session ? <LinkButton to="/app/insights" className="mt-4">Open my insights</LinkButton> : <LinkButton to="/signup" className="mt-4">{offer().cta}</LinkButton>
                 ) : !proFeatures ? (
                   <LinkButton to={`${base}/billing`} className="mt-4">See Pro</LinkButton>
                 ) : (

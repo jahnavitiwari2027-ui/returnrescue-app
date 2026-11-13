@@ -17,6 +17,7 @@ describe('Gemini provider', () => {
     delete process.env.AI_PROVIDER
     delete process.env.GEMINI_MODEL
     delete process.env.GEMINI_FALLBACK_MODEL
+    delete process.env.GEMINI_FALLBACK_MODELS
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -74,6 +75,22 @@ describe('Gemini provider', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(reply(429, {})).mockResolvedValueOnce(reply(429, {})).mockResolvedValueOnce(reply(404, { error: { message: 'not found' } })))
     const err = await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 }).catch((e) => e)
     expect(aiErrorResponse(err).code).toBe('AI_BUSY')
+  }, 15_000)
+
+  it('moves on to the Flash-Lite models when Flash is out of quota', async () => {
+    const ok = reply(200, { candidates: [{ content: { parts: [{ text: '{"proposed_grade":"A"}' }] } }] })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply(429, { error: { message: 'quota' } }))
+      .mockResolvedValueOnce(reply(429, { error: { message: 'quota' } }))
+      .mockResolvedValueOnce(reply(429, { error: { message: 'quota' } }))
+      .mockResolvedValueOnce(reply(404, { error: { message: 'model not found' } }))
+      .mockResolvedValueOnce(ok)
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await structuredVision({ system: 's', images: [], text: 'x', schema, toolName: 't', maxTokens: 50 })).toEqual({ proposed_grade: 'A' })
+    expect(fetchMock.mock.calls.map((c) => String(c[0]).match(/models\/([^:]+)/)![1])).toEqual([
+      'gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite',
+    ])
   }, 15_000)
 
   it('does not retry errors that a retry cannot fix', async () => {

@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
-import { activePlan, TRIAL, type PaidPlan } from '../../../src/lib/plans'
+import { activePlan, aiAllowance, LAUNCH, launchOpen, packsOf, type Allowance, type PaidPlan } from '../../../src/lib/plans'
 import { env } from './http'
 
 let admin: SupabaseClient | null = null
@@ -51,9 +51,10 @@ export async function getEntitlement(userId: string): Promise<EntitlementRow | n
 /** The active paid plan (Starter or Pro), verified by webhook. */
 export const paidPlanOf = (e: EntitlementRow | null): PaidPlan | null => activePlan(e)
 
-export async function countUsage(userId: string, kind: 'inspection' | 'insights', sinceIso?: string) {
+export async function countUsage(userId: string, kind: 'inspection' | 'insights', sinceIso?: string, untilIso?: string) {
   let q = getAdmin().from('ai_usage').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('kind', kind)
   if (sinceIso) q = q.gte('created_at', sinceIso)
+  if (untilIso) q = q.lte('created_at', untilIso)
   const { count } = await q
   return count ?? 0
 }
@@ -62,30 +63,28 @@ export async function recordUsage(userId: string, kind: 'inspection' | 'insights
   await getAdmin().from('ai_usage').insert({ user_id: userId, kind })
 }
 
-// ── Free trial: every new account gets TRIAL_DAYS of full Pro access, no card ──
-export const trialDays = () => Number(process.env.TRIAL_DAYS) || TRIAL.days
-export const trialAiLimit = () => Number(process.env.TRIAL_AI_LIMIT) || TRIAL.aiInspections
-
-export function trialEndsAt(user: User) {
-  return new Date(new Date(user.created_at).getTime() + trialDays() * 86_400_000)
-}
+// ── Access: a paid plan, the launch weekend (everything free), or AI packs bought one at a time ──
 
 export interface Access {
   /** Active paid plan, or null. */
   plan: PaidPlan | null
-  /** Inside the free trial with no paid plan: every Pro feature is included. */
-  trial: boolean
-  /** Paid (any plan) or in the trial: can use AI inspection and export. */
-  allowed: boolean
-  /** Pro or trial: can use Pro-only features such as AI summaries. */
+  /** Launch weekend: every signed-in account gets every feature free. */
+  launch: boolean
+  /** Can export CSV: a plan or the launch weekend. */
+  exports: boolean
+  /** Pro or the launch weekend: Pro-only features such as AI summaries. */
   proFeatures: boolean
-  trialEndsAt: string
+  /** AI inspections left, and pack details. */
+  ai: Allowance
 }
 
-/** A paid plan (verified by webhook) or an active free trial. */
 export async function getAccess(user: User): Promise<Access> {
   const plan = paidPlanOf(await getEntitlement(user.id))
-  const ends = trialEndsAt(user)
-  const trial = !plan && ends.getTime() > Date.now()
-  return { plan, trial, allowed: !!plan || trial, proFeatures: plan === 'pro' || trial, trialEndsAt: ends.toISOString() }
+  const launch = launchOpen()
+  const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString()
+  const [used30d, usedSinceLaunch, usedInWindow] = plan
+    ? [await countUsage(user.id, 'inspection', since30), 0, 0]
+    : await Promise.all([0, countUsage(user.id, 'inspection', LAUNCH.start), countUsage(user.id, 'inspection', LAUNCH.start, LAUNCH.end)])
+  const ai = aiAllowance({ plan, used30d, usedSinceLaunch, usedInWindow, packs: packsOf(user.app_metadata) })
+  return { plan, launch, exports: !!plan || launch, proFeatures: plan === 'pro' || launch, ai }
 }

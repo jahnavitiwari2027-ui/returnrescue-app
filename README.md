@@ -19,7 +19,7 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 | **Add / edit a return** | Name, SKU, category, original price, reason, condition notes, up to 4 photos, sunk return shipping, and per-route estimates (resale, refurb resale & cost, channel fee %, handling, liquidation price & fee, recycling value & cost) with “estimate vs third-party quote” labels. Inline validation. |
 | **AI inspection** | Photos + notes are sent server-side to a vision AI model — Google Gemini (free tier) by default, or Anthropic Claude if configured. Returns observable defects, proposed grade (A / B / C / Manual review), rationale, confidence, limitations, recommended physical checks and potentially eligible routes. The grade and the best option are saved automatically; the user can re-run the inspection, change the grade (a correction requires a reason) or choose another option. If the AI is unavailable the request fails visibly — nothing is fabricated. |
 | **Recovery calculator** | Deterministic per-route net = proceeds − fees − costs; sunk return shipping excluded; grade and hygiene rules decide eligibility; highest eligible net is recommended with a plain-English explanation and an expandable line-by-line breakdown. Manual override with mandatory reason; decision snapshot recorded; realized proceeds recorded separately from estimates. |
-| **Inventory** | Thumbnails, SKU, grade, route, est. net, status; search; filters by status / grade / category / route; sort; edit; delete; CSV export (server-side; needs a plan or the trial). |
+| **Inventory** | Thumbnails, SKU, grade, route, est. net, status; search; filters by status / grade / category / route; sort; edit; delete; CSV export (server-side; needs a plan or the launch weekend). |
 | **Insights** | Top categories, return reasons, grade mix, most frequent defects, best-value routes, overrides, unprocessed items — plus an optional AI-written briefing grounded only in those computed figures. |
 | **Next steps & partners** | After a decision, a route-specific pathway: checklist, Google Maps “find nearby” links (no API, no scraping), hand-checked Indian channels, and the business’s own saved partners with one-tap Call / WhatsApp / Email. |
 | **Billing** | Starter or Pro, monthly or yearly. Dodo Payments hosted checkout created server-side; existing subscribers switch plans on the same subscription (difference charged or credited); Standard-Webhooks signature verification; idempotent event log; out-of-order protection; entitlement written only by the webhook; success page waits for the verified entitlement (visiting the return URL never unlocks anything); failure/cancel handling; Dodo customer portal for manage/cancel. |
@@ -28,23 +28,18 @@ ReturnRescue is an AI-assisted returns-recovery SaaS for Indian D2C apparel, foo
 
 Prices and limits live in one file, `src/lib/plans.ts`, shared by the site and the server functions.
 
-| | Demo (no sign-up) | 14-day free trial (no card) | Starter | Pro |
-|---|---|---|---|---|
-| Price | free | free | ₹499 / month or ₹5,388 / year (save ₹600) | ₹999 / month or ₹10,788 / year (save ₹1,200) |
-| Sample workspace, calculator, manual grading | ✓ | ✓ | ✓ | ✓ |
-| AI photo inspection (defects + grade) | — (sign in required) | up to 100 | 100 / 30 days | fair use 300 / 30 days |
-| Returns stored | in browser only | unlimited | unlimited | unlimited |
-| CSV export | — | ✓ | ✓ | ✓ |
-| AI insight summary | — | ✓ | — | ✓ |
+| | Demo (no sign-up) | Launch weekend (until Sun 15 Nov 2026, 11:59 PM IST) | ₹69 pack (one-time) | Starter | Pro |
+|---|---|---|---|---|---|
+| Price | free | free | ₹69 for 15 AI inspections, up to 2 packs / 30 days | ₹499 / month or ₹5,388 / year (save ₹600) | ₹999 / month or ₹10,788 / year (save ₹1,200) |
+| Sample workspace, calculator, manual grading | ✓ | ✓ | ✓ | ✓ | ✓ |
+| AI photo inspection (defects + grade) | — (sign in required) | 10 each | 15 per pack | 100 / 30 days | fair use 300 / 30 days |
+| Returns stored | in browser only | unlimited | up to 15 | unlimited | unlimited |
+| CSV export | — | ✓ | — | ✓ | ✓ |
+| AI insight summary | — | ✓ | — | — | ✓ |
 
-After the trial without a plan, records stay; manual grading and the calculator keep working (up to 15 returns); AI inspection and exports need Starter or Pro, AI summaries need Pro. The trial length is `TRIAL_DAYS` (server) / `VITE_TRIAL_DAYS` (display) — keep the 14-day value in `supabase/schema.sql` in sync if you change it.
+There is no time-limited trial any more. The launch window and pack size are `LAUNCH` and `PACK` in `src/lib/plans.ts`. Packs are bought through a one-time Dodo product (`DODO_PACK_PRODUCT_ID`, or `DODO_LIVE_PACK_PRODUCT_ID`) and recorded on the account (`app_metadata.ai_packs`) only by the verified `payment.succeeded` webhook. Gemini falls back from Flash to the Flash-Lite models (`GEMINI_FALLBACK_MODELS`) when a model's free daily quota runs out.
 
----|---|---|
-| Demo workspace | ✓ | ✓ |
-| Own workspace | up to 15 returns (enforced by a DB trigger) | unlimited |
-| AI inspection | 3 trial inspections | fair use 300 / 30 days |
-| AI insight summary | — | ✓ |
-| CSV export | demo only | ✓ |
+Public pages also include a free return-value calculator (`/calculator`), the 2026 returns report (`/returns-report-2026`) and three guides, all computed with the same engine and rate card.
 
 ---
 

@@ -1,7 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { LIMITS } from '../config'
-import { activePlan, type PaidPlan } from '../lib/plans'
+import { activePlan, aiAllowance, LAUNCH, launchOpen, packsOf, type Allowance, type PaidPlan } from '../lib/plans'
 import { supabase } from '../lib/supabase'
 
 export interface Entitlement {
@@ -23,17 +22,16 @@ interface AuthState {
   /** Active paid plan (verified by webhook), or null. */
   plan: PaidPlan | null
   isPro: boolean
-  /** Inside the free trial (and not on a paid plan). */
-  inTrial: boolean
-  /** Pro or trial: Pro-only features such as AI summaries. */
+  /** Launch weekend: every feature is free for every signed-in account. */
+  launch: boolean
+  /** Pro or the launch weekend: Pro-only features such as AI summaries. */
   proFeatures: boolean
-  trialEndsAt: Date | null
-  trialDaysLeft: number
-  /** Any paid plan or active trial: can use AI inspection and export. */
+  /** A plan or the launch weekend: CSV export. */
+  exports: boolean
+  /** AI inspections left (and pack details). */
+  ai: Allowance
+  /** Has AI inspections left right now. */
   hasAccess: boolean
-  aiInspectionsUsed: number
-  /** AI inspections in the last 30 days (paid plans are limited per 30 days). */
-  aiInspections30d: number
   refresh: () => Promise<Entitlement | null>
   signOut: () => Promise<void>
 }
@@ -44,27 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(!supabase)
   const [session, setSession] = useState<Session | null>(null)
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null)
-  const [aiInspectionsUsed, setUsed] = useState(0)
-  const [aiInspections30d, setUsed30] = useState(0)
+  const [usage, setUsage] = useState({ used30d: 0, usedSinceLaunch: 0, usedInWindow: 0 })
+  const [appMeta, setAppMeta] = useState<Record<string, unknown> | null>(null)
 
   const refresh = useCallback(async () => {
     if (!supabase) return null
     const { data: s } = await supabase.auth.getSession()
     if (!s.session) {
       setEntitlement(null)
-      setUsed(0)
-      setUsed30(0)
+      setUsage({ used30d: 0, usedSinceLaunch: 0, usedInWindow: 0 })
+      setAppMeta(null)
       return null
     }
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
-    const [{ data }, usage, recent] = await Promise.all([
+    const count = () => supabase!.from('ai_usage').select('id', { count: 'exact', head: true }).eq('kind', 'inspection')
+    // getUser reads the account fresh, so a pack bought a moment ago shows up straight away.
+    const [{ data }, recent, sinceLaunch, inWindow, fresh] = await Promise.all([
       supabase.from('entitlements').select('*').maybeSingle(),
-      supabase.from('ai_usage').select('id', { count: 'exact', head: true }).eq('kind', 'inspection'),
-      supabase.from('ai_usage').select('id', { count: 'exact', head: true }).eq('kind', 'inspection').gte('created_at', since),
+      count().gte('created_at', since),
+      count().gte('created_at', LAUNCH.start),
+      count().gte('created_at', LAUNCH.start).lte('created_at', LAUNCH.end),
+      supabase.auth.getUser(),
     ])
     setEntitlement((data as Entitlement) ?? null)
-    setUsed(usage.count ?? 0)
-    setUsed30(recent.count ?? 0)
+    setUsage({ used30d: recent.count ?? 0, usedSinceLaunch: sinceLaunch.count ?? 0, usedInWindow: inWindow.count ?? 0 })
+    setAppMeta(fresh.data.user?.app_metadata ?? s.session.user.app_metadata ?? null)
     return (data as Entitlement) ?? null
   }, [])
 
@@ -82,18 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session) refresh()
     else {
       setEntitlement(null)
-      setUsed(0)
-      setUsed30(0)
+      setUsage({ used30d: 0, usedSinceLaunch: 0, usedInWindow: 0 })
+      setAppMeta(null)
     }
   }, [session?.user.id, refresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = useMemo<AuthState>(() => {
     const plan = activePlan(entitlement)
     const isPro = plan === 'pro'
-    const created = session?.user.created_at ? new Date(session.user.created_at) : null
-    const trialEndsAt = created ? new Date(created.getTime() + LIMITS.trialDays * 86_400_000) : null
-    const msLeft = trialEndsAt ? trialEndsAt.getTime() - Date.now() : 0
-    const inTrial = !plan && msLeft > 0
+    const launch = launchOpen()
+    const ai = aiAllowance({ plan, ...usage, packs: packsOf(appMeta ?? session?.user.app_metadata) })
     return {
       ready,
       session,
@@ -101,19 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       entitlement,
       plan,
       isPro,
-      inTrial,
-      proFeatures: isPro || inTrial,
-      trialEndsAt,
-      trialDaysLeft: Math.max(0, Math.ceil(msLeft / 86_400_000)),
-      hasAccess: !!plan || inTrial,
-      aiInspectionsUsed,
-      aiInspections30d,
+      launch,
+      proFeatures: isPro || launch,
+      exports: !!plan || launch,
+      ai,
+      hasAccess: !!session && ai.remaining > 0,
       refresh,
       signOut: async () => {
         await supabase?.auth.signOut()
       },
     }
-  }, [ready, session, entitlement, aiInspectionsUsed, aiInspections30d, refresh],
+  }, [ready, session, entitlement, usage, appMeta, refresh],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

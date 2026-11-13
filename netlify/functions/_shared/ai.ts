@@ -67,21 +67,24 @@ export interface ImageInput {
 }
 
 // Google answers 429 (rate or daily limit) and 500/503 (overloaded) quickly, so these are
-// worth retrying: once more on the same model, then once on a second free model, which has
-// its own quota. Timeouts are not retried — there wouldn't be time.
+// worth retrying: once more on the same model, then on backup free models, each with its own
+// daily quota (the Flash-Lite models allow far more requests a day than Flash). Timeouts are
+// not retried — there wouldn't be time.
 const RETRYABLE = new Set([429, 500, 503])
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const DEFAULT_FALLBACKS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite']
 
-export function geminiFallbackModel(): string | null {
-  const f = env('GEMINI_FALLBACK_MODEL') ?? 'gemini-3.6-flash'
-  return f && f !== aiModel('gemini') ? f : null
+/** Backup models, in order. GEMINI_FALLBACK_MODELS (comma-separated) or GEMINI_FALLBACK_MODEL override. */
+export function geminiFallbackModels(): string[] {
+  const list = env('GEMINI_FALLBACK_MODELS')?.split(',') ?? (env('GEMINI_FALLBACK_MODEL') ? [env('GEMINI_FALLBACK_MODEL')!, ...DEFAULT_FALLBACKS] : DEFAULT_FALLBACKS)
+  const primary = aiModel('gemini')
+  return [...new Set(list.map((m) => m.trim()).filter((m) => m && m !== primary))]
 }
 
 async function geminiGenerate(body: Record<string, unknown>, timeoutMs: number) {
   const started = Date.now()
   const primary = aiModel('gemini')
-  const fallback = geminiFallbackModel()
-  const plan = fallback ? [primary, primary, fallback] : [primary, primary]
+  const plan = [primary, primary, ...geminiFallbackModels()]
   let firstError: unknown
   for (let i = 0; i < plan.length; i++) {
     const left = timeoutMs - (Date.now() - started)
@@ -91,8 +94,10 @@ async function geminiGenerate(body: Record<string, unknown>, timeoutMs: number) 
     } catch (e) {
       const retryable = e instanceof AIError && RETRYABLE.has(e.status)
       if (i === 0) firstError = e
-      // A problem with the backup model (e.g. not available) shouldn't hide the real one.
-      if (!retryable) throw i > 0 && plan[i] !== primary ? firstError : e
+      // On the main model, only busy/limit errors are worth another try.
+      if (i < 2 && !retryable) throw e
+      // A backup model that's busy or unavailable just moves on to the next one; if none
+      // works, the original error is the one reported.
       if (i === 0) await sleep(1_500)
     }
   }

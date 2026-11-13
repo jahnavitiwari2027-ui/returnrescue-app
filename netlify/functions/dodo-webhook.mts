@@ -8,7 +8,7 @@ import type { Config } from '@netlify/functions'
 import { getDodo } from './_shared/dodo'
 import { env, fail, json } from './_shared/http'
 import { getAdmin, supabaseConfigured } from './_shared/supabaseAdmin'
-import { planForProduct } from '../../src/lib/plans'
+import { PACK_ENV, packsOf, planForProduct } from '../../src/lib/plans'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -119,8 +119,44 @@ export default async (req: Request) => {
     }
   }
 
+  // A one-time pack of AI inspections: added to the account once per payment.
+  if (event.type === 'payment.succeeded') {
+    const pay = event.data as PaymentData
+    const packProduct = env(PACK_ENV)
+    const isPack =
+      pay.metadata?.kind === 'pack' && !!packProduct && !pay.subscription_id &&
+      (!pay.product_cart?.length || pay.product_cart.some((p) => p.product_id === packProduct))
+    if (isPack) {
+      const userId = await resolveUserId({ subscription_id: '', status: '', product_id: '', metadata: pay.metadata, customer: pay.customer })
+      if (!userId) {
+        console.error('dodo-webhook: no user for pack payment', pay.payment_id)
+        return json(200, { received: true, unmatched: true })
+      }
+      const { data: u, error: ue } = await db.auth.admin.getUserById(userId)
+      if (ue || !u?.user) return fail(500, 'DB', 'Could not read the account.')
+      const packs = packsOf(u.user.app_metadata)
+      if (!packs.some((p) => p.id === pay.payment_id)) {
+        const up = await db.auth.admin.updateUserById(userId, {
+          app_metadata: { ...u.user.app_metadata, ai_packs: [...packs, { id: pay.payment_id, at: event.timestamp ?? new Date().toISOString() }] },
+        })
+        if (up.error) {
+          console.error('dodo-webhook: pack update failed', up.error.message)
+          return fail(500, 'DB', 'Could not add the pack.') // non-2xx → Dodo retries
+        }
+      }
+    }
+  }
+
   await db.from('webhook_events').update({ processed_at: new Date().toISOString() }).eq('id', eventId)
   return json(200, { received: true })
+}
+
+interface PaymentData {
+  payment_id: string
+  subscription_id?: string | null
+  metadata?: Record<string, string>
+  product_cart?: { product_id: string; quantity: number }[] | null
+  customer?: { customer_id?: string; email?: string }
 }
 
 export const config: Config = { path: '/api/dodo-webhook' }
