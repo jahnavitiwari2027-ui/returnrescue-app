@@ -145,7 +145,7 @@ export default function BillingPage() {
       {error && <Alert tone="error" className="mb-4">{error}</Alert>}
 
       <Card>
-        <CardHeader title="Current plan" action={<Badge tone={plan || launch ? 'brand' : 'neutral'}>{plan ? PLAN_NAME[plan] : launch ? 'Launch weekend' : 'Free'}</Badge>} />
+        <CardHeader title="Current plan" action={<Badge tone={plan || launch ? 'brand' : 'neutral'}>{plan ? PLAN_NAME[plan] : launch ? 'Free trial' : 'Free'}</Badge>} />
         <div className="space-y-4 p-5">
           {plan ? (
             <>
@@ -166,7 +166,7 @@ export default function BillingPage() {
             <>
               {launch ? (
                 <p className="text-sm text-ink-2">
-                  <strong>Launch weekend:</strong> every feature is free for everyone until <strong>{LAUNCH.endLabel}</strong>, with {LAUNCH.freeInspections} AI inspections each. No card needed.
+                  You’re on the <strong>free trial</strong> until <strong>{LAUNCH.endLabel}</strong>, with {LAUNCH.freeInspections} complimentary runs and every feature. No card needed.
                 </p>
               ) : (
                 <p className="text-sm text-ink-2">

@@ -20,7 +20,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { PublicLayout } from '../../components/SiteChrome'
 import { DIRECTORY, DIRECTORY_REGION } from '../../data/directory'
-import { offer } from '../../config'
+import { offer, trialLine } from '../../config'
 import { AI_INSPECTIONS } from '../../lib/plans'
 import Methodology from '../Methodology'
 import { CtaBand, Eyebrow, GradeCards, InspectionPreview, PageIntro, RecoveryPreview, Reveal, usePageMeta } from './shared'
@@ -212,7 +212,7 @@ export default function Features() {
 
       <Methodology />
 
-      <CtaBand title="Try it on your own returns." body={offer().detail} />
+      <CtaBand title="Try it on your own returns." body={trialLine() ? `${trialLine()}. Every feature included, no card needed.` : offer().detail} />
     </PublicLayout>
   )
 }

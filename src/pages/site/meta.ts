@@ -27,7 +27,7 @@ export const PAGES: PageMeta[] = [
   {
     path: '/pricing',
     title: 'Pricing — ReturnRescue',
-    description: 'Free for everyone until Sun 15 Nov 2026. Then ₹69 for 15 AI inspections, one-time, or Starter ₹499 a month (₹5,388 a year) and Pro ₹999 a month (₹10,788 a year).',
+    description: 'Free trial until Mon 16 Nov 2026 with 8 complimentary AI runs. Plans from ₹69: 15 AI runs one-time, or Starter ₹499 a month (₹5,388 a year) and Pro ₹999 a month (₹10,788 a year).',
   },
   {
     path: '/faq',

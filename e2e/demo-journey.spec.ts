@@ -23,8 +23,8 @@ test('public pages render, each with its own title, and link into the app', asyn
   await expect(page.getByText('₹10,788').first()).toBeVisible()
   await expect(page.getByText('Save ₹600 a year')).toBeVisible()
   await expect(page.getByText('Save ₹1,200 a year')).toBeVisible()
-  // Launch weekend while it runs, then the one-time pack
-  await expect(page.getByRole('heading', { name: /Launch weekend|Pay as you go/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Free trial', exact: true })).toBeVisible()
+  await expect(page.getByText('Just need a few?').first()).toBeVisible()
 
   await page.goto('/faq')
   await expect(page.getByRole('heading', { name: 'How does yearly billing work?' })).toBeAttached()
@@ -88,7 +88,7 @@ test('full demo journey: add, inspect, grade, decide, persist, search, edit, exp
 
   // AI inspection: with no API key configured the app must show an error, never a made-up result
   // In the demo, AI results require an account: the app offers sign-up instead.
-  await expect(page.getByRole('link', { name: /Try it free|Get started/ }).last()).toBeVisible()
+  await expect(page.getByRole('link', { name: /Start free trial|Get started/ }).last()).toBeVisible()
   if (shots) await page.screenshot({ path: `${shots}/inspection.png`, fullPage: true })
   await page.getByRole('button', { name: 'or grade it yourself' }).click()
   await page.getByRole('radio', { name: /Grade B/ }).click()

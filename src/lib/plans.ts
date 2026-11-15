@@ -25,9 +25,9 @@ export const AI_SUMMARIES: Record<PaidPlan, boolean> = { starter: false, pro: tr
 export const LAUNCH = {
   /** Inspections before this moment (old trial usage) don't count against anyone. */
   start: '2026-11-14T00:00:00+05:30',
-  end: '2026-11-15T23:59:59+05:30',
+  end: '2026-11-16T23:59:59+05:30',
   /** Shown on the site. */
-  endLabel: 'Sun 15 Nov, 11:59 PM IST',
+  endLabel: 'Mon 16 Nov, 11:59 PM IST',
   freeInspections: 8,
 }
 export const launchOpen = (now = Date.now()) => now < Date.parse(LAUNCH.end)

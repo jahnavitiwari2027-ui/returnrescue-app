@@ -1,6 +1,7 @@
-import { PACK_LINE, WITHOUT_PLAN } from '../../config'
+import { TRIAL_RUNS, WITHOUT_PLAN } from '../../config'
+import { LAUNCH } from '../../lib/plans'
 import { inr } from '../../lib/format'
-import { AI_INSPECTIONS, LAUNCH, PACK, PRICE, yearlySaving } from '../../lib/plans'
+import { AI_INSPECTIONS, PRICE, yearlySaving } from '../../lib/plans'
 
 /** Plain text (no markup) so the same answers can go into the page's structured data. */
 export interface Faq {
@@ -41,7 +42,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Do I need to sign up?',
-    a: `Not to look around — the demo is open. To inspect your own products, sign up with Google or your email. Until ${LAUNCH.endLabel} everything is free, with ${LAUNCH.freeInspections} AI inspections each; after that AI inspection starts at ${PACK_LINE}, one-time.`,
+    a: `Not to look around — the demo is open. To inspect your own products, start the free trial — it ends ${LAUNCH.endLabel}, with ${TRIAL_RUNS}. No card needed.`,
   },
   {
     q: 'What’s the difference between Starter and Pro?',
@@ -59,8 +60,8 @@ export const FAQS: Faq[] = [
     pricing: true,
   },
   {
-    q: 'Is there a free trial?',
-    a: `Instead of a trial, everything is free for everyone until ${LAUNCH.endLabel}, with ${LAUNCH.freeInspections} AI inspections each. After that, you can try AI inspection for ₹${PACK.price} (${PACK.inspections} inspections, one-time, up to ${PACK.maxPer30Days} packs a month) without subscribing. ${WITHOUT_PLAN} Nothing is charged unless you buy a pack or choose a plan.`,
+    q: 'What happens after the trial?',
+    a: `${WITHOUT_PLAN} Nothing is charged unless you buy a pack or choose a plan.`,
     pricing: true,
   },
   {

@@ -28,9 +28,9 @@ export const offer = () =>
   launchOpen()
     ? {
         open: true,
-        cta: 'Try it free',
-        short: `Free for everyone until ${LAUNCH.endLabel}`,
-        detail: `Every feature free for everyone until ${LAUNCH.endLabel}, with ${LAUNCH.freeInspections} AI inspections each. No card needed.`,
+        cta: 'Start free trial',
+        short: `Free trial until ${LAUNCH.endLabel}`,
+        detail: `Free trial until ${LAUNCH.endLabel}, with ${LAUNCH.freeInspections} complimentary runs and every feature. No card needed.`,
       }
     : {
         open: false,
@@ -49,3 +49,23 @@ export const LAUNCH_FEATURES = [
 
 /** What an account without a plan gets, outside the launch weekend. */
 export const WITHOUT_PLAN = `Without a plan you can keep and view your records, grade by hand and use the calculator (up to ${LIMITS.freeItems} returns). AI inspection is ${PACK_LINE} (one-time, up to ${PACK.maxPer30Days} packs a month) or included in Starter and Pro. CSV export needs a plan; AI summaries need Pro.`
+
+/** The free trial is the launch window in plans.ts: everyone gets its complimentary runs until it ends. */
+export const TRIAL_RUNS = `${LAUNCH.freeInspections} complimentary runs added`
+
+/** "Free trial ends tomorrow · 8 complimentary runs added", or null once the trial is over. */
+export function trialLine(now = Date.now()) {
+  if (!launchOpen(now)) return null
+  const day = (t: number) => new Date(t + 5.5 * 3_600_000).toISOString().slice(0, 10) // date in IST
+  const end = Date.parse(LAUNCH.end)
+  const when = day(now) === day(end) ? 'today' : day(now + 86_400_000) === day(end) ? 'tomorrow' : `on ${LAUNCH.endLabel.split(',')[0]}`
+  return `Free trial ends ${when} · ${TRIAL_RUNS}`
+}
+
+/** What the free trial includes. */
+export const TRIAL_FEATURES = [
+  'Every feature, including AI summaries and CSV export',
+  `${LAUNCH.freeInspections} complimentary AI photo runs`,
+  `Ends ${LAUNCH.endLabel}`,
+  'Keep your data if you don’t choose a plan',
+]
