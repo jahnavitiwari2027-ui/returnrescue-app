@@ -7,7 +7,8 @@ import { accountsEnabled, offer } from '../../config'
 import { inr, pct } from '../../lib/format'
 import { liquidateEverythingLoss, minorFlawCost, recoveryRate } from '../../lib/report'
 import { PACK } from '../../lib/plans'
-import { CtaBand, Eyebrow, RecoveryPreview, Reveal, usePageMeta } from './shared'
+import { HeroTool } from './HeroTool'
+import { CtaBand, Eyebrow, Reveal, usePageMeta } from './shared'
 
 // Sections that used to live on this page now have their own pages.
 const MOVED: Record<string, string> = {
@@ -64,15 +65,15 @@ export default function Home() {
               <Link to={accountsEnabled ? '/signup' : '/demo'} className={buttonClass('primary', 'lg')}>
                 {accountsEnabled ? offer().cta : 'Try the demo'} <ArrowRight className="size-4" />
               </Link>
-              <Link to="/calculator" className={buttonClass('secondary', 'lg')}>Value a return — free</Link>
+              <Link to="/demo" className={buttonClass('secondary', 'lg')}>See the demo</Link>
             </div>
             <p className="mt-4 text-sm text-muted">
-              {offer().open ? `${offer().short}. No card needed` : `AI inspection from ₹${PACK.price}, no subscription`} · <Link to="/demo" className="underline hover:text-ink">See the demo</Link> · <Link to="/pricing" className="underline hover:text-ink">Pricing</Link>
+              {offer().open ? `${offer().short}. No card needed` : `AI inspection from ₹${PACK.price}, no subscription`} · <Link to="/calculator" className="underline hover:text-ink">Full calculator</Link> · <Link to="/pricing" className="underline hover:text-ink">Pricing</Link>
             </p>
           </div>
           <div className="relative min-w-0 animate-rise [animation-delay:150ms]">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 via-paper to-transparent" />
-            <RecoveryPreview />
+            <HeroTool />
           </div>
         </div>
       </section>
