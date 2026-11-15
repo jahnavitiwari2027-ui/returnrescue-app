@@ -62,7 +62,6 @@ export default function Home() {
               <Link to={accountsEnabled ? '/signup' : '/demo'} className={buttonClass('primary', 'lg')}>
                 {accountsEnabled ? (trialLine() ? 'Start free trial' : 'Get started') : 'Try the demo'} <ArrowRight className="size-4" />
               </Link>
-              <Link to="/demo" className={buttonClass('secondary', 'lg')}>See the demo</Link>
               <Link to="/pricing" className={buttonClass('secondary', 'lg')}>Plans from ₹{PACK.price}</Link>
             </div>
             <p className="mt-4 text-sm text-muted">
