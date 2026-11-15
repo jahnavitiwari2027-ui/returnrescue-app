@@ -41,7 +41,7 @@ test('public pages render, each with its own title, and link into the app', asyn
     await page.screenshot({ path: `${shots}/landing.png`, fullPage: true })
     await page.evaluate(() => window.scrollTo(0, 0))
   }
-  await page.getByRole('link', { name: 'See the demo' }).click()
+  await page.getByRole('link', { name: 'Demo', exact: true }).first().click()
   await expect(page).toHaveURL(/\/demo$/)
   await expect(page.getByText('To inspect', { exact: true })).toBeVisible()
 })

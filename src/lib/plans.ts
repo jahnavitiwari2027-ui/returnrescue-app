@@ -28,7 +28,7 @@ export const LAUNCH = {
   end: '2026-11-15T23:59:59+05:30',
   /** Shown on the site. */
   endLabel: 'Sun 15 Nov, 11:59 PM IST',
-  freeInspections: 10,
+  freeInspections: 8,
 }
 export const launchOpen = (now = Date.now()) => now < Date.parse(LAUNCH.end)
 

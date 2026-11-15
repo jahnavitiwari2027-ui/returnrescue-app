@@ -4,10 +4,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PublicLayout } from '../../components/SiteChrome'
 import { buttonClass } from '../../components/ui'
 import { accountsEnabled, offer } from '../../config'
+import { useAuth } from '../../context/AuthContext'
 import { inr, pct } from '../../lib/format'
 import { liquidateEverythingLoss, minorFlawCost, recoveryRate } from '../../lib/report'
 import { PACK } from '../../lib/plans'
-import { HeroTool } from './HeroTool'
+import { HeroGrader } from './HeroGrader'
 import { CtaBand, Eyebrow, Reveal, usePageMeta } from './shared'
 
 // Sections that used to live on this page now have their own pages.
@@ -23,6 +24,7 @@ const MOVED: Record<string, string> = {
 
 export default function Home() {
   usePageMeta('/')
+  const { session } = useAuth()
   const { hash, search } = useLocation()
   const navigate = useNavigate()
   useEffect(() => {
@@ -62,18 +64,20 @@ export default function Home() {
               ReturnRescue grades each returned product from a photo and tells you the most valuable thing to do with it — restock, refurbish, liquidate or recycle.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to={accountsEnabled ? '/signup' : '/demo'} className={buttonClass('primary', 'lg')}>
-                {accountsEnabled ? offer().cta : 'Try the demo'} <ArrowRight className="size-4" />
+              <Link to="/pricing" className={buttonClass('primary', 'lg')}>
+                Plans from ₹{PACK.price} <ArrowRight className="size-4" />
               </Link>
-              <Link to="/demo" className={buttonClass('secondary', 'lg')}>See the demo</Link>
+              {accountsEnabled && !session && (
+                <Link to="/login" className={buttonClass('secondary', 'lg')}>Log in</Link>
+              )}
             </div>
             <p className="mt-4 text-sm text-muted">
-              {offer().open ? `${offer().short}. No card needed` : `AI inspection from ₹${PACK.price}, no subscription`} · <Link to="/calculator" className="underline hover:text-ink">Full calculator</Link> · <Link to="/pricing" className="underline hover:text-ink">Pricing</Link>
+              {offer().open ? `${offer().short}. No card needed` : `AI inspection from ₹${PACK.price}, no subscription`} · <Link to="/calculator" className="underline hover:text-ink">Value a return without a photo</Link>
             </p>
           </div>
           <div className="relative min-w-0 animate-rise [animation-delay:150ms]">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 via-paper to-transparent" />
-            <HeroTool />
+            <HeroGrader />
           </div>
         </div>
       </section>

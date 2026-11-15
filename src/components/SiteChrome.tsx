@@ -43,6 +43,9 @@ export function SiteHeader() {
             </>
           )}
         </div>
+        {accountsEnabled && !session && (
+          <Link to="/login" className={buttonClass('ghost', 'sm', 'ml-auto mr-1 md:hidden')}>Log in</Link>
+        )}
         <button className="rounded-lg p-2 md:hidden" onClick={() => setOpen((o) => !o)} aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open}>
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>

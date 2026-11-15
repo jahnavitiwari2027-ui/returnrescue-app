@@ -10,10 +10,10 @@ const base = { plan: null, used30d: 0, usedSinceLaunch: 0, usedInWindow: 0, pack
 describe('aiAllowance', () => {
   it('gives everyone the free launch inspections during the weekend', () => {
     expect(aiAllowance({ ...base, now: during })).toMatchObject({ remaining: LAUNCH.freeInspections, limit: LAUNCH.freeInspections })
-    expect(aiAllowance({ ...base, usedSinceLaunch: 10, usedInWindow: 10, now: during }).remaining).toBe(0)
+    expect(aiAllowance({ ...base, usedSinceLaunch: LAUNCH.freeInspections, usedInWindow: LAUNCH.freeInspections, now: during }).remaining).toBe(0)
   })
   it('adds 15 per pack on top', () => {
-    expect(aiAllowance({ ...base, usedSinceLaunch: 10, usedInWindow: 10, packs: [pack(0, during)], now: during }).remaining).toBe(PACK.inspections)
+    expect(aiAllowance({ ...base, usedSinceLaunch: LAUNCH.freeInspections, usedInWindow: LAUNCH.freeInspections, packs: [pack(0, during)], now: during }).remaining).toBe(PACK.inspections)
   })
   it('after the weekend, unused free inspections are gone but used ones are not charged again', () => {
     expect(aiAllowance({ ...base, now: after }).remaining).toBe(0)

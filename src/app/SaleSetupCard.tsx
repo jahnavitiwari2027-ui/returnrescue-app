@@ -47,8 +47,9 @@ export function SaleSetupCard({
   sale: SaleSetup
   rates: RateCard
   onChange: (s: SaleSetup) => void
-  saveDefault: boolean
-  onSaveDefault: (v: boolean) => void
+  saveDefault?: boolean
+  /** Leave out to hide the "save as default" option (e.g. on the public calculator). */
+  onSaveDefault?: (v: boolean) => void
   /** The seller typed their own selling costs, which take priority over these fees. */
   ownCosts: boolean
 }) {
@@ -160,13 +161,15 @@ export function SaleSetupCard({
           </p>
         )}
 
-        <label className="flex items-start gap-2.5 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={saveDefault} onChange={(e) => onSaveDefault(e.target.checked)} />
-          <span>
-            Save as my default for new returns
-            <span className="block text-xs text-muted">Keeps this platform and anything you set above. Change it any time on your rate card.</span>
-          </span>
-        </label>
+        {onSaveDefault && (
+          <label className="flex items-start gap-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={!!saveDefault} onChange={(e) => onSaveDefault(e.target.checked)} />
+            <span>
+              Save as my default for new returns
+              <span className="block text-xs text-muted">Keeps this platform and anything you set above. Change it any time on your rate card.</span>
+            </span>
+          </label>
+        )}
       </div>
     </Card>
   )

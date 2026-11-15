@@ -6,9 +6,10 @@ import { PublicLayout } from '../../components/SiteChrome'
 import { buttonClass, Input, Select } from '../../components/ui'
 import { accountsEnabled, offer } from '../../config'
 import { inr, pct } from '../../lib/format'
-import { CONDITION_LABEL, quoteReturn, type Condition } from '../../lib/quote'
+import { CONDITION_LABEL, OVERRIDE_FIELDS, quoteFull, type Condition, type OverrideField } from '../../lib/quote'
+import { SaleSetupCard } from '../../app/SaleSetupCard'
 import { LAUNCH, PACK } from '../../lib/plans'
-import { PLATFORM_LABEL, PLATFORMS, type PlatformKey } from '../../lib/rates'
+import { DEFAULT_RATES, PLATFORM_LABEL, PLATFORMS, type PlatformKey, type SaleSetup } from '../../lib/rates'
 import { CATEGORIES, type Category } from '../../lib/types'
 import { CtaBand, PageIntro, usePageMeta } from './shared'
 
@@ -17,14 +18,28 @@ export default function Calculator() {
   usePageMeta('/calculator')
   const [category, setCategory] = useState<Category>('Topwear')
   const [price, setPrice] = useState('1499')
-  const [platform, setPlatform] = useState<PlatformKey>('amazon')
+  const [sale, setSale] = useState<SaleSetup>({ platform: 'amazon' })
+  const platform = sale.platform
+  const setPlatform = (p: PlatformKey) => setSale({ platform: p })
+  const [gstRegistered, setGstRegistered] = useState(true)
+  const [own, setOwn] = useState<Partial<Record<OverrideField, string>>>({})
+  const [shipping, setShipping] = useState('')
+  const [more, setMore] = useState(false)
   const [condition, setCondition] = useState<Condition>('B')
   const [perMonth, setPerMonth] = useState('50')
   const [open, setOpen] = useState<string | null>(null)
 
   const p = Math.min(Math.max(Number(price) || 0, 0), 10_00_000)
   const n = Math.min(Math.max(Math.round(Number(perMonth) || 0), 0), 1_00_000)
-  const { calc } = useMemo(() => quoteReturn({ category, price: p || 1, platform, condition }), [category, p, platform, condition])
+  const overrides = useMemo(() => {
+    const o: Partial<Record<OverrideField, number>> = {}
+    for (const [k, v] of Object.entries(own)) if (v !== '' && v != null && Number.isFinite(Number(v)) && Number(v) >= 0) o[k as OverrideField] = Number(v)
+    return o
+  }, [own])
+  const { calc } = useMemo(
+    () => quoteFull({ category, price: p || 1, sale, condition, gstRegistered, overrides, returnShipping: Math.max(0, Number(shipping) || 0) }),
+    [category, p, sale, condition, gstRegistered, overrides, shipping],
+  )
   const best = calc.routes.find((r) => r.route === calc.recommended)
   const liquidate = calc.routes.find((r) => r.route === 'liquidate')
   const gap = best && liquidate ? best.net - liquidate.net : 0
@@ -76,6 +91,38 @@ export default function Calculator() {
             <Input id="calc-n" type="number" inputMode="numeric" min={0} value={perMonth} onChange={(e) => setPerMonth(e.target.value)} className="tabular" />
           </div>
           <p className="text-xs text-muted">Uses ReturnRescue’s published rate card: each platform’s fees, GST, courier rates and real repair prices. Typical defects are assumed for each grade.</p>
+          <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more} className="flex w-full items-center justify-between rounded-xl border border-line px-3 py-2.5 text-left text-sm font-medium hover:bg-paper">
+            <span>More options <span className="font-normal text-muted">— fees, GST, delivery, your own prices</span></span>
+            <ChevronDown className={clsx('size-4 text-muted transition', more && 'rotate-180')} />
+          </button>
+          {more && (
+            <div className="space-y-4">
+              <SaleSetupCard category={category} price={p} sale={sale} rates={{ ...DEFAULT_RATES, gst_registered: gstRegistered }} onChange={setSale} ownCosts={false} />
+              <label className="flex items-start gap-2.5 text-sm">
+                <input type="checkbox" className="mt-0.5 size-4 accent-brand-700" checked={gstRegistered} onChange={(e) => setGstRegistered(e.target.checked)} />
+                <span>
+                  I’m GST-registered
+                  <span className="block text-xs text-muted">GST inside the price is deducted and GST on fees is claimed back. Untick if you’re not registered: GST on fees then counts as a cost.</span>
+                </span>
+              </label>
+              <fieldset>
+                <legend className="mb-1 text-sm font-medium text-ink-2">Your own prices or quotes <span className="font-normal text-muted">(optional — blank uses the rate card)</span></legend>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {OVERRIDE_FIELDS.map(([k, label]) => (
+                    <label key={k} className="block text-xs font-medium text-ink-2">
+                      {label} (₹)
+                      <Input type="number" inputMode="decimal" min={0} value={own[k] ?? ''} onChange={(e) => setOwn({ ...own, [k]: e.target.value })} placeholder="Rate card" className="mt-1 tabular" />
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <label className="block text-xs font-medium text-ink-2">
+                Return shipping already paid (₹)
+                <Input type="number" inputMode="decimal" min={0} value={shipping} onChange={(e) => setShipping(e.target.value)} placeholder="0" className="mt-1 tabular" />
+                <span className="mt-1 block font-normal text-muted">Shown for your P&amp;L, but left out of the decision — it’s spent whichever option you pick.</span>
+              </label>
+            </div>
+          )}
         </form>
 
         <div className="space-y-4" aria-live="polite">
@@ -125,7 +172,7 @@ export default function Calculator() {
                 </div>
               )
             })}
-            <p className="px-2 pb-1 pt-2 text-xs text-muted">Tap an option for the rupee-by-rupee breakdown.</p>
+            <p className="px-2 pb-1 pt-2 text-xs text-muted">Tap an option for the rupee-by-rupee breakdown.{calc.sunkCost > 0 && ` Return shipping of ${inr(calc.sunkCost)} is already spent and left out.`}</p>
           </div>
           <div className="rounded-2xl border border-line bg-paper p-4 text-sm">
             <p className="font-medium">Don’t know the grade?</p>
